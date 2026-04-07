@@ -2,6 +2,7 @@ import { AccuracyTable } from "@/components/accuracy-table";
 import { ChartSection } from "@/components/chart-section";
 import { HeroPrediction } from "@/components/hero-prediction";
 import { IndicatorCard } from "@/components/indicator-card";
+import { LiveStatus } from "@/components/live-status";
 import { SeoContent } from "@/components/seo-content";
 import { SiteHeader } from "@/components/site-header";
 import {
@@ -11,8 +12,6 @@ import {
   getPredictionData,
 } from "@/lib/data";
 import Script from "next/script";
-
-
 
 export default async function Home() {
   const [prediction, indicators, history, freshness] = await Promise.all([
@@ -73,12 +72,7 @@ export default async function Home() {
         title="코스피 시초가 예측 대시보드"
       />
 
-      <div className="statusBlock">
-        <span className="statusBadge">{prediction.marketStatus}</span>
-        <span>현재 시각 {nowKst}</span>
-        <span>데이터 갱신 {updatedAt}</span>
-        <span className={`healthPill ${freshness.status}`}>{freshnessLabel}</span>
-      </div>
+      <LiveStatus lastUpdated={updatedAt} />
 
       <HeroPrediction prediction={prediction} />
 
