@@ -1,0 +1,19 @@
+{
+  "alpha0": 0.188209,
+  "alpha1": 0.0,
+  "alpha2": 0.0,
+  "alpha3": 0.0,
+  "alpha4": 0.0,
+  "alpha5": 0.864113,
+  "residualStd": 22.070726,
+  "selectedFeatures": [
+    "sp500_return",
+    "sox_return"
+  ],
+  "coefficientsByFeature": {
+    "sp500_return": 0.864113,
+    "sox_return": 0.318816
+  },
+  "updatedAt": "2026-04-07T14:30:09.306757+00:00",
+  "source": "rolling-backtest"
+}

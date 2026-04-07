@@ -1,0 +1,485 @@
+{
+  "selectedModel": {
+    "features": [
+      "sp500_return",
+      "sox_return"
+    ],
+    "coefficients": {
+      "const": 0.08194,
+      "sp500_return": 0.293243,
+      "sox_return": 0.125928
+    },
+    "rmse": 22.07,
+    "mae": 12.39,
+    "bandHitRate": 75.47,
+    "directionHitRate": 76.86
+  },
+  "candidateRanking": [
+    {
+      "rank": 1,
+      "features": [
+        "sp500_return",
+        "sox_return"
+      ],
+      "rmse": 22.07,
+      "mae": 12.39,
+      "bandHitRate": 75.47,
+      "directionHitRate": 76.86,
+      "avgPValue": 0.0,
+      "avgVif": 3.0786
+    },
+    {
+      "rank": 2,
+      "features": [
+        "sp500_return",
+        "sox_return",
+        "koru_return"
+      ],
+      "rmse": 22.42,
+      "mae": 12.56,
+      "bandHitRate": 74.53,
+      "directionHitRate": 76.63,
+      "avgPValue": 0.000402,
+      "avgVif": 2.7757
+    },
+    {
+      "rank": 3,
+      "features": [
+        "ewy_return",
+        "sp500_return",
+        "sox_return"
+      ],
+      "rmse": 22.43,
+      "mae": 12.56,
+      "bandHitRate": 74.92,
+      "directionHitRate": 76.55,
+      "avgPValue": 0.000562,
+      "avgVif": 2.771
+    },
+    {
+      "rank": 4,
+      "features": [
+        "nasdaq_return",
+        "sox_return"
+      ],
+      "rmse": 22.73,
+      "mae": 12.83,
+      "bandHitRate": 76.09,
+      "directionHitRate": 75.31,
+      "avgPValue": 0.0,
+      "avgVif": 4.4645
+    },
+    {
+      "rank": 5,
+      "features": [
+        "sp500_return",
+        "koru_return"
+      ],
+      "rmse": 22.92,
+      "mae": 12.65,
+      "bandHitRate": 76.71,
+      "directionHitRate": 76.16,
+      "avgPValue": 0.0,
+      "avgVif": 1.6321
+    },
+    {
+      "rank": 6,
+      "features": [
+        "ewy_return",
+        "sp500_return"
+      ],
+      "rmse": 22.96,
+      "mae": 12.66,
+      "bandHitRate": 76.86,
+      "directionHitRate": 76.09,
+      "avgPValue": 0.0,
+      "avgVif": 1.6247
+    },
+    {
+      "rank": 7,
+      "features": [
+        "nasdaq_return",
+        "sox_return",
+        "koru_return"
+      ],
+      "rmse": 23.1,
+      "mae": 12.95,
+      "bandHitRate": 75.31,
+      "directionHitRate": 74.92,
+      "avgPValue": 0.0,
+      "avgVif": 3.6771
+    },
+    {
+      "rank": 8,
+      "features": [
+        "ewy_return",
+        "nasdaq_return",
+        "sox_return"
+      ],
+      "rmse": 23.1,
+      "mae": 12.95,
+      "bandHitRate": 75.54,
+      "directionHitRate": 74.92,
+      "avgPValue": 1e-06,
+      "avgVif": 3.6732
+    },
+    {
+      "rank": 9,
+      "features": [
+        "nasdaq_return",
+        "koru_return"
+      ],
+      "rmse": 23.42,
+      "mae": 12.97,
+      "bandHitRate": 76.24,
+      "directionHitRate": 75.0,
+      "avgPValue": 0.0,
+      "avgVif": 1.5452
+    },
+    {
+      "rank": 10,
+      "features": [
+        "ewy_return",
+        "nasdaq_return"
+      ],
+      "rmse": 23.43,
+      "mae": 12.97,
+      "bandHitRate": 76.32,
+      "directionHitRate": 74.84,
+      "avgPValue": 0.0,
+      "avgVif": 1.539
+    }
+  ],
+  "recent30Diagnostics": [
+    {
+      "date": "2026-04-07",
+      "predOpen": 5499.06,
+      "actualOpen": 5552.19,
+      "error": -53.13,
+      "absError": 53.13,
+      "bandLow": 5419.63,
+      "bandHigh": 5578.49,
+      "hit": true,
+      "directionHit": true
+    },
+    {
+      "date": "2026-04-03",
+      "predOpen": 5253.81,
+      "actualOpen": 5375.5,
+      "error": -121.69,
+      "absError": 121.69,
+      "bandLow": 5178.9,
+      "bandHigh": 5328.72,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-04-02",
+      "predOpen": 5570.74,
+      "actualOpen": 5551.69,
+      "error": 19.05,
+      "absError": 19.05,
+      "bandLow": 5492.26,
+      "bandHigh": 5649.21,
+      "hit": true,
+      "directionHit": true
+    },
+    {
+      "date": "2026-04-01",
+      "predOpen": 5282.17,
+      "actualOpen": 5330.04,
+      "error": -47.87,
+      "absError": 47.87,
+      "bandLow": 5198.84,
+      "bandHigh": 5365.5,
+      "hit": true,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-31",
+      "predOpen": 5200.51,
+      "actualOpen": 5143.75,
+      "error": 56.76,
+      "absError": 56.76,
+      "bandLow": 5084.88,
+      "bandHigh": 5316.15,
+      "hit": true,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-30",
+      "predOpen": 5349.76,
+      "actualOpen": 5181.8,
+      "error": 167.96,
+      "absError": 167.96,
+      "bandLow": 5233.25,
+      "bandHigh": 5466.26,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-27",
+      "predOpen": 5316.66,
+      "actualOpen": 5300.61,
+      "error": 16.05,
+      "absError": 16.05,
+      "bandLow": 5228.85,
+      "bandHigh": 5404.46,
+      "hit": true,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-26",
+      "predOpen": 5697.79,
+      "actualOpen": 5594.06,
+      "error": 103.73,
+      "absError": 103.73,
+      "bandLow": 5608.05,
+      "bandHigh": 5787.54,
+      "hit": false,
+      "directionHit": false
+    },
+    {
+      "date": "2026-03-25",
+      "predOpen": 5566.58,
+      "actualOpen": 5680.33,
+      "error": -113.75,
+      "absError": 113.75,
+      "bandLow": 5479.52,
+      "bandHigh": 5653.63,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-24",
+      "predOpen": 5482.11,
+      "actualOpen": 5638.2,
+      "error": -156.09,
+      "absError": 156.09,
+      "bandLow": 5400.03,
+      "bandHigh": 5564.19,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-23",
+      "predOpen": 5685.24,
+      "actualOpen": 5580.15,
+      "error": 105.09,
+      "absError": 105.09,
+      "bandLow": 5598.61,
+      "bandHigh": 5771.88,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-20",
+      "predOpen": 5776.25,
+      "actualOpen": 5813.35,
+      "error": -37.1,
+      "absError": 37.1,
+      "bandLow": 5701.46,
+      "bandHigh": 5851.03,
+      "hit": true,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-19",
+      "predOpen": 5874.14,
+      "actualOpen": 5761.4,
+      "error": 112.74,
+      "absError": 112.74,
+      "bandLow": 5786.71,
+      "bandHigh": 5961.57,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-18",
+      "predOpen": 5667.19,
+      "actualOpen": 5767.1,
+      "error": -99.91,
+      "absError": 99.91,
+      "bandLow": 5596.02,
+      "bandHigh": 5738.36,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-17",
+      "predOpen": 5626.57,
+      "actualOpen": 5711.8,
+      "error": -85.23,
+      "absError": 85.23,
+      "bandLow": 5557.23,
+      "bandHigh": 5695.91,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-16",
+      "predOpen": 5475.06,
+      "actualOpen": 5510.82,
+      "error": -35.76,
+      "absError": 35.76,
+      "bandLow": 5395.87,
+      "bandHigh": 5554.26,
+      "hit": true,
+      "directionHit": false
+    },
+    {
+      "date": "2026-03-13",
+      "predOpen": 5479.26,
+      "actualOpen": 5412.39,
+      "error": 66.87,
+      "absError": 66.87,
+      "bandLow": 5399.17,
+      "bandHigh": 5559.35,
+      "hit": true,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-12",
+      "predOpen": 5627.44,
+      "actualOpen": 5567.65,
+      "error": 59.79,
+      "absError": 59.79,
+      "bandLow": 5557.86,
+      "bandHigh": 5697.03,
+      "hit": true,
+      "directionHit": false
+    },
+    {
+      "date": "2026-03-11",
+      "predOpen": 5545.72,
+      "actualOpen": 5658.72,
+      "error": -113.0,
+      "absError": 113.0,
+      "bandLow": 5478.3,
+      "bandHigh": 5613.14,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-10",
+      "predOpen": 5344.4,
+      "actualOpen": 5523.21,
+      "error": -178.81,
+      "absError": 178.81,
+      "bandLow": 5274.62,
+      "bandHigh": 5414.19,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-09",
+      "predOpen": 5491.1,
+      "actualOpen": 5265.37,
+      "error": 225.73,
+      "absError": 225.73,
+      "bandLow": 5423.19,
+      "bandHigh": 5559.01,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-06",
+      "predOpen": 5557.07,
+      "actualOpen": 5491.02,
+      "error": 66.05,
+      "absError": 66.05,
+      "bandLow": 5498.67,
+      "bandHigh": 5615.46,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-05",
+      "predOpen": 5148.27,
+      "actualOpen": 5250.92,
+      "error": -102.65,
+      "absError": 102.65,
+      "bandLow": 5096.38,
+      "bandHigh": 5200.15,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-04",
+      "predOpen": 5704.69,
+      "actualOpen": 5592.59,
+      "error": 112.1,
+      "absError": 112.1,
+      "bandLow": 5646.86,
+      "bandHigh": 5762.52,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-03-03",
+      "predOpen": 6263.67,
+      "actualOpen": 6165.15,
+      "error": 98.52,
+      "absError": 98.52,
+      "bandLow": 6202.03,
+      "bandHigh": 6325.31,
+      "hit": false,
+      "directionHit": false
+    },
+    {
+      "date": "2026-02-27",
+      "predOpen": 6251.64,
+      "actualOpen": 6197.49,
+      "error": 54.15,
+      "absError": 54.15,
+      "bandLow": 6203.92,
+      "bandHigh": 6299.37,
+      "hit": false,
+      "directionHit": true
+    },
+    {
+      "date": "2026-02-26",
+      "predOpen": 6145.95,
+      "actualOpen": 6121.03,
+      "error": 24.92,
+      "absError": 24.92,
+      "bandLow": 6099.92,
+      "bandHigh": 6191.98,
+      "hit": true,
+      "directionHit": true
+    },
+    {
+      "date": "2026-02-25",
+      "predOpen": 6026.51,
+      "actualOpen": 6022.7,
+      "error": 3.81,
+      "absError": 3.81,
+      "bandLow": 5981.35,
+      "bandHigh": 6071.67,
+      "hit": true,
+      "directionHit": true
+    },
+    {
+      "date": "2026-02-24",
+      "predOpen": 5814.11,
+      "actualOpen": 5853.48,
+      "error": -39.37,
+      "absError": 39.37,
+      "bandLow": 5756.78,
+      "bandHigh": 5871.44,
+      "hit": true,
+      "directionHit": false
+    },
+    {
+      "date": "2026-02-23",
+      "predOpen": 5855.27,
+      "actualOpen": 5903.11,
+      "error": -47.84,
+      "absError": 47.84,
+      "bandLow": 5811.59,
+      "bandHigh": 5898.95,
+      "hit": false,
+      "directionHit": true
+    }
+  ]
+}

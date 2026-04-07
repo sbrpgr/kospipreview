@@ -1,0 +1,33 @@
+{
+  "marketStatus": "한국장 개장 전",
+  "currentTimeKst": "2026-04-07T23:30:09.371539+09:00",
+  "predictionDate": "2026-04-08",
+  "rangeLow": 5426,
+  "rangeHigh": 5493,
+  "pointPrediction": 5460,
+  "predictedChangePct": -0.64,
+  "confidence": 2,
+  "confidenceLabel": "낮음",
+  "signalSummary": "S&P500 약세, 필라델피아반도체 약세",
+  "lastCalculatedAt": "2026-04-07T23:30:09.371539+09:00",
+  "bandHitRate30d": 40.0,
+  "directionHitRate30d": 83.3,
+  "mae30d": 84.18,
+  "yesterday": {
+    "predictionLow": 5419.63,
+    "predictionHigh": 5578.49,
+    "actualOpen": 5552.19,
+    "hit": true
+  },
+  "model": {
+    "modelA": 5459.55,
+    "modelB": 5472.38,
+    "divergencePct": 0.23,
+    "bandMultiplier": 1.5,
+    "vix": 26.94,
+    "selectedFeatures": [
+      "sp500_return",
+      "sox_return"
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+name: retrain-model
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 매 평일 UTC 21:10 = KST 06:10 (미국장 마감 후)
+    - cron: "10 21 * * 1-5"
+
+permissions:
+  contents: write   # git push 허용
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Rebuild model artifacts
+        run: python ./scripts/backtest_and_generate.py
+
+      # ─── 갱신된 JSON/MD를 레포에 커밋 후 푸시 ───────────────────────
+      - name: Commit updated data files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/*.json model/coefficients.json docs/BACKTEST_RESULTS.md
+          # 변경이 없으면 커밋 건너뜀 (--allow-empty 미사용)
+          git diff --cached --quiet || git commit -m "chore: auto-update data $(date -u +'%Y-%m-%d %H:%M UTC')"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref_name }}
+
+      # ─── Vercel 재배포 트리거 (Deploy Hook URL을 Secrets에 등록) ────
+      - name: Trigger Vercel redeploy
+        if: ${{ env.VERCEL_DEPLOY_HOOK != '' }}
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: curl -s -X POST "$VERCEL_DEPLOY_HOOK"
+
+      # ─── 프론트엔드 빌드 검증 ────────────────────────────────────────
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend (smoke test)
+        working-directory: frontend
+        env:
+          # GitHub Raw URL로 데이터를 읽을 수 있도록 설정
+          DATA_BASE_URL: "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/data"
+        run: npm run build

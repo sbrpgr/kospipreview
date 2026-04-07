@@ -1,0 +1,83 @@
+{
+  "primary": [
+    {
+      "key": "ewy",
+      "label": "EWY",
+      "value": "$124.51",
+      "changePct": -1.14,
+      "updatedAt": "2026-04-07T00:00:00"
+    },
+    {
+      "key": "krw",
+      "label": "USD/KRW",
+      "value": "1,500.38",
+      "changePct": -0.59,
+      "updatedAt": "2026-04-07T00:00:00"
+    },
+    {
+      "key": "wti",
+      "label": "WTI",
+      "value": "$116.95",
+      "changePct": 4.04,
+      "updatedAt": "2026-04-07T00:00:00"
+    },
+    {
+      "key": "sp500",
+      "label": "S&P500",
+      "value": "6,566.24",
+      "changePct": -0.69,
+      "updatedAt": "2026-04-07T00:00:00"
+    }
+  ],
+  "secondary": [
+    {
+      "key": "nasdaq",
+      "label": "나스닥",
+      "value": "23,932.55",
+      "changePct": -1.07,
+      "updatedAt": "2026-04-07T00:00:00"
+    },
+    {
+      "key": "vix",
+      "label": "VIX",
+      "value": "26.94",
+      "changePct": 11.46,
+      "updatedAt": "2026-04-07T00:00:00"
+    },
+    {
+      "key": "koru",
+      "label": "KORU",
+      "value": "$292.28",
+      "changePct": -3.24,
+      "updatedAt": "2026-04-07T00:00:00"
+    },
+    {
+      "key": "dow",
+      "label": "다우",
+      "value": "46,449.51",
+      "changePct": -0.47,
+      "updatedAt": "2026-04-07T00:00:00"
+    },
+    {
+      "key": "gold",
+      "label": "금 시세",
+      "value": "$4,637.00",
+      "changePct": -0.43,
+      "updatedAt": "2026-04-07T00:00:00"
+    },
+    {
+      "key": "us10y",
+      "label": "US10Y",
+      "value": "4.36%",
+      "changePct": 0.6,
+      "updatedAt": "2026-04-07T00:00:00"
+    },
+    {
+      "key": "sox",
+      "label": "필라델피아반도체",
+      "value": "7,858.14",
+      "changePct": -0.73,
+      "updatedAt": "2026-04-07T00:00:00"
+    }
+  ]
+}
