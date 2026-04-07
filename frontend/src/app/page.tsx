@@ -122,6 +122,8 @@ export default async function Home() {
               label={indicator.label}
               updatedAt={indicator.updatedAt}
               value={indicator.value}
+              sourceUrl={indicator.sourceUrl}
+              dataSource={indicator.dataSource}
             />
           ))}
         </div>
@@ -135,6 +137,8 @@ export default async function Home() {
               label={indicator.label}
               updatedAt={indicator.updatedAt}
               value={indicator.value}
+              sourceUrl={indicator.sourceUrl}
+              dataSource={indicator.dataSource}
             />
           ))}
         </div>

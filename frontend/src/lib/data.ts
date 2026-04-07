@@ -89,6 +89,8 @@ export async function getIndicatorData() {
       value: string;
       changePct: number;
       updatedAt: string;
+      sourceUrl?: string;
+      dataSource?: string;
     }>;
     secondary: Array<{
       key: string;
@@ -96,7 +98,11 @@ export async function getIndicatorData() {
       value: string;
       changePct: number;
       updatedAt: string;
+      sourceUrl?: string;
+      dataSource?: string;
     }>;
+    dataNote?: string;
+    generatedAt?: string;
   }>("indicators.json");
 }
 

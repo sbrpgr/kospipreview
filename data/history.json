@@ -1,8 +1,8 @@
 {
   "summary": {
-    "bandHitRate30d": 40.0,
-    "directionHitRate30d": 83.3,
-    "mae30d": 83.76
+    "bandHitRate30d": 75.3,
+    "directionHitRate30d": 76.5,
+    "mae30d": 12.24
   },
   "records": [
     {
@@ -145,5 +145,6 @@
       "actualOpen": 5523.21,
       "hit": false
     }
-  ]
+  ],
+  "generatedAt": "2026-04-07T17:37:22.620484+00:00"
 }

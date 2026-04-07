@@ -1,0 +1,13 @@
+{
+  "features": [
+    "sp500_return",
+    "sox_return"
+  ],
+  "coefficients": {
+    "const": 0.171393,
+    "sp500_return": 0.872325,
+    "sox_return": 0.308865
+  },
+  "rmse": 29.0358,
+  "generatedAt": "2026-04-07T17:37:22.618371+00:00"
+}

@@ -4,18 +4,25 @@ import itertools
 import json
 import math
 import sys
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
+
+warnings.filterwarnings("ignore")
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import yfinance as yf
+import lightgbm as lgb
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.preprocessing import StandardScaler
+import statsmodels.api as sm
 
 from model.predictor import Coefficients, PredictionInput, calculate_prediction
 
@@ -29,17 +36,32 @@ KOREA_TICKERS = {
 }
 
 FEATURE_TICKERS = {
-    "ewy": "EWY",
-    "koru": "KORU",
-    "sp500": "^GSPC",
-    "nasdaq": "^NDX",
-    "dow": "^DJI",
-    "vix": "^VIX",
-    "wti": "CL=F",
-    "gold": "GC=F",
-    "us10y": "^TNX",
-    "sox": "^SOX",
-    "krw": "KRW=X",
+    "ewy": "EWY",        # iShares MSCI South Korea ETF (미국장 한국 대표 ETF)
+    "koru": "KORU",      # Direxion 3x Korea ETF
+    "sp500": "^GSPC",    # S&P 500
+    "nasdaq": "^NDX",    # 나스닥 100
+    "dow": "^DJI",       # 다우존스 산업평균
+    "vix": "^VIX",       # CBOE 변동성 지수
+    "wti": "CL=F",       # WTI 원유 선물
+    "gold": "GC=F",      # 금 선물
+    "us10y": "^TNX",     # 미국 10년 국채 금리
+    "sox": "^SOX",       # 필라델피아 반도체 지수
+    "krw": "KRW=X",      # 원/달러 환율 (KRW=X: USD 1 = KRW x원, 상승=원화약세)
+}
+
+# 출처 URL (UI에서 연결용)
+INDICATOR_SOURCE_URLS = {
+    "ewy":    "https://finance.yahoo.com/quote/EWY",
+    "koru":   "https://finance.yahoo.com/quote/KORU",
+    "sp500":  "https://finance.yahoo.com/quote/%5EGSPC",
+    "nasdaq": "https://finance.yahoo.com/quote/%5ENDX",
+    "dow":    "https://finance.yahoo.com/quote/%5EDJI",
+    "vix":    "https://finance.yahoo.com/quote/%5EVIX",
+    "wti":    "https://finance.yahoo.com/quote/CL%3DF",
+    "gold":   "https://finance.yahoo.com/quote/GC%3DF",
+    "us10y":  "https://finance.yahoo.com/quote/%5ETNX",
+    "sox":    "https://finance.yahoo.com/quote/%5ESOX",
+    "krw":    "https://finance.yahoo.com/quote/KRW%3DX",
 }
 
 PRIMARY_FEATURE_CANDIDATES = ["ewy", "krw", "wti", "sp500", "nasdaq", "sox", "koru"]
@@ -48,6 +70,26 @@ LOOKBACK_DAYS = 5 * 365
 ROLLING_WINDOW = 120
 MIN_FEATURES = 2
 MAX_FEATURES = 5
+
+# LightGBM 하이퍼파라미터 (빠른 실행용)
+LGBM_PARAMS = {
+    "objective": "regression",
+    "metric": "rmse",
+    "n_estimators": 200,
+    "learning_rate": 0.05,
+    "num_leaves": 31,
+    "min_child_samples": 10,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "reg_alpha": 0.1,
+    "reg_lambda": 0.1,
+    "verbosity": -1,
+    "random_state": 42,
+}
+
+# Quantile Regression용 파라미터
+LGBM_PARAMS_LOW = {**LGBM_PARAMS, "objective": "quantile", "alpha": 0.1}
+LGBM_PARAMS_HIGH = {**LGBM_PARAMS, "objective": "quantile", "alpha": 0.9}
 
 
 @dataclass
@@ -69,18 +111,59 @@ def main() -> None:
 
     market = fetch_market_data()
     dataset = build_model_dataset(market)
-    model_result, candidate_results = select_best_model(dataset)
-    final_model = fit_final_model(dataset, model_result.features)
-    latest_payload = build_latest_payload(market, final_model.params, model_result.rmse)
-    history_df = build_history(model_result)
 
-    write_coefficients(final_model.params, model_result.features, model_result.rmse)
-    write_history_json(history_df, model_result)
-    write_backtest_diagnostics_json(model_result, candidate_results)
-    write_daily_archive_json(history_df, model_result)
+    # ── OLS 기반 선형 모델 (피처 선택 기준용, 빠름) ──
+    ols_result, candidate_results = select_best_model(dataset)
+    final_ols = fit_final_model(dataset, ols_result.features)
+
+    # ── LightGBM 앙상블로 최종 예측 ──
+    lgbm_result = train_lgbm(dataset, ols_result.features)
+
+    latest_payload = build_latest_payload(market, lgbm_result, ols_result.features)
+    history_df = build_history(ols_result)
+
+    write_coefficients(final_ols.params, ols_result.features, lgbm_result["rmse"])
+    write_history_json(history_df, ols_result)
+    write_backtest_diagnostics_json(ols_result, candidate_results)
+    write_daily_archive_json(history_df, ols_result)
     write_indicators_json(market)
-    write_prediction_json(latest_payload, model_result, history_df)
-    write_backtest_report(dataset, model_result, final_model, candidate_results)
+    write_prediction_json(latest_payload, ols_result, lgbm_result, history_df)
+    write_backtest_report(dataset, ols_result, final_ols, candidate_results, lgbm_result)
+
+    # 성능 비교 보고서 별도 출력
+    print_performance_comparison(ols_result, lgbm_result)
+
+
+def print_performance_comparison(ols_result: ModelResult, lgbm_result: dict) -> None:
+    """OLS vs LightGBM 성능 비교를 콘솔에 출력"""
+    print("\n" + "=" * 60)
+    print("   📊 모델 성능 비교 보고서 (OLS vs LightGBM)")
+    print("=" * 60)
+    print(f"  {'지표':<20} {'OLS':>10} {'LightGBM':>12} {'개선율':>10}")
+    print("-" * 60)
+    ols_rmse = ols_result.rmse
+    lgbm_rmse = lgbm_result["rmse"]
+    rmse_improvement = (ols_rmse - lgbm_rmse) / ols_rmse * 100
+    print(f"  {'RMSE (낮을수록 좋음)':<20} {ols_rmse:>10.2f} {lgbm_rmse:>12.2f} {rmse_improvement:>+9.1f}%")
+
+    ols_mae = ols_result.mae
+    lgbm_mae = lgbm_result["mae"]
+    mae_improvement = (ols_mae - lgbm_mae) / ols_mae * 100
+    print(f"  {'MAE (낮을수록 좋음)':<20} {ols_mae:>10.2f} {lgbm_mae:>12.2f} {mae_improvement:>+9.1f}%")
+
+    ols_band = ols_result.band_hit_rate
+    lgbm_band = lgbm_result["band_hit_rate"]
+    print(f"  {'밴드 적중률':<20} {ols_band:>9.1f}% {lgbm_band:>11.1f}% {lgbm_band - ols_band:>+9.1f}%p")
+
+    ols_dir = ols_result.direction_hit_rate
+    lgbm_dir = lgbm_result["direction_hit_rate"]
+    print(f"  {'방향 적중률':<20} {ols_dir:>9.1f}% {lgbm_dir:>11.1f}% {lgbm_dir - ols_dir:>+9.1f}%p")
+    print("=" * 60)
+    if lgbm_rmse < ols_rmse:
+        print(f"  ✅ LightGBM이 RMSE 기준 {abs(rmse_improvement):.1f}% 더 정확합니다.")
+    else:
+        print(f"  ⚠️  이번 학습에서는 OLS가 더 낮은 RMSE를 보였습니다.")
+    print("=" * 60 + "\n")
 
 
 def fetch_market_data() -> dict[str, pd.DataFrame]:
@@ -135,10 +218,104 @@ def build_model_dataset(market: dict[str, pd.DataFrame]) -> pd.DataFrame:
     keep_columns = [c for c in keep_columns if c in dataset.columns]
     dataset = dataset[keep_columns]
 
-    # KRW=X 상승은 원/달러 상승이라 코스피에는 보통 음수 방향이다.
+    # KRW=X 상승은 원/달러 상승 → 원화 약세 → 코스피 하방 압력 (음의 관계)
     if "krw_return" in dataset.columns:
         dataset["krw_return"] = dataset["krw_return"]
     return dataset
+
+
+def train_lgbm(dataset: pd.DataFrame, features: list[str]) -> dict:
+    """LightGBM + Quantile Regression 기반 앙상블 모델 학습 및 백테스트"""
+    X = dataset[features].values
+    y = dataset["target_return"].values
+    dates = dataset.index
+    prev_closes = dataset["prev_close"].values
+    actual_opens = dataset["Open"].values
+
+    tscv = TimeSeriesSplit(n_splits=5)
+
+    rows = []
+    for train_idx, test_idx in tscv.split(X):
+        if len(train_idx) < ROLLING_WINDOW:
+            continue
+        X_train, X_test = X[train_idx], X[test_idx]
+        y_train = y[train_idx]
+
+        # 중심값 예측 모델
+        model_center = lgb.LGBMRegressor(**LGBM_PARAMS)
+        model_center.fit(X_train, y_train)
+
+        # 하단 밴드 모델 (10th percentile)
+        model_low = lgb.LGBMRegressor(**LGBM_PARAMS_LOW)
+        model_low.fit(X_train, y_train)
+
+        # 상단 밴드 모델 (90th percentile)
+        model_high = lgb.LGBMRegressor(**LGBM_PARAMS_HIGH)
+        model_high.fit(X_train, y_train)
+
+        pred_center = model_center.predict(X_test)
+        pred_low = model_low.predict(X_test)
+        pred_high = model_high.predict(X_test)
+
+        for i, idx in enumerate(test_idx):
+            if idx >= len(prev_closes):
+                continue
+            prev_close = prev_closes[idx]
+            actual_open = actual_opens[idx]
+            pred_open = prev_close * (1 + pred_center[i] / 100)
+            band_low = prev_close * (1 + pred_low[i] / 100)
+            band_high = prev_close * (1 + pred_high[i] / 100)
+            actual_return = y[idx]
+            rows.append({
+                "date": dates[idx].strftime("%Y-%m-%d"),
+                "pred_open": pred_open,
+                "actual_open": actual_open,
+                "low": band_low,
+                "high": band_high,
+                "pred_return": pred_center[i],
+                "actual_return": actual_return,
+                "hit": band_low <= actual_open <= band_high,
+                "direction_hit": np.sign(pred_center[i]) == np.sign(actual_return),
+            })
+
+    if not rows:
+        # fallback: 전체 데이터로 한 번 학습
+        model_center = lgb.LGBMRegressor(**LGBM_PARAMS)
+        model_center.fit(X, y)
+        return {
+            "model_center": model_center, "model_low": None, "model_high": None,
+            "rmse": 999.0, "mae": 999.0, "band_hit_rate": 0.0, "direction_hit_rate": 0.0,
+            "feature_importance": dict(zip(features, model_center.feature_importances_)),
+        }
+
+    predictions = pd.DataFrame(rows)
+    errors = predictions["pred_open"] - predictions["actual_open"]
+    rmse = float(np.sqrt(np.mean(np.square(errors))))
+    mae = float(np.mean(np.abs(errors)))
+    band_hit_rate = float(predictions["hit"].mean() * 100)
+    direction_hit_rate = float(predictions["direction_hit"].mean() * 100)
+
+    # 최종 모델을 전체 데이터로 재학습
+    final_center = lgb.LGBMRegressor(**LGBM_PARAMS)
+    final_low = lgb.LGBMRegressor(**LGBM_PARAMS_LOW)
+    final_high = lgb.LGBMRegressor(**LGBM_PARAMS_HIGH)
+    final_center.fit(X, y)
+    final_low.fit(X, y)
+    final_high.fit(X, y)
+
+    feature_importance = dict(zip(features, final_center.feature_importances_))
+
+    return {
+        "model_center": final_center,
+        "model_low": final_low,
+        "model_high": final_high,
+        "rmse": rmse,
+        "mae": mae,
+        "band_hit_rate": band_hit_rate,
+        "direction_hit_rate": direction_hit_rate,
+        "feature_importance": feature_importance,
+        "predictions": predictions,
+    }
 
 
 def select_best_model(dataset: pd.DataFrame) -> tuple[ModelResult, list[ModelResult]]:
@@ -259,21 +436,48 @@ def fit_final_model(dataset: pd.DataFrame, features: list[str]):
     return sm.OLS(y, X).fit()
 
 
-def build_latest_payload(dataset_map: dict[str, pd.DataFrame], params: pd.Series, rmse: float) -> dict[str, float]:
-    latest = {}
-    for name in FEATURE_TICKERS:
-        latest_frame = dataset_map[name]["Close"].dropna()
-        latest_return = float(latest_frame.pct_change().dropna().iloc[-1] * 100)
-        latest[name] = latest_return
-        if name == "vix":
-            latest["vix_level"] = float(latest_frame.iloc[-1])
-        latest[f"{name}_value"] = float(latest_frame.iloc[-1])
+def build_latest_payload(
+    dataset_map: dict[str, pd.DataFrame],
+    lgbm_result: dict,
+    features: list[str],
+) -> dict:
+    """LightGBM 모델로 최신 시점 예측 계산"""
+    latest_returns = {}
+    latest_values = {}
+    vix_level = 20.0
 
-    latest["prev_kospi_close"] = float(dataset_map["kospi"]["Close"].dropna().iloc[-1])
+    for name in FEATURE_TICKERS:
+        series = dataset_map[name]["Close"].dropna()
+        latest_close = float(series.iloc[-1])
+        prev_close_val = float(series.iloc[-2])
+        ret = (latest_close / prev_close_val - 1) * 100
+        latest_returns[name] = ret
+        latest_values[name] = latest_close
+        if name == "vix":
+            vix_level = latest_close
+
+    prev_kospi_close = float(dataset_map["kospi"]["Close"].dropna().iloc[-1])
+
+    # LightGBM 예측
+    feature_vector = np.array([[latest_returns.get(f.replace("_return", ""), 0.0) for f in features]])
+    model_center = lgbm_result["model_center"]
+    model_low = lgbm_result.get("model_low")
+    model_high = lgbm_result.get("model_high")
+
+    pred_return_center = float(model_center.predict(feature_vector)[0])
+    pred_return_low = float(model_low.predict(feature_vector)[0]) if model_low else pred_return_center - 0.5
+    pred_return_high = float(model_high.predict(feature_vector)[0]) if model_high else pred_return_center + 0.5
+
     return {
-        "returns": latest,
-        "rmse": rmse,
-        "params": params.to_dict(),
+        "returns": latest_returns,
+        "values": latest_values,
+        "rmse": lgbm_result["rmse"],
+        "vix_level": vix_level,
+        "prev_kospi_close": prev_kospi_close,
+        "pred_return_center": pred_return_center,
+        "pred_return_low": pred_return_low,
+        "pred_return_high": pred_return_high,
+        "feature_importance": lgbm_result.get("feature_importance", {}),
     }
 
 
@@ -282,41 +486,22 @@ def build_history(model_result: ModelResult) -> pd.DataFrame:
     history["low"] = history["low"].round(2)
     history["high"] = history["high"].round(2)
     history["actual_open"] = history["actual_open"].round(2)
-    # 최신 날짜가 앞으로 오도록 정렬 후 최근 20건만 유지
     history = history.sort_values("date", ascending=False).head(20).reset_index(drop=True)
     return history
 
 
 def write_coefficients(params: pd.Series, features: list[str], rmse: float) -> None:
-    mapping = {
-        "ewy_return": "alpha2",
-        "krw_return": "alpha3",
-        "wti_return": "alpha4",
-        "sp500_return": "alpha5",
-    }
+    coefs: dict[str, float] = {k: round(float(v), 6) for k, v in params.items()}
     payload = {
-        "alpha0": round(float(params.get("const", 0.0)), 6),
-        "alpha1": 0.0,
-        "alpha2": 0.0,
-        "alpha3": 0.0,
-        "alpha4": 0.0,
-        "alpha5": 0.0,
-        "residualStd": round(float(rmse), 6),
-        "selectedFeatures": features,
-        "coefficientsByFeature": {
-            feature: round(float(params.get(feature, 0.0)), 6) for feature in features
-        },
-        "updatedAt": datetime.now(timezone.utc).isoformat(),
-        "source": "rolling-backtest",
+        "features": features,
+        "coefficients": coefs,
+        "rmse": round(rmse, 4),
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
-    for feature in features:
-        if feature in mapping:
-            payload[mapping[feature]] = round(float(params.get(feature, 0.0)), 6)
-    (MODEL_DIR / "coefficients.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
+    (DATA_DIR / "coefficients.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
 
 
 def write_history_json(history_df: pd.DataFrame, model_result: ModelResult) -> None:
-    recent30 = model_result.predictions.tail(30)
     records = [
         {
             "date": row["date"],
@@ -329,81 +514,54 @@ def write_history_json(history_df: pd.DataFrame, model_result: ModelResult) -> N
     ]
     payload = {
         "summary": {
-            "bandHitRate30d": round(float(recent30["hit"].mean() * 100), 1),
-            "directionHitRate30d": round(float(recent30["direction_hit"].mean() * 100), 1),
-            "mae30d": round(float((recent30["pred_open"] - recent30["actual_open"]).abs().mean()), 2),
+            "bandHitRate30d": round(model_result.band_hit_rate, 1),
+            "directionHitRate30d": round(model_result.direction_hit_rate, 1),
+            "mae30d": round(model_result.mae, 2),
         },
         "records": records,
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
     (DATA_DIR / "history.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
 
 
 def write_backtest_diagnostics_json(model_result: ModelResult, candidate_results: list[ModelResult]) -> None:
-    recent30 = model_result.predictions.tail(30).copy()
-    recent30["abs_error"] = (recent30["pred_open"] - recent30["actual_open"]).abs()
-    candidate_payload = [
-        {
-            "rank": idx + 1,
-            "features": candidate.features,
-            "rmse": round(candidate.rmse, 2),
-            "mae": round(candidate.mae, 2),
-            "bandHitRate": round(candidate.band_hit_rate, 2),
-            "directionHitRate": round(candidate.direction_hit_rate, 2),
-            "avgPValue": round(candidate.avg_p_value, 6),
-            "avgVif": round(candidate.avg_vif, 4),
-        }
-        for idx, candidate in enumerate(candidate_results[:10])
-    ]
-    recent_records = [
-        {
-            "date": row["date"],
-            "predOpen": round(float(row["pred_open"]), 2),
-            "actualOpen": round(float(row["actual_open"]), 2),
-            "error": round(float(row["pred_open"] - row["actual_open"]), 2),
-            "absError": round(float(row["abs_error"]), 2),
-            "bandLow": round(float(row["low"]), 2),
-            "bandHigh": round(float(row["high"]), 2),
-            "hit": bool(row["hit"]),
-            "directionHit": bool(row["direction_hit"]),
-        }
-        for _, row in recent30.iloc[::-1].iterrows()
-    ]
     payload = {
-        "selectedModel": {
-            "features": model_result.features,
-            "coefficients": {k: round(v, 6) for k, v in model_result.coefficients.items()},
-            "rmse": round(model_result.rmse, 2),
-            "mae": round(model_result.mae, 2),
-            "bandHitRate": round(model_result.band_hit_rate, 2),
-            "directionHitRate": round(model_result.direction_hit_rate, 2),
-        },
-        "candidateRanking": candidate_payload,
-        "recent30Diagnostics": recent_records,
+        "selectedFeatures": model_result.features,
+        "rmse": round(model_result.rmse, 4),
+        "mae": round(model_result.mae, 4),
+        "bandHitRate": round(model_result.band_hit_rate, 2),
+        "directionHitRate": round(model_result.direction_hit_rate, 2),
+        "avgPValue": round(model_result.avg_p_value, 6),
+        "avgVIF": round(model_result.avg_vif, 4),
+        "topCandidates": [
+            {
+                "features": c.features,
+                "rmse": round(c.rmse, 4),
+                "bandHitRate": round(c.band_hit_rate, 2),
+                "directionHitRate": round(c.direction_hit_rate, 2),
+            }
+            for c in candidate_results[:10]
+        ],
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
-    (DATA_DIR / "backtest_diagnostics.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2),
-        encoding="utf8",
-    )
+    (DATA_DIR / "backtest_diagnostics.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
 
 
 def write_daily_archive_json(history_df: pd.DataFrame, model_result: ModelResult) -> None:
     daily_dir = DATA_DIR / "daily"
     daily_dir.mkdir(parents=True, exist_ok=True)
-    records = []
-    for _, row in model_result.predictions.iloc[::-1].iterrows():
-        records.append(
-            {
-                "date": row["date"],
-                "predictedOpen": round(float(row["pred_open"]), 2),
-                "actualOpen": round(float(row["actual_open"]), 2),
-                "predictedReturnPct": round(float(row["pred_return"]), 2),
-                "actualReturnPct": round(float(row["actual_return"]), 2),
-                "bandLow": round(float(row["low"]), 2),
-                "bandHigh": round(float(row["high"]), 2),
-                "hit": bool(row["hit"]),
-                "directionHit": bool(row["direction_hit"]),
-            }
-        )
+    records = [
+        {
+            "date": row["date"],
+            "predReturn": round(float(row["pred_return"]), 4),
+            "actualReturnPct": round(float(row["actual_return"]), 2),
+            "bandLow": round(float(row["low"]), 2),
+            "bandHigh": round(float(row["high"]), 2),
+            "hit": bool(row["hit"]),
+            "directionHit": bool(row["direction_hit"]),
+        }
+        for _, row in history_df.iterrows()
+    ]
     latest_date = records[0]["date"] if records else datetime.now().strftime("%Y-%m-%d")
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -423,47 +581,64 @@ def write_indicators_json(market: dict[str, pd.DataFrame]) -> None:
     def build_indicator(name: str) -> dict[str, object]:
         valid_series = market[name]["Close"].dropna()
         close = float(valid_series.iloc[-1])
-        prev_close = float(valid_series.iloc[-2])
-        change_pct = (close / prev_close - 1) * 100
+        prev_close_val = float(valid_series.iloc[-2])
+        change_pct = (close / prev_close_val - 1) * 100
+        # KRW=X는 USD 기준 → 환율 상승 = 원화 약세 = 코스피 하방
+        # 표시는 "환율" 그대로 오르면 ▲ 붉게 (원화 약세 경고 의미)
         return {
             "key": name,
             "label": indicator_label(name),
             "value": format_indicator_value(name, close),
             "changePct": round(change_pct, 2),
             "updatedAt": pd.Timestamp(valid_series.index[-1]).isoformat(),
+            "sourceUrl": INDICATOR_SOURCE_URLS.get(name, "https://finance.yahoo.com"),
+            "dataSource": "Yahoo Finance (일봉 종가 기준)",
         }
 
     payload = {
         "primary": [build_indicator(key) for key in primary_keys],
         "secondary": [build_indicator(key) for key in secondary_keys],
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "dataNote": "야후 파이낸스 일봉 종가 기준. 야간 실시간 선물 데이터는 EWY, KORU, KRW=X 프록시로 대체됩니다.",
     }
     (DATA_DIR / "indicators.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
 
 
-def write_prediction_json(latest_payload: dict[str, object], model_result: ModelResult, history_df: pd.DataFrame) -> None:
-    returns = latest_payload["returns"]
-    params = latest_payload["params"]
-    prev_close = float(returns["prev_kospi_close"])
-    recent30 = model_result.predictions.tail(30)
+def write_prediction_json(
+    latest_payload: dict,
+    ols_result: ModelResult,
+    lgbm_result: dict,
+    history_df: pd.DataFrame,
+) -> None:
+    prev_close = latest_payload["prev_kospi_close"]
+    recent30 = ols_result.predictions.tail(30)
     recent_band_hit = round(float(recent30["hit"].mean() * 100), 1)
     recent_direction_hit = round(float(recent30["direction_hit"].mean() * 100), 1)
     recent_mae = round(float((recent30["pred_open"] - recent30["actual_open"]).abs().mean()), 2)
-    predicted_change = float(params.get("const", 0.0))
-    selected_feature_returns: dict[str, float] = {}
-    for feature in model_result.features:
-        key = feature.replace("_return", "")
-        feature_value = float(returns.get(key, 0.0))
-        selected_feature_returns[feature] = feature_value
-        predicted_change += float(params.get(feature, 0.0)) * feature_value
 
-    point_prediction = prev_close * (1 + predicted_change / 100)
-    vix_level = float(returns.get("vix_level", 20.0))
-    band_multiplier = choose_band_multiplier(vix_level)
-    band_width = float(latest_payload["rmse"]) * band_multiplier
-    direction_values = list(selected_feature_returns.values())
-    positive_count = sum(1 for value in direction_values if value > 0)
-    negative_count = sum(1 for value in direction_values if value < 0)
+    # LightGBM 기반 최종 예측값 사용
+    pred_return_center = latest_payload["pred_return_center"]
+    pred_return_low = latest_payload["pred_return_low"]
+    pred_return_high = latest_payload["pred_return_high"]
+
+    point_prediction = prev_close * (1 + pred_return_center / 100)
+    range_low = prev_close * (1 + pred_return_low / 100)
+    range_high = prev_close * (1 + pred_return_high / 100)
+    # 예측 상한/하한 최소 폭 보장
+    if range_high - range_low < 20:
+        mid_gap = lgbm_result["rmse"] * choose_band_multiplier(latest_payload["vix_level"])
+        range_low = point_prediction - mid_gap
+        range_high = point_prediction + mid_gap
+
+    vix_level = latest_payload["vix_level"]
+    returns = latest_payload["returns"]
+    feature_importance = latest_payload.get("feature_importance", {})
+    feature_keys = [f.replace("_return", "") for f in ols_result.features]
+    direction_values = [returns.get(k, 0.0) for k in feature_keys]
+    positive_count = sum(1 for v in direction_values if v > 0)
+    negative_count = sum(1 for v in direction_values if v < 0)
     dominant_agreement = max(positive_count, negative_count)
+
     if dominant_agreement >= 2 and vix_level < 30:
         confidence = 5
     elif dominant_agreement >= 1 and vix_level < 35:
@@ -473,58 +648,44 @@ def write_prediction_json(latest_payload: dict[str, object], model_result: Model
     else:
         confidence = 2
 
-    # Keep the fixed-schema predictor around as a comparable benchmark using common macro inputs.
-    benchmark_prediction = calculate_prediction(
-        PredictionInput(
-            night_futures_change=float(returns.get("koru", 0.0)),
-            ewy_change=float(returns.get("ewy", 0.0)),
-            ndf_change=float(returns.get("krw", 0.0)),
-            wti_change=float(returns.get("wti", 0.0)),
-            sp500_change=float(returns.get("sp500", 0.0)),
-            vix=vix_level,
-            night_futures_price=0.0,
-        ),
-        Coefficients(
-            alpha0=float(params.get("const", 0.0)),
-            alpha1=float(params.get("koru_return", 0.0)),
-            alpha2=float(params.get("ewy_return", 0.0)),
-            alpha3=float(params.get("krw_return", 0.0)),
-            alpha4=float(params.get("wti_return", 0.0)),
-            alpha5=float(params.get("sp500_return", 0.0)),
-            residual_std=float(latest_payload["rmse"]),
-        ),
-        prev_close,
-    )
-    recent = history_df.iloc[0]  # 최신 날짜 (build_history에서 내림차순 정렬됨)
+    yesterday_row = history_df.iloc[0] if not history_df.empty else None
+
+    # next business day
+    today = datetime.now()
+    bday = pd.Timestamp(today) + pd.offsets.BDay(1)
+    prediction_date = bday.strftime("%Y년 %m월 %d일")
+
     payload = {
-        "marketStatus": "한국장 개장 전",
-        "currentTimeKst": pd.Timestamp.utcnow().tz_convert("Asia/Seoul").isoformat(),
-        "predictionDate": (pd.Timestamp.utcnow().tz_convert("Asia/Seoul") + pd.offsets.BDay(1)).strftime("%Y-%m-%d"),
-        "rangeLow": round(point_prediction - band_width),
-        "rangeHigh": round(point_prediction + band_width),
-        "pointPrediction": round(point_prediction),
-        "predictedChangePct": round(predicted_change, 2),
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "predictionDate": prediction_date,
+        "modelEngine": "LightGBM (Quantile Regression)",
+        "pointPrediction": round(point_prediction, 2),
+        "rangeLow": round(range_low, 2),
+        "rangeHigh": round(range_high, 2),
+        "predictedChangePct": round(pred_return_center, 2),
         "confidence": confidence,
         "confidenceLabel": confidence_label(confidence),
-        "signalSummary": build_signal_summary(returns, model_result.features),
-        "lastCalculatedAt": pd.Timestamp.utcnow().tz_convert("Asia/Seoul").isoformat(),
         "bandHitRate30d": recent_band_hit,
         "directionHitRate30d": recent_direction_hit,
         "mae30d": recent_mae,
-        "yesterday": {
-            "predictionLow": recent["low"],
-            "predictionHigh": recent["high"],
-            "actualOpen": recent["actual_open"],
-            "hit": bool(recent["hit"]),
-        },
+        "signalSummary": build_signal_summary(returns, ols_result.features),
+        "marketStatus": "장 마감 후",
+        "lastCalculatedAt": datetime.now(timezone.utc).isoformat(),
         "model": {
-            "modelA": round(point_prediction, 2),
-            "modelB": benchmark_prediction["point_prediction"],
-            "divergencePct": round(abs(point_prediction - float(benchmark_prediction["point_prediction"])) / prev_close * 100, 2),
-            "bandMultiplier": band_multiplier,
+            "engine": "LightGBM",
+            "selectedFeatures": ols_result.features,
+            "featureImportance": {k: round(v, 4) for k, v in feature_importance.items()},
             "vix": round(vix_level, 2),
-            "selectedFeatures": model_result.features,
-        }
+            "bandMultiplier": choose_band_multiplier(vix_level),
+            "lgbmRmse": round(lgbm_result["rmse"], 2),
+            "olsRmse": round(ols_result.rmse, 2),
+        },
+        "yesterday": {
+            "predictionLow": round(float(yesterday_row["low"]), 2) if yesterday_row is not None else 0,
+            "predictionHigh": round(float(yesterday_row["high"]), 2) if yesterday_row is not None else 0,
+            "actualOpen": round(float(yesterday_row["actual_open"]), 2) if yesterday_row is not None else 0,
+            "hit": bool(yesterday_row["hit"]) if yesterday_row is not None else False,
+        },
     }
     (DATA_DIR / "prediction.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
 
@@ -534,9 +695,10 @@ def write_backtest_report(
     model_result: ModelResult,
     final_model,
     candidate_results: list[ModelResult],
+    lgbm_result: dict,
 ) -> None:
-    feature_rows = "\n".join(f"- `{feature}`" for feature in model_result.features)
-    coef_rows = "\n".join(
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    feature_rows = "\n".join(
         f"| {name} | {round(float(value), 6)} | {round(float(final_model.pvalues.get(name, 0.0)), 6)} |"
         for name, value in final_model.params.items()
     )
@@ -544,6 +706,13 @@ def write_backtest_report(
         f"| {idx + 1} | {', '.join(candidate.features)} | {candidate.rmse:.2f} | {candidate.band_hit_rate:.2f}% | {candidate.direction_hit_rate:.2f}% |"
         for idx, candidate in enumerate(candidate_results[:5])
     )
+    fi = lgbm_result.get("feature_importance", {})
+    fi_rows = "\n".join(f"| {k} | {v:.0f} |" for k, v in sorted(fi.items(), key=lambda x: -x[1]))
+
+    ols_rmse = model_result.rmse
+    lgbm_rmse = lgbm_result["rmse"]
+    improvement = (ols_rmse - lgbm_rmse) / ols_rmse * 100
+
     report = f"""# Backtest Results
 
 ## Dataset
@@ -552,39 +721,37 @@ def write_backtest_report(
 - rolling window: {ROLLING_WINDOW}
 - evaluated feature subsets: 2~5 variables
 
-## Selected Model
+## 모델 엔진 성능 비교
 
-선정 기준은 `rolling RMSE` 최소값입니다. 동률이면 밴드 적중률, 평균 p-value, 평균 VIF 순으로 비교했습니다.
+| 지표 | OLS (선형회귀) | LightGBM | 개선율 |
+| --- | ---: | ---: | ---: |
+| RMSE | {ols_rmse:.2f} | {lgbm_rmse:.2f} | {improvement:+.1f}% |
+| MAE | {model_result.mae:.2f} | {lgbm_result['mae']:.2f} | {(model_result.mae - lgbm_result['mae']) / model_result.mae * 100:+.1f}% |
+| 밴드 적중률 | {model_result.band_hit_rate:.2f}% | {lgbm_result['band_hit_rate']:.2f}% | {lgbm_result['band_hit_rate'] - model_result.band_hit_rate:+.1f}%p |
+| 방향 적중률 | {model_result.direction_hit_rate:.2f}% | {lgbm_result['direction_hit_rate']:.2f}% | {lgbm_result['direction_hit_rate'] - model_result.direction_hit_rate:+.1f}%p |
 
-선택된 변수:
+## Selected Model (OLS 피처 선택 기준)
+
 {feature_rows}
 
-## Metrics
+## LightGBM Feature Importance
 
-- RMSE: {model_result.rmse:.2f}
-- MAE: {model_result.mae:.2f}
-- Band hit rate: {model_result.band_hit_rate:.2f}%
-- Direction hit rate: {model_result.direction_hit_rate:.2f}%
-- Average p-value: {model_result.avg_p_value:.4f}
-- Average VIF: {model_result.avg_vif:.4f}
+| Feature | Importance |
+| --- | ---: |
+{fi_rows}
 
-## Final Window Coefficients
+## Top OLS Candidates
 
-| term | coefficient | p-value |
-| --- | ---: | ---: |
-{coef_rows}
-
-## Top Candidate Ranking
-
-| rank | features | RMSE | Band hit rate | Direction hit rate |
+| Rank | Features | RMSE | Band Hit | Dir Hit |
 | --- | --- | ---: | ---: | ---: |
 {ranking_rows}
 
-## Notes
+## Data Source Notes
 
-- Yahoo Finance 일별 데이터 기준으로 미국장 종가를 다음 한국장 시초가에 정렬했습니다.
-- 야간선물 실시간 데이터는 현재 파이프라인에 연결되지 않아 `KORU`, `EWY`, `KRW=X` 등 미국장 후행 프록시를 우선 사용했습니다.
-- 밴드 폭은 롤링 RMSE를 포인트 단위 표준오차로 사용하고 VIX 배수로 확장했습니다.
+- **데이터 출처**: Yahoo Finance 일봉 종가 기준 (yfinance 라이브러리)
+- **야간선물 실시간 데이터**: 현재 파이프라인 미연결. EWY, KORU, KRW=X 등 미국장 후행 프록시 사용
+- **환율(KRW=X)**: USD 1 = KRW x원 기준. 수치 상승 = 원화 약세 = 코스피 하방 압력
+- **밴드 폭(LightGBM)**: Quantile Regression (10th ~ 90th percentile) 기반 동적 산출
 """
     (DOCS_DIR / "BACKTEST_RESULTS.md").write_text(report, encoding="utf8")
 
@@ -601,17 +768,17 @@ def choose_band_multiplier(vix: float) -> float:
 
 def indicator_label(name: str) -> str:
     labels = {
-        "ewy": "EWY",
-        "krw": "USD/KRW",
-        "wti": "WTI",
-        "sp500": "S&P500",
-        "nasdaq": "나스닥",
-        "vix": "VIX",
-        "koru": "KORU",
-        "dow": "다우",
-        "gold": "금 시세",
-        "us10y": "US10Y",
-        "sox": "필라델피아반도체",
+        "ewy":    "EWY (한국 ETF)",
+        "krw":    "원/달러 환율",
+        "wti":    "WTI 원유",
+        "sp500":  "S&P 500",
+        "nasdaq": "나스닥 100",
+        "vix":    "VIX 변동성",
+        "koru":   "KORU (코리아 3x)",
+        "dow":    "다우존스",
+        "gold":   "금 시세",
+        "us10y":  "미 10년 국채금리",
+        "sox":    "필라델피아 반도체",
     }
     return labels[name]
 
@@ -620,7 +787,7 @@ def format_indicator_value(name: str, close: float) -> str:
     if name in {"ewy", "koru", "wti", "gold"}:
         return f"${close:,.2f}"
     if name == "krw":
-        return f"{close:,.2f}"
+        return f"{close:,.2f}원"
     if name == "us10y":
         return f"{close:.2f}%"
     return f"{close:,.2f}"

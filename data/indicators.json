@@ -2,82 +2,106 @@
   "primary": [
     {
       "key": "ewy",
-      "label": "EWY",
-      "value": "$124.76",
-      "changePct": -0.94,
-      "updatedAt": "2026-04-07T00:00:00"
+      "label": "EWY (한국 ETF)",
+      "value": "$125.94",
+      "changePct": 0.0,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/EWY",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     },
     {
       "key": "krw",
-      "label": "USD/KRW",
-      "value": "1,501.29",
-      "changePct": -0.53,
-      "updatedAt": "2026-04-07T00:00:00"
+      "label": "원/달러 환율",
+      "value": "1,500.34원",
+      "changePct": -0.59,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     },
     {
       "key": "wti",
-      "label": "WTI",
-      "value": "$115.23",
-      "changePct": 2.51,
-      "updatedAt": "2026-04-07T00:00:00"
+      "label": "WTI 원유",
+      "value": "$115.28",
+      "changePct": 2.55,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     },
     {
       "key": "sp500",
-      "label": "S&P500",
-      "value": "6,581.77",
-      "changePct": -0.45,
-      "updatedAt": "2026-04-07T00:00:00"
+      "label": "S&P 500",
+      "value": "6,604.47",
+      "changePct": -0.11,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/%5EGSPC",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     }
   ],
   "secondary": [
     {
       "key": "nasdaq",
-      "label": "나스닥",
-      "value": "24,015.71",
-      "changePct": -0.73,
-      "updatedAt": "2026-04-07T00:00:00"
+      "label": "나스닥 100",
+      "value": "24,116.33",
+      "changePct": -0.31,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     },
     {
       "key": "vix",
-      "label": "VIX",
-      "value": "26.47",
-      "changePct": 9.52,
-      "updatedAt": "2026-04-07T00:00:00"
+      "label": "VIX 변동성",
+      "value": "26.71",
+      "changePct": 10.51,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     },
     {
       "key": "koru",
-      "label": "KORU",
-      "value": "$294.29",
-      "changePct": -2.57,
-      "updatedAt": "2026-04-07T00:00:00"
+      "label": "KORU (코리아 3x)",
+      "value": "$303.13",
+      "changePct": 0.35,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/KORU",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     },
     {
       "key": "dow",
-      "label": "다우",
-      "value": "46,433.44",
-      "changePct": -0.51,
-      "updatedAt": "2026-04-07T00:00:00"
+      "label": "다우존스",
+      "value": "46,585.51",
+      "changePct": -0.18,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/%5EDJI",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     },
     {
       "key": "gold",
       "label": "금 시세",
-      "value": "$4,689.90",
-      "changePct": 0.71,
-      "updatedAt": "2026-04-07T00:00:00"
+      "value": "$4,684.70",
+      "changePct": 0.6,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     },
     {
       "key": "us10y",
-      "label": "US10Y",
+      "label": "미 10년 국채금리",
       "value": "4.36%",
       "changePct": 0.62,
-      "updatedAt": "2026-04-07T00:00:00"
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/%5ETNX",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     },
     {
       "key": "sox",
-      "label": "필라델피아반도체",
-      "value": "7,920.74",
-      "changePct": 0.06,
-      "updatedAt": "2026-04-07T00:00:00"
+      "label": "필라델피아 반도체",
+      "value": "7,955.61",
+      "changePct": 0.5,
+      "updatedAt": "2026-04-07T00:00:00",
+      "sourceUrl": "https://finance.yahoo.com/quote/%5ESOX",
+      "dataSource": "Yahoo Finance (일봉 종가 기준)"
     }
-  ]
+  ],
+  "generatedAt": "2026-04-07T17:37:22.624014+00:00",
+  "dataNote": "야후 파이낸스 일봉 종가 기준. 야간 실시간 선물 데이터는 EWY, KORU, KRW=X 프록시로 대체됩니다."
 }
