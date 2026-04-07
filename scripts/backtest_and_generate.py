@@ -124,11 +124,11 @@ def build_model_dataset(market: dict[str, pd.DataFrame]) -> pd.DataFrame:
         feature = feature.groupby(feature.index).last()
         features.append(feature)
 
-    feature_frame = pd.concat(features, axis=1)
+    feature_frame = pd.concat(features, axis=1).ffill()
     dataset = kospi.copy()
     dataset.index = dataset.index.map(_normalize_date)
     dataset = dataset.join(feature_frame, how="inner")
-    dataset = dataset.replace([np.inf, -np.inf], np.nan).dropna()
+    dataset = dataset.ffill().replace([np.inf, -np.inf], np.nan).dropna()
 
     expected_columns = [f"{name}_return" for name in FEATURE_TICKERS]
     keep_columns = ["target_return", "prev_close", "Open", "Close", "vix_level", *expected_columns]

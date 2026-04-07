@@ -3,29 +3,29 @@
     {
       "key": "ewy",
       "label": "EWY",
-      "value": "$125.10",
-      "changePct": -0.67,
+      "value": "$124.57",
+      "changePct": -1.09,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,501.18",
-      "changePct": -0.54,
+      "value": "1,501.56",
+      "changePct": -0.51,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$114.75",
-      "changePct": 2.08,
+      "value": "$115.15",
+      "changePct": 2.44,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "sp500",
       "label": "S&P500",
-      "value": "6,589.07",
-      "changePct": -0.34,
+      "value": "6,579.68",
+      "changePct": -0.49,
       "updatedAt": "2026-04-07T00:00:00"
     }
   ],
@@ -33,50 +33,50 @@
     {
       "key": "nasdaq",
       "label": "나스닥",
-      "value": "24,047.49",
-      "changePct": -0.6,
+      "value": "24,008.16",
+      "changePct": -0.76,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "vix",
       "label": "VIX",
-      "value": "26.23",
-      "changePct": 8.52,
+      "value": "26.39",
+      "changePct": 9.18,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "koru",
       "label": "KORU",
-      "value": "$295.91",
-      "changePct": -2.04,
+      "value": "$294.29",
+      "changePct": -2.57,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "dow",
       "label": "다우",
-      "value": "46,480.75",
-      "changePct": -0.41,
+      "value": "46,417.62",
+      "changePct": -0.54,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "gold",
       "label": "금 시세",
-      "value": "$4,687.70",
-      "changePct": 0.66,
+      "value": "$4,691.20",
+      "changePct": 0.74,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "us10y",
       "label": "US10Y",
       "value": "4.36%",
-      "changePct": 0.62,
+      "changePct": 0.55,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "sox",
       "label": "필라델피아반도체",
-      "value": "7,940.95",
-      "changePct": 0.31,
+      "value": "7,913.47",
+      "changePct": -0.03,
       "updatedAt": "2026-04-07T00:00:00"
     }
   ]

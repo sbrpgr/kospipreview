@@ -1,19 +1,19 @@
 {
-  "alpha0": 0.175647,
+  "alpha0": 0.171393,
   "alpha1": 0.0,
   "alpha2": 0.0,
   "alpha3": 0.0,
   "alpha4": 0.0,
-  "alpha5": 0.86588,
-  "residualStd": 22.029572,
+  "alpha5": 0.872325,
+  "residualStd": 21.823109,
   "selectedFeatures": [
     "sp500_return",
     "sox_return"
   ],
   "coefficientsByFeature": {
-    "sp500_return": 0.86588,
-    "sox_return": 0.317334
+    "sp500_return": 0.872325,
+    "sox_return": 0.308865
   },
-  "updatedAt": "2026-04-07T17:13:31.237172+00:00",
+  "updatedAt": "2026-04-07T17:21:58.899904+00:00",
   "source": "rolling-backtest"
 }
