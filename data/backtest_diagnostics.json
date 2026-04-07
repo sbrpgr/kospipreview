@@ -5,14 +5,14 @@
       "sox_return"
     ],
     "coefficients": {
-      "const": 0.08194,
-      "sp500_return": 0.293243,
-      "sox_return": 0.125928
+      "const": 0.080877,
+      "sp500_return": 0.293242,
+      "sox_return": 0.125722
     },
-    "rmse": 22.07,
-    "mae": 12.39,
-    "bandHitRate": 75.47,
-    "directionHitRate": 76.86
+    "rmse": 22.03,
+    "mae": 12.35,
+    "bandHitRate": 75.45,
+    "directionHitRate": 76.85
   },
   "candidateRanking": [
     {
@@ -21,12 +21,12 @@
         "sp500_return",
         "sox_return"
       ],
-      "rmse": 22.07,
-      "mae": 12.39,
-      "bandHitRate": 75.47,
-      "directionHitRate": 76.86,
+      "rmse": 22.03,
+      "mae": 12.35,
+      "bandHitRate": 75.45,
+      "directionHitRate": 76.85,
       "avgPValue": 0.0,
-      "avgVif": 3.0786
+      "avgVif": 3.0783
     },
     {
       "rank": 2,
@@ -35,11 +35,11 @@
         "sox_return",
         "koru_return"
       ],
-      "rmse": 22.42,
-      "mae": 12.56,
-      "bandHitRate": 74.53,
-      "directionHitRate": 76.63,
-      "avgPValue": 0.000402,
+      "rmse": 22.38,
+      "mae": 12.53,
+      "bandHitRate": 74.51,
+      "directionHitRate": 76.61,
+      "avgPValue": 0.000541,
       "avgVif": 2.7757
     },
     {
@@ -49,11 +49,11 @@
         "sp500_return",
         "sox_return"
       ],
-      "rmse": 22.43,
-      "mae": 12.56,
-      "bandHitRate": 74.92,
-      "directionHitRate": 76.55,
-      "avgPValue": 0.000562,
+      "rmse": 22.39,
+      "mae": 12.53,
+      "bandHitRate": 74.9,
+      "directionHitRate": 76.53,
+      "avgPValue": 0.000761,
       "avgVif": 2.771
     },
     {
@@ -62,12 +62,12 @@
         "nasdaq_return",
         "sox_return"
       ],
-      "rmse": 22.73,
-      "mae": 12.83,
-      "bandHitRate": 76.09,
-      "directionHitRate": 75.31,
+      "rmse": 22.69,
+      "mae": 12.8,
+      "bandHitRate": 76.07,
+      "directionHitRate": 75.29,
       "avgPValue": 0.0,
-      "avgVif": 4.4645
+      "avgVif": 4.464
     },
     {
       "rank": 5,
@@ -75,12 +75,12 @@
         "sp500_return",
         "koru_return"
       ],
-      "rmse": 22.92,
-      "mae": 12.65,
-      "bandHitRate": 76.71,
-      "directionHitRate": 76.16,
+      "rmse": 22.9,
+      "mae": 12.63,
+      "bandHitRate": 76.69,
+      "directionHitRate": 76.15,
       "avgPValue": 0.0,
-      "avgVif": 1.6321
+      "avgVif": 1.6325
     },
     {
       "rank": 6,
@@ -88,12 +88,12 @@
         "ewy_return",
         "sp500_return"
       ],
-      "rmse": 22.96,
-      "mae": 12.66,
-      "bandHitRate": 76.86,
-      "directionHitRate": 76.09,
+      "rmse": 22.93,
+      "mae": 12.63,
+      "bandHitRate": 76.85,
+      "directionHitRate": 76.07,
       "avgPValue": 0.0,
-      "avgVif": 1.6247
+      "avgVif": 1.6251
     },
     {
       "rank": 7,
@@ -102,12 +102,12 @@
         "sox_return",
         "koru_return"
       ],
-      "rmse": 23.1,
-      "mae": 12.95,
-      "bandHitRate": 75.31,
-      "directionHitRate": 74.92,
-      "avgPValue": 0.0,
-      "avgVif": 3.6771
+      "rmse": 23.07,
+      "mae": 12.92,
+      "bandHitRate": 75.29,
+      "directionHitRate": 74.9,
+      "avgPValue": 1e-06,
+      "avgVif": 3.6769
     },
     {
       "rank": 8,
@@ -116,12 +116,12 @@
         "nasdaq_return",
         "sox_return"
       ],
-      "rmse": 23.1,
-      "mae": 12.95,
-      "bandHitRate": 75.54,
-      "directionHitRate": 74.92,
+      "rmse": 23.07,
+      "mae": 12.92,
+      "bandHitRate": 75.52,
+      "directionHitRate": 74.9,
       "avgPValue": 1e-06,
-      "avgVif": 3.6732
+      "avgVif": 3.673
     },
     {
       "rank": 9,
@@ -129,12 +129,12 @@
         "nasdaq_return",
         "koru_return"
       ],
-      "rmse": 23.42,
-      "mae": 12.97,
-      "bandHitRate": 76.24,
-      "directionHitRate": 75.0,
+      "rmse": 23.39,
+      "mae": 12.95,
+      "bandHitRate": 76.22,
+      "directionHitRate": 74.98,
       "avgPValue": 0.0,
-      "avgVif": 1.5452
+      "avgVif": 1.5454
     },
     {
       "rank": 10,
@@ -142,26 +142,15 @@
         "ewy_return",
         "nasdaq_return"
       ],
-      "rmse": 23.43,
-      "mae": 12.97,
-      "bandHitRate": 76.32,
-      "directionHitRate": 74.84,
+      "rmse": 23.4,
+      "mae": 12.95,
+      "bandHitRate": 76.3,
+      "directionHitRate": 74.83,
       "avgPValue": 0.0,
-      "avgVif": 1.539
+      "avgVif": 1.5392
     }
   ],
   "recent30Diagnostics": [
-    {
-      "date": "2026-04-07",
-      "predOpen": 5499.06,
-      "actualOpen": 5552.19,
-      "error": -53.13,
-      "absError": 53.13,
-      "bandLow": 5419.63,
-      "bandHigh": 5578.49,
-      "hit": true,
-      "directionHit": true
-    },
     {
       "date": "2026-04-03",
       "predOpen": 5253.81,
@@ -480,6 +469,17 @@
       "bandHigh": 5898.95,
       "hit": false,
       "directionHit": true
+    },
+    {
+      "date": "2026-02-20",
+      "predOpen": 5670.62,
+      "actualOpen": 5696.89,
+      "error": -26.27,
+      "absError": 26.27,
+      "bandLow": 5615.14,
+      "bandHigh": 5726.1,
+      "hit": true,
+      "directionHit": false
     }
   ]
 }

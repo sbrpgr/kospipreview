@@ -146,7 +146,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <ChartSection />
+      <ChartSection history={history} />
 
       <div className="adSlot">광고 슬롯 2</div>
 

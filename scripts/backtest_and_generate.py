@@ -463,16 +463,14 @@ def write_prediction_json(latest_payload: dict[str, object], model_result: Model
     positive_count = sum(1 for value in direction_values if value > 0)
     negative_count = sum(1 for value in direction_values if value < 0)
     dominant_agreement = max(positive_count, negative_count)
-    if dominant_agreement >= 2 and vix_level < 20:
+    if dominant_agreement >= 2 and vix_level < 30:
         confidence = 5
-    elif dominant_agreement >= 2 and vix_level < 25:
+    elif dominant_agreement >= 1 and vix_level < 35:
         confidence = 4
-    elif dominant_agreement >= 1 and vix_level < 25:
+    elif vix_level < 40:
         confidence = 3
-    elif vix_level < 30:
-        confidence = 2
     else:
-        confidence = 1
+        confidence = 2
 
     # Keep the fixed-schema predictor around as a comparable benchmark using common macro inputs.
     benchmark_prediction = calculate_prediction(

@@ -7,7 +7,7 @@ type HeroPredictionProps = {
 };
 
 export function HeroPrediction({ prediction }: HeroPredictionProps) {
-  const copyText = `내일 코스피 예상 시초가: ${prediction.rangeLow}~${prediction.rangeHigh} (${formatSignedPercent(prediction.predictedChangePct)}), 신뢰도 ${prediction.confidence}/5`;
+  const copyText = `${prediction.predictionDate} 코스피 예상 시초가: ${prediction.rangeLow}~${prediction.rangeHigh} (${formatSignedPercent(prediction.predictedChangePct)}), 신뢰도 ${prediction.confidence}/5`;
   const selectedFeatures =
     "selectedFeatures" in prediction.model && Array.isArray(prediction.model.selectedFeatures)
       ? prediction.model.selectedFeatures.join(" + ")
@@ -17,7 +17,7 @@ export function HeroPrediction({ prediction }: HeroPredictionProps) {
     <section className="heroPanel">
       <div className="heroGrid">
         <div>
-          <div className="eyebrow">내일 코스피 예상 시초가</div>
+          <div className="eyebrow">{prediction.predictionDate} 코스피 예상 시초가</div>
           <div className="heroRange">
             {prediction.rangeLow.toLocaleString("ko-KR")} ~{" "}
             {prediction.rangeHigh.toLocaleString("ko-KR")}

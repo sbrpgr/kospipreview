@@ -3,8 +3,8 @@ name: retrain-model
 on:
   workflow_dispatch:
   schedule:
-    # 매 평일 UTC 21:10 = KST 06:10 (미국장 마감 후)
-    - cron: "10 21 * * 1-5"
+    # 1분마다 갱신되도록 변경 (GitHub Actions 최소 동작 주기)
+    - cron: "* * * * *"
 
 permissions:
   contents: write   # git push 허용
@@ -47,12 +47,14 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref_name }}
 
-      # ─── Vercel 재배포 트리거 (Deploy Hook URL을 Secrets에 등록) ────
-      - name: Trigger Vercel redeploy
-        if: ${{ env.VERCEL_DEPLOY_HOOK != '' }}
-        env:
-          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
-        run: curl -s -X POST "$VERCEL_DEPLOY_HOOK"
+      # ─── Firebase 호스팅 자동 배포 ──────────────────────────────────
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: kospipreview
+          channelId: live
 
       # ─── 프론트엔드 빌드 검증 ────────────────────────────────────────
       - name: Setup Node
