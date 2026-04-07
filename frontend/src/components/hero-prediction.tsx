@@ -1,4 +1,5 @@
 import { CopyButton } from "@/components/copy-button";
+import { IntradayChart } from "@/components/intraday-chart";
 import { formatDateTime, formatSignedPercent } from "@/lib/format";
 import type { PredictionData } from "@/lib/data";
 
@@ -34,6 +35,13 @@ export function HeroPrediction({ prediction }: HeroPredictionProps) {
             <span>{prediction.confidenceLabel}</span>
           </div>
           <p className="heroSignal">{prediction.signalSummary}</p>
+          
+          <IntradayChart 
+            closePrice={prediction.yesterday.actualOpen} // 시뮬레이션을 위해 전일 기준값 전송 (종목 특성상 종가 또는 전일 시가)
+            expectedLow={prediction.rangeLow}
+            expectedHigh={prediction.rangeHigh}
+            expectedPoint={prediction.pointPrediction}
+          />
         </div>
 
         <aside className="heroAside">
@@ -46,12 +54,8 @@ export function HeroPrediction({ prediction }: HeroPredictionProps) {
             <strong>{prediction.directionHitRate30d}%</strong>
           </div>
           <div className="miniStatCard">
-            <span className="miniStatLabel">최근 30일 MAE</span>
-            <strong>{prediction.mae30d}</strong>
-          </div>
-          <div className="miniStatCard">
-            <span className="miniStatLabel">선택 모델</span>
-            <strong>{selectedFeatures}</strong>
+            <span className="miniStatLabel">최근 30일 평균 오차율</span>
+            <strong>{prediction.mae30d} pt</strong>
           </div>
         </aside>
       </div>
@@ -68,12 +72,17 @@ export function HeroPrediction({ prediction }: HeroPredictionProps) {
           {prediction.yesterday.actualOpen.toLocaleString("ko-KR")}
         </div>
         <div className="summaryCard">
-          <span className="summaryLabel">판정</span>
-          {prediction.yesterday.hit ? "밴드 내 적중" : "밴드 이탈"}
-        </div>
-        <div className="summaryCard">
-          <span className="summaryLabel">밴드 폭</span>
-          VIX {prediction.model.vix} / 배수 {prediction.model.bandMultiplier}x
+          <span className="summaryLabel">실제-예측 편차</span>
+          {(() => {
+            const yesterdayCenter = (prediction.yesterday.predictionLow + prediction.yesterday.predictionHigh) / 2;
+            const yesterdayDeviation = prediction.yesterday.actualOpen - yesterdayCenter;
+            const isDevPositive = yesterdayDeviation >= 0;
+            return (
+              <span style={{ color: isDevPositive ? "#FF3B30" : "#34C759", fontWeight: "bold" }}>
+                {isDevPositive ? "▲" : "▼"}{Math.abs(yesterdayDeviation).toFixed(2)} pt
+              </span>
+            );
+          })()}
         </div>
       </div>
     </section>

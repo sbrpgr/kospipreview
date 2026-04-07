@@ -3,29 +3,29 @@
     {
       "key": "ewy",
       "label": "EWY",
-      "value": "$124.57",
-      "changePct": -1.09,
+      "value": "$124.76",
+      "changePct": -0.94,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,501.56",
-      "changePct": -0.51,
+      "value": "1,501.29",
+      "changePct": -0.53,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$115.15",
-      "changePct": 2.44,
+      "value": "$115.23",
+      "changePct": 2.51,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "sp500",
       "label": "S&P500",
-      "value": "6,579.68",
-      "changePct": -0.49,
+      "value": "6,581.77",
+      "changePct": -0.45,
       "updatedAt": "2026-04-07T00:00:00"
     }
   ],
@@ -33,15 +33,15 @@
     {
       "key": "nasdaq",
       "label": "나스닥",
-      "value": "24,008.16",
-      "changePct": -0.76,
+      "value": "24,015.71",
+      "changePct": -0.73,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "vix",
       "label": "VIX",
-      "value": "26.39",
-      "changePct": 9.18,
+      "value": "26.47",
+      "changePct": 9.52,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
@@ -54,29 +54,29 @@
     {
       "key": "dow",
       "label": "다우",
-      "value": "46,417.62",
-      "changePct": -0.54,
+      "value": "46,433.44",
+      "changePct": -0.51,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "gold",
       "label": "금 시세",
-      "value": "$4,691.20",
-      "changePct": 0.74,
+      "value": "$4,689.90",
+      "changePct": 0.71,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "us10y",
       "label": "US10Y",
       "value": "4.36%",
-      "changePct": 0.55,
+      "changePct": 0.62,
       "updatedAt": "2026-04-07T00:00:00"
     },
     {
       "key": "sox",
       "label": "필라델피아반도체",
-      "value": "7,913.47",
-      "changePct": -0.03,
+      "value": "7,920.74",
+      "changePct": 0.06,
       "updatedAt": "2026-04-07T00:00:00"
     }
   ]
