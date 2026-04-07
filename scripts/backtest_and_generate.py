@@ -262,13 +262,14 @@ def fit_final_model(dataset: pd.DataFrame, features: list[str]):
 def build_latest_payload(dataset_map: dict[str, pd.DataFrame], params: pd.Series, rmse: float) -> dict[str, float]:
     latest = {}
     for name in FEATURE_TICKERS:
-        latest_return = float(dataset_map[name]["Close"].pct_change().dropna().iloc[-1] * 100)
+        latest_frame = dataset_map[name]["Close"].dropna()
+        latest_return = float(latest_frame.pct_change().dropna().iloc[-1] * 100)
         latest[name] = latest_return
         if name == "vix":
-            latest["vix_level"] = float(dataset_map[name]["Close"].iloc[-1])
-        latest[f"{name}_value"] = float(dataset_map[name]["Close"].iloc[-1])
+            latest["vix_level"] = float(latest_frame.iloc[-1])
+        latest[f"{name}_value"] = float(latest_frame.iloc[-1])
 
-    latest["prev_kospi_close"] = float(dataset_map["kospi"]["Close"].iloc[-1])
+    latest["prev_kospi_close"] = float(dataset_map["kospi"]["Close"].dropna().iloc[-1])
     return {
         "returns": latest,
         "rmse": rmse,
@@ -324,7 +325,7 @@ def write_history_json(history_df: pd.DataFrame, model_result: ModelResult) -> N
             "actualOpen": row["actual_open"],
             "hit": bool(row["hit"]),
         }
-        for _, row in history_df.iloc[::-1].iterrows()
+        for _, row in history_df.iterrows()
     ]
     payload = {
         "summary": {
@@ -420,16 +421,16 @@ def write_indicators_json(market: dict[str, pd.DataFrame]) -> None:
     secondary_keys = ["nasdaq", "vix", "koru", "dow", "gold", "us10y", "sox"]
 
     def build_indicator(name: str) -> dict[str, object]:
-        frame = market[name]
-        close = float(frame["Close"].iloc[-1])
-        prev_close = float(frame["Close"].iloc[-2])
+        valid_series = market[name]["Close"].dropna()
+        close = float(valid_series.iloc[-1])
+        prev_close = float(valid_series.iloc[-2])
         change_pct = (close / prev_close - 1) * 100
         return {
             "key": name,
             "label": indicator_label(name),
             "value": format_indicator_value(name, close),
             "changePct": round(change_pct, 2),
-            "updatedAt": pd.Timestamp(frame.index[-1]).isoformat(),
+            "updatedAt": pd.Timestamp(valid_series.index[-1]).isoformat(),
         }
 
     payload = {

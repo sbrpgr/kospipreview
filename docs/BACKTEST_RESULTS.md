@@ -2,7 +2,7 @@
 
 ## Dataset
 
-- rows: 1408
+- rows: 1407
 - rolling window: 120
 - evaluated feature subsets: 2~5 variables
 
@@ -16,30 +16,30 @@
 
 ## Metrics
 
-- RMSE: 22.07
-- MAE: 12.39
-- Band hit rate: 75.47%
-- Direction hit rate: 76.86%
+- RMSE: 22.03
+- MAE: 12.35
+- Band hit rate: 75.45%
+- Direction hit rate: 76.85%
 - Average p-value: 0.0000
-- Average VIF: 3.0786
+- Average VIF: 3.0783
 
 ## Final Window Coefficients
 
 | term | coefficient | p-value |
 | --- | ---: | ---: |
-| const | 0.188209 | 0.073721 |
-| sp500_return | 0.864113 | 7.5e-05 |
-| sox_return | 0.318816 | 7.2e-05 |
+| const | 0.175647 | 0.094379 |
+| sp500_return | 0.86588 | 6.8e-05 |
+| sox_return | 0.317334 | 7.3e-05 |
 
 ## Top Candidate Ranking
 
 | rank | features | RMSE | Band hit rate | Direction hit rate |
 | --- | --- | ---: | ---: | ---: |
-| 1 | sp500_return, sox_return | 22.07 | 75.47% | 76.86% |
-| 2 | sp500_return, sox_return, koru_return | 22.42 | 74.53% | 76.63% |
-| 3 | ewy_return, sp500_return, sox_return | 22.43 | 74.92% | 76.55% |
-| 4 | nasdaq_return, sox_return | 22.73 | 76.09% | 75.31% |
-| 5 | sp500_return, koru_return | 22.92 | 76.71% | 76.16% |
+| 1 | sp500_return, sox_return | 22.03 | 75.45% | 76.85% |
+| 2 | sp500_return, sox_return, koru_return | 22.38 | 74.51% | 76.61% |
+| 3 | ewy_return, sp500_return, sox_return | 22.39 | 74.90% | 76.53% |
+| 4 | nasdaq_return, sox_return | 22.69 | 76.07% | 75.29% |
+| 5 | sp500_return, koru_return | 22.90 | 76.69% | 76.15% |
 
 ## Notes
 
