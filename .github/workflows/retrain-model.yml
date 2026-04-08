@@ -87,14 +87,14 @@ jobs:
         shell: bash
         run: |
           kst_hour="$(TZ=Asia/Seoul date +%H)"
-          # Keep chaining only during KST evening/premarket window to avoid runaway daytime usage.
-          if [ "$kst_hour" -ge 9 ] && [ "$kst_hour" -lt 20 ]; then
-            echo "Outside chaining window (KST 20:00-09:00). Skipping."
+          # Keep chaining only during KST premarket/open overlap window.
+          if [ "$kst_hour" -lt 17 ] || [ "$kst_hour" -ge 23 ]; then
+            echo "Outside chaining window (KST 17:00-23:00). Skipping."
             exit 0
           fi
 
-          # Typical run takes about 90s, so 210s sleep keeps effective interval near 5 minutes.
-          sleep 210
+          # Re-dispatch immediately; practical cadence becomes one cycle per workflow runtime (~1-2 min).
+          sleep 5
 
           curl --fail --silent --show-error -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
