@@ -68,7 +68,8 @@ jobs:
 
       - name: Push changes
         run: |
-          git pull --rebase origin "${{ github.ref_name }}"
+          # Guard against transient untracked/unstaged files generated during the job.
+          git pull --rebase --autostash origin "${{ github.ref_name }}"
           git push origin "HEAD:${{ github.ref_name }}"
 
       - name: Prepare Firebase credentials
