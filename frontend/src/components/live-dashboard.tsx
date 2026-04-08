@@ -115,6 +115,8 @@ function getDashboardVersion(
     prediction.pointPrediction,
     prediction.nightFuturesSimplePoint ?? "",
     prediction.nightFuturesSimpleChangePct ?? "",
+    prediction.futuresDayClose ?? "",
+    prediction.futuresDayCloseDate ?? "",
     indicators.generatedAt ?? "",
     getLatestIndicatorUpdate(indicators),
     firstPrimary,
@@ -128,9 +130,11 @@ function getDashboardVersion(
 function getIndicatorsVersion(indicators: IndicatorData) {
   const firstPrimary = indicators.primary[0]?.value ?? "";
   const firstSecondary = indicators.secondary[0]?.value ?? "";
-  const k200fValue = [...indicators.primary, ...indicators.secondary].find((indicator) => indicator.key === "k200f")?.value ?? "";
+  const k200f = [...indicators.primary, ...indicators.secondary].find((indicator) => indicator.key === "k200f");
+  const k200fValue = k200f?.value ?? "";
+  const k200fReference = k200f?.referenceValue ?? "";
 
-  return [indicators.generatedAt ?? "", getLatestIndicatorUpdate(indicators), firstPrimary, firstSecondary, k200fValue].join("|");
+  return [indicators.generatedAt ?? "", getLatestIndicatorUpdate(indicators), firstPrimary, firstSecondary, k200fValue, k200fReference].join("|");
 }
 
 async function fetchJson<T>(path: string) {
@@ -311,6 +315,8 @@ export function LiveDashboard({
   const nightSimplePoint = typeof prediction.nightFuturesSimplePoint === "number" ? prediction.nightFuturesSimplePoint : null;
   const nightSimpleChangePct =
     typeof prediction.nightFuturesSimpleChangePct === "number" ? prediction.nightFuturesSimpleChangePct : null;
+  const futuresDayClose = typeof prediction.futuresDayClose === "number" ? prediction.futuresDayClose : null;
+  const futuresDayCloseDate = prediction.futuresDayCloseDate ?? "";
 
   return (
     <div className="pageContainer">
@@ -337,6 +343,11 @@ export function LiveDashboard({
                 {nightSimpleChangePct === null
                   ? "데이터 미연결"
                   : `${nightSimpleChangePct >= 0 ? "상방" : "하방"} ${Math.abs(nightSimpleChangePct).toFixed(2)}%`}
+              </div>
+              <div className="heroForecastMeta">
+                {futuresDayClose === null
+                  ? "주간선물 종가 미연결"
+                  : `주간선물 종가 ${futuresDayClose.toLocaleString("ko-KR")}${futuresDayCloseDate ? ` (${futuresDayCloseDate})` : ""}`}
               </div>
             </div>
             <div className="heroForecastCard isModel">

@@ -40,6 +40,8 @@ export async function getPredictionData() {
     pointPrediction: number;
     nightFuturesSimplePoint?: number | null;
     nightFuturesSimpleChangePct?: number | null;
+    futuresDayClose?: number | null;
+    futuresDayCloseDate?: string | null;
     predictedChangePct: number;
     prevClose: number;
     signalSummary: string;
@@ -72,6 +74,9 @@ export async function getIndicatorData() {
       dataSource?: string;
       displayTag?: string;
       isPremarket?: boolean;
+      referenceLabel?: string;
+      referenceValue?: string;
+      referenceDate?: string;
     }>;
     secondary: Array<{
       key: string;
@@ -83,6 +88,9 @@ export async function getIndicatorData() {
       dataSource?: string;
       displayTag?: string;
       isPremarket?: boolean;
+      referenceLabel?: string;
+      referenceValue?: string;
+      referenceDate?: string;
     }>;
     generatedAt?: string;
     isUsPremarketNow?: boolean;

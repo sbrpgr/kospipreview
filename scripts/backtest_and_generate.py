@@ -86,11 +86,15 @@ TV_KOSPI_NIGHT_SYMBOL = "KRX:K2I1!"
 NIGHT_FUTURES_STALE_MINUTES = 180
 ESIGNAL_KOSPI_NIGHT_PAGE_URL = "https://esignal.co.kr/kospi200-futures-night/"
 ESIGNAL_KOSPI_NIGHT_CACHE_URL = "https://esignal.co.kr/data/cache/kospif_ngt.js"
+ESIGNAL_KOSPI_DAY_PAGE_URL = "https://esignal.co.kr/kospi200-futures/"
+ESIGNAL_KOSPI_DAY_CACHE_URL = "https://esignal.co.kr/data/cache/kospif_day.js"
 ESIGNAL_REQUEST_TIMEOUT = 10
 ESIGNAL_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 )
+KOSPI_DAY_FUTURES_SESSION_OPEN = time(8, 45)
+KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 45)
 
 LGBM_BASE = dict(
     n_estimators=300,
@@ -151,7 +155,102 @@ def fetch_market_data() -> dict[str, pd.DataFrame]:
     return frames
 
 
-def fetch_tradingview_kospi_night_quote() -> dict | None:
+def fetch_esignal_kospi_day_close_quote() -> dict | None:
+    req = urllib.request.Request(
+        ESIGNAL_KOSPI_DAY_CACHE_URL,
+        headers={
+            "User-Agent": ESIGNAL_USER_AGENT,
+            "Referer": ESIGNAL_KOSPI_DAY_PAGE_URL,
+            "Accept": "application/json,text/javascript,*/*;q=0.1",
+            "Cache-Control": "no-cache",
+        },
+        method="GET",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=ESIGNAL_REQUEST_TIMEOUT) as response:
+            body = response.read().decode("utf-8")
+    except (urllib.error.URLError, TimeoutError):
+        return None
+
+    try:
+        payload = json.loads(body)
+        ticks = payload.get("data", [])
+        if not ticks:
+            return None
+    except (ValueError, TypeError):
+        return None
+
+    latest_by_date: dict[str, tuple[datetime, float]] = {}
+    for tick in ticks:
+        try:
+            ts_utc = datetime.fromtimestamp(int(tick[0]) / 1000, tz=timezone.utc)
+            price = float(tick[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+
+        ts_kst = ts_utc.astimezone(KST)
+        if not (KOSPI_DAY_FUTURES_SESSION_OPEN <= ts_kst.time() <= KOSPI_DAY_FUTURES_SESSION_CLOSE):
+            continue
+
+        date_key = ts_kst.date().isoformat()
+        previous = latest_by_date.get(date_key)
+        if previous is None or ts_utc > previous[0]:
+            latest_by_date[date_key] = (ts_utc, price)
+
+    if latest_by_date:
+        latest_date = max(latest_by_date.keys())
+        latest_ts, close_price = latest_by_date[latest_date]
+        return {
+            "close": close_price,
+            "updated_at": latest_ts.isoformat(),
+            "session_date": latest_date,
+            "provider": "esignal-day-cache",
+            "selection": "session-close",
+        }
+
+    try:
+        fallback_tick = ticks[-1]
+        fallback_ts = datetime.fromtimestamp(int(fallback_tick[0]) / 1000, tz=timezone.utc)
+        fallback_price = float(fallback_tick[1])
+    except (TypeError, ValueError, IndexError):
+        return None
+
+    return {
+        "close": fallback_price,
+        "updated_at": fallback_ts.isoformat(),
+        "session_date": fallback_ts.astimezone(KST).date().isoformat(),
+        "provider": "esignal-day-cache",
+        "selection": "latest-tick-fallback",
+    }
+
+
+def apply_day_futures_reference(
+    quote: dict,
+    day_close_quote: dict | None,
+) -> dict:
+    if not day_close_quote:
+        return quote
+
+    try:
+        day_close = float(day_close_quote["close"])
+    except (TypeError, ValueError, KeyError):
+        return quote
+
+    if day_close == 0:
+        return quote
+
+    quote["previous_close"] = day_close
+    quote["day_close"] = day_close
+    quote["day_close_updated_at"] = day_close_quote.get("updated_at")
+    quote["day_close_date"] = day_close_quote.get("session_date")
+    quote["reference_close"] = "day-futures-close"
+    price = float(quote.get("price", day_close))
+    quote["change_pct"] = (price / day_close - 1) * 100
+    return quote
+
+
+def fetch_tradingview_kospi_night_quote(day_close_quote: dict | None = None) -> dict | None:
     payload = {
         "symbols": {"tickers": [TV_KOSPI_NIGHT_SYMBOL], "query": {"types": []}},
         "columns": ["close", "change", "change_abs", "update_time", "update_mode", "description", "exchange"],
@@ -200,7 +299,7 @@ def fetch_tradingview_kospi_night_quote() -> dict | None:
     in_night_window = updated_kst.time() >= time(18, 0) or updated_kst.time() <= time(6, 0)
     is_live_night = age_minutes <= NIGHT_FUTURES_STALE_MINUTES and in_night_window
 
-    return {
+    quote = {
         "price": price,
         "previous_close": previous_close,
         "change_pct": float(change_pct) if change_pct is not None else (price / previous_close - 1) * 100,
@@ -211,10 +310,15 @@ def fetch_tradingview_kospi_night_quote() -> dict | None:
         "description": description or "KOSPI 200 Futures",
         "exchange": exchange or "KRX",
         "provider": "tradingview",
+        "reference_close": "provider-default",
+        "day_close": None,
+        "day_close_updated_at": None,
+        "day_close_date": None,
     }
+    return apply_day_futures_reference(quote, day_close_quote)
 
 
-def fetch_esignal_kospi_night_quote() -> dict | None:
+def fetch_esignal_kospi_night_quote(day_close_quote: dict | None = None) -> dict | None:
     req = urllib.request.Request(
         ESIGNAL_KOSPI_NIGHT_CACHE_URL,
         headers={
@@ -257,7 +361,7 @@ def fetch_esignal_kospi_night_quote() -> dict | None:
     is_live_night = age_minutes <= NIGHT_FUTURES_STALE_MINUTES and in_night_window
     change_pct = ((price / previous_close - 1) * 100) if previous_close else 0.0
 
-    return {
+    quote = {
         "price": price,
         "previous_close": previous_close,
         "change_pct": change_pct,
@@ -268,7 +372,12 @@ def fetch_esignal_kospi_night_quote() -> dict | None:
         "description": "KOSPI 200 Night Futures",
         "exchange": "KRX",
         "provider": "esignal",
+        "reference_close": "night-open",
+        "day_close": None,
+        "day_close_updated_at": None,
+        "day_close_date": None,
     }
+    return apply_day_futures_reference(quote, day_close_quote)
 
 
 def fetch_live_indicators() -> tuple[dict[str, pd.DataFrame], dict[str, dict]]:
@@ -291,10 +400,25 @@ def fetch_live_indicators() -> tuple[dict[str, pd.DataFrame], dict[str, dict]]:
             df.columns = df.columns.get_level_values(0)
         frames[name] = df.sort_index()
 
-    k200f_quote = fetch_esignal_kospi_night_quote()
+    day_close_quote = fetch_esignal_kospi_day_close_quote()
+    k200f_quote = fetch_esignal_kospi_night_quote(day_close_quote)
     if k200f_quote is None:
-        k200f_quote = fetch_tradingview_kospi_night_quote()
-    overrides["k200f"] = k200f_quote or {"is_live_night": False}
+        k200f_quote = fetch_tradingview_kospi_night_quote(day_close_quote)
+
+    if k200f_quote is None:
+        fallback_override = {"is_live_night": False}
+        if day_close_quote:
+            fallback_override.update(
+                {
+                    "day_close": float(day_close_quote.get("close", 0) or 0),
+                    "day_close_updated_at": day_close_quote.get("updated_at"),
+                    "day_close_date": day_close_quote.get("session_date"),
+                    "reference_close": "day-futures-close",
+                }
+            )
+        overrides["k200f"] = fallback_override
+    else:
+        overrides["k200f"] = k200f_quote
 
     if k200f_quote and k200f_quote.get("is_live_night"):
         updated_at = pd.Timestamp(k200f_quote["updated_at"])
@@ -628,6 +752,15 @@ def build_latest(
     prior_close = float(prev_kospi_non_na.iloc[-1]) if not prev_kospi_non_na.empty else prev_close
     prev_close_change = ((prev_close / prior_close - 1) * 100) if prior_close else 0.0
     night_futures_change = compute_live_return_pct("k200f", live_market, history_market, live_overrides)
+    k200f_override = live_overrides.get("k200f", {})
+    futures_day_close_raw = k200f_override.get("day_close")
+    try:
+        futures_day_close = float(futures_day_close_raw) if futures_day_close_raw is not None else None
+    except (TypeError, ValueError):
+        futures_day_close = None
+    if futures_day_close == 0:
+        futures_day_close = None
+    futures_day_close_date = k200f_override.get("day_close_date")
 
     feature_vector = np.array(
         [[returns.get(column.replace("_return", ""), 0.0) for column in result["feat_cols"]]],
@@ -674,6 +807,8 @@ def build_latest(
         "returns": returns,
         "prev_close": prev_close,
         "latest_record_date": latest_record_date,
+        "futures_day_close": futures_day_close,
+        "futures_day_close_date": futures_day_close_date,
     }
 
 
@@ -728,6 +863,10 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
         "nightFuturesSimpleChangePct": (
             round(float(latest["night_futures_change_c"]), 2) if latest["night_futures_change_c"] is not None else None
         ),
+        "futuresDayClose": (
+            round(float(latest["futures_day_close"]), 2) if latest.get("futures_day_close") is not None else None
+        ),
+        "futuresDayCloseDate": latest.get("futures_day_close_date"),
         "rangeLow": round(latest["r_low"], 2),
         "rangeHigh": round(latest["r_high"], 2),
         "predictedChangePct": round(latest["pred_c"], 2),
@@ -768,9 +907,18 @@ def write_indicators_json(
     def build_indicator(name: str) -> dict:
         if name == "k200f":
             k200f_override = live_overrides.get("k200f", {})
+            day_close_raw = k200f_override.get("day_close")
+            try:
+                day_close = float(day_close_raw) if day_close_raw is not None else None
+            except (TypeError, ValueError):
+                day_close = None
+            if day_close == 0:
+                day_close = None
+            reference_value = format_value(name, day_close) if day_close is not None else ""
+            reference_date = k200f_override.get("day_close_date") or ""
             if k200f_override.get("is_live_night"):
                 price = float(k200f_override["price"])
-                previous_close = float(k200f_override["previous_close"])
+                previous_close = day_close if day_close is not None else float(k200f_override["previous_close"])
                 change_pct = (price / previous_close - 1) * 100 if previous_close else 0.0
                 updated_at = as_utc_datetime(pd.Timestamp(k200f_override["updated_at"]))
                 return {
@@ -783,6 +931,9 @@ def write_indicators_json(
                     "dataSource": "실시간 수집",
                     "displayTag": "(야간)",
                     "isPremarket": False,
+                    "referenceLabel": "주간선물 종가" if reference_value else "",
+                    "referenceValue": reference_value,
+                    "referenceDate": reference_date,
                 }
 
             return {
@@ -795,6 +946,9 @@ def write_indicators_json(
                 "dataSource": "실시간 수집",
                 "displayTag": "(미연결)",
                 "isPremarket": False,
+                "referenceLabel": "주간선물 종가" if reference_value else "",
+                "referenceValue": reference_value,
+                "referenceDate": reference_date,
             }
 
         frame = live_market.get(name, pd.DataFrame())

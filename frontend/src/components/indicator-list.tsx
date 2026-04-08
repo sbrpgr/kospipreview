@@ -50,6 +50,9 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
         const isPositive = indicator.changePct >= 0;
         const displayValue = formatIndicatorValue(indicator.key, indicator.value);
         const displayTag = indicator.displayTag?.trim() || "";
+        const referenceLabel = indicator.referenceLabel?.trim() || "";
+        const referenceValue = indicator.referenceValue?.trim() || "";
+        const referenceDate = indicator.referenceDate?.trim() || "";
         const hasSourceUrl = Boolean(indicator.sourceUrl?.trim());
         const isSourceHidden = indicator.key === "k200f";
         const isClickable = hasSourceUrl && !isSourceHidden;
@@ -67,6 +70,12 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
             <div className="indSource">
               기준 시각 {formatUpdatedAt(indicator.updatedAt)} KST · {indicator.dataSource ?? "Yahoo Finance"}
             </div>
+            {referenceValue ? (
+              <div className="indReference">
+                {referenceLabel || "기준 종가"} {referenceValue}
+                {referenceDate ? ` · ${referenceDate}` : ""}
+              </div>
+            ) : null}
           </>
         );
 
