@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$137.06",
-      "changePct": 7.76,
-      "updatedAt": "2026-04-08T23:49:16+00:00",
+      "value": "$137.25",
+      "changePct": 7.91,
+      "updatedAt": "2026-04-08T23:50:52+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -27,7 +27,7 @@
       "label": "WTI",
       "value": "$96.93",
       "changePct": -14.18,
-      "updatedAt": "2026-04-08T23:39:00+00:00",
+      "updatedAt": "2026-04-08T23:41:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -51,7 +51,7 @@
       "label": "NASDAQ 100",
       "value": "24,903.17",
       "changePct": 2.9,
-      "updatedAt": "2026-04-08T21:16:00+00:00",
+      "updatedAt": "2026-04-08T21:15:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$382.10",
-      "changePct": 22.83,
-      "updatedAt": "2026-04-08T23:49:58+00:00",
+      "value": "$384.00",
+      "changePct": 23.44,
+      "updatedAt": "2026-04-08T23:50:44+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,735.50",
-      "changePct": 1.68,
-      "updatedAt": "2026-04-08T23:40:00+00:00",
+      "value": "$4,737.50",
+      "changePct": 1.73,
+      "updatedAt": "2026-04-08T23:41:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T23:50:05.544097+00:00",
+  "generatedAt": "2026-04-08T23:51:23.600546+00:00",
   "isUsPremarketNow": false
 }
