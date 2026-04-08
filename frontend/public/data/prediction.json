@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-08T16:14:29.989022+00:00",
+  "generatedAt": "2026-04-08T16:16:16.690776+00:00",
   "predictionDate": "2026년 04월 09일",
   "pointPrediction": 6091.3,
   "rangeLow": 6067.13,
@@ -7,12 +7,12 @@
   "predictedChangePct": 3.73,
   "prevClose": 5872.34,
   "signalSummary": "EWY 상승 · S&P 500 상승 · VIX 하락(안정) · NASDAQ 100 상승 · USD/KRW 원화 강세",
-  "lastCalculatedAt": "2026-04-08T16:14:29.989022+00:00",
+  "lastCalculatedAt": "2026-04-08T16:16:16.690776+00:00",
   "latestRecordDate": "2026-04-08",
   "mae30d": 18.59,
   "model": {
     "engine": "LightGBM",
-    "vix": 21.04,
+    "vix": 21.0,
     "lgbmRmse": 36.5
   },
   "yesterday": {
