@@ -10,6 +10,31 @@ import {
   getPredictionData,
 } from "@/lib/data";
 
+function formatKoreanDateTime(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Asia/Seoul",
+  }).format(new Date(value));
+}
+
+function formatKoreanDate(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeZone: "Asia/Seoul",
+  }).format(new Date(`${value}T00:00:00+09:00`));
+}
+
+function formatCompactTimestamp(value: string) {
+  const date = new Date(value);
+  const year = date.toLocaleString("en-CA", { year: "numeric", timeZone: "Asia/Seoul" });
+  const month = date.toLocaleString("en-CA", { month: "2-digit", timeZone: "Asia/Seoul" });
+  const day = date.toLocaleString("en-CA", { day: "2-digit", timeZone: "Asia/Seoul" });
+  const hour = date.toLocaleString("en-CA", { hour: "2-digit", hour12: false, timeZone: "Asia/Seoul" });
+  const minute = date.toLocaleString("en-CA", { minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" });
+  return `${year}:${month}:${day}:${hour}:${minute}`;
+}
+
 export default async function Home() {
   const [prediction, indicators, history, freshness] = await Promise.all([
     getPredictionData(),
@@ -18,18 +43,17 @@ export default async function Home() {
     getDataFreshness(),
   ]);
 
-  const updatedAt = new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "short",
-    timeStyle: "short",
-    timeZone: "Asia/Seoul",
-  }).format(new Date(freshness.newestModifiedAt));
+  const updatedAt = formatKoreanDateTime(freshness.newestModifiedAt);
+  const latestRecordDate = freshness.latestRecordDate ? formatKoreanDate(freshness.latestRecordDate) : "확인 불가";
 
-  const latestRecordDate = freshness.latestRecordDate
-    ? new Intl.DateTimeFormat("ko-KR", {
-        dateStyle: "medium",
-        timeZone: "Asia/Seoul",
-      }).format(new Date(`${freshness.latestRecordDate}T00:00:00+09:00`))
-    : "확인 불가";
+  const latestIndicatorUpdate =
+    [...indicators.primary, ...indicators.secondary]
+      .map((indicator) => indicator.updatedAt)
+      .filter(Boolean)
+      .sort()
+      .at(-1) ?? indicators.generatedAt ?? freshness.newestModifiedAt;
+
+  const indicatorUpdateLabel = formatCompactTimestamp(latestIndicatorUpdate);
 
   return (
     <div className="pageContainer">
@@ -64,7 +88,14 @@ export default async function Home() {
 
         <ChartSection history={history} />
 
-        <h2 className="sectionTitle">시장 지표</h2>
+        <div className="sectionTitleRow">
+          <h2 className="sectionTitle">시장지표</h2>
+          <div className="liveMetaBadge">
+            <span className="liveMetaDot" />
+            1분단위 갱신
+          </div>
+        </div>
+        <div className="sectionSubtext">시장지표 (1분단위 갱신 · 최종갱신시간 {indicatorUpdateLabel})</div>
         <IndicatorList indicators={indicators} />
 
         <h2 className="sectionTitle" style={{ marginTop: "60px" }}>

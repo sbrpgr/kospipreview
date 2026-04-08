@@ -47,7 +47,7 @@ export function SiteHeader({ lastUpdated, status }: SiteHeaderProps) {
           <div className="statusDot" />
           {meta.label}
         </div>
-        <div className="statusTime">Last refresh: {lastUpdated}</div>
+        <div className="statusTime">시장 지표 갱신 시간: {lastUpdated}</div>
       </div>
     </header>
   );

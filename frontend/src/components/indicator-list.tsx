@@ -2,6 +2,13 @@
 
 import type { IndicatorData } from "@/lib/data";
 
+function normalizeIndicatorValue(key: string, value: string) {
+  if (key === "krw") {
+    return value.replace(/\?\?/g, "원");
+  }
+  return value;
+}
+
 export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
   const allIndicators = [...indicators.primary, ...indicators.secondary];
 
@@ -9,6 +16,8 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
     <div className="indicatorGrid">
       {allIndicators.map((indicator) => {
         const isPositive = indicator.changePct >= 0;
+        const displayValue = normalizeIndicatorValue(indicator.key, indicator.value);
+
         return (
           <a
             href={indicator.sourceUrl || "#"}
@@ -18,7 +27,7 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
             key={indicator.key}
           >
             <div className="indLabel">{indicator.label}</div>
-            <div className="indValue">{indicator.value}</div>
+            <div className="indValue">{displayValue}</div>
             <div className={`indChange ${isPositive ? "isPos" : "isNeg"}`}>
               {isPositive ? "▲" : "▼"} {Math.abs(indicator.changePct).toFixed(2)}%
             </div>
