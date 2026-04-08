@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$138.06",
-      "changePct": 8.55,
-      "updatedAt": "2026-04-08T23:20:09+00:00",
+      "value": "$137.84",
+      "changePct": 8.37,
+      "updatedAt": "2026-04-08T23:22:09+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$96.65",
-      "changePct": -14.43,
-      "updatedAt": "2026-04-08T23:10:00+00:00",
+      "value": "$96.80",
+      "changePct": -14.3,
+      "updatedAt": "2026-04-08T23:12:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$388.00",
-      "changePct": 24.72,
-      "updatedAt": "2026-04-08T23:21:02+00:00",
+      "value": "$387.50",
+      "changePct": 24.56,
+      "updatedAt": "2026-04-08T23:22:08+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,729.60",
-      "changePct": 1.56,
-      "updatedAt": "2026-04-08T23:11:00+00:00",
+      "value": "$4,730.50",
+      "changePct": 1.58,
+      "updatedAt": "2026-04-08T23:12:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T23:21:10.947358+00:00",
+  "generatedAt": "2026-04-08T23:22:28.820480+00:00",
   "isUsPremarketNow": false
 }
