@@ -1,23 +1,32 @@
 import { AccuracyTable } from "@/components/accuracy-table";
 import { ModelDiagnostics } from "@/components/model-diagnostics";
 import { SiteHeader } from "@/components/site-header";
-import { getBacktestDiagnosticsData, getHistoryData } from "@/lib/data";
+import { getBacktestDiagnosticsData, getHistoryData, getDataFreshness } from "@/lib/data";
 
 export default async function HistoryPage() {
-  const [history, diagnostics] = await Promise.all([
+  const [history, diagnostics, freshness] = await Promise.all([
     getHistoryData(),
     getBacktestDiagnosticsData(),
+    getDataFreshness(),
   ]);
 
+  const updatedAt = new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Asia/Seoul",
+  }).format(new Date(freshness.newestModifiedAt));
+
   return (
-    <main className="pageShell innerPage">
-      <SiteHeader
-        description="롤링 백테스트 결과와 일자별 예측 편차를 함께 확인할 수 있습니다."
-        eyebrow="검증 이력"
-        title="예측 기록과 모델 검증"
-      />
-      <AccuracyTable history={history} />
-      <ModelDiagnostics diagnostics={diagnostics} />
-    </main>
+    <div className="dashboardShell">
+      <SiteHeader lastUpdated={updatedAt} status={freshness.status} />
+      <main className="dashboardBody" style={{ flexDirection: "column", padding: "20px", overflowY: "auto" }}>
+        <h2 style={{ marginBottom: "20px" }}>예측 기록 상세</h2>
+        <div style={{ height: "400px", marginBottom: "30px", border: "1px solid var(--border)", display: "flex", flexDirection: "column" }}>
+            <AccuracyTable history={history} />
+        </div>
+        <h2 style={{ marginBottom: "20px" }}>모델 백테스트 검증 (과거 데이터)</h2>
+        <ModelDiagnostics diagnostics={diagnostics} />
+      </main>
+    </div>
   );
 }

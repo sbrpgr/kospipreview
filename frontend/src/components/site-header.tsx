@@ -1,35 +1,34 @@
 type SiteHeaderProps = {
-  title: string;
-  eyebrow: string;
-  description: string;
+  lastUpdated: string;
+  status: string;
 };
 
-const navItems = [
-  { href: "/", label: "대시보드" },
-  { href: "/history", label: "예측 기록" },
-  { href: "/about", label: "모델 설명" },
-];
+export function SiteHeader({ lastUpdated, status }: SiteHeaderProps) {
+  const isFresh = status === "fresh";
 
-export function SiteHeader({ title, eyebrow, description }: SiteHeaderProps) {
   return (
-    <header className="siteHeader">
-      <div className="siteHeaderTop">
-        <a className="brandLockup" href="/">
-          <span className="brandKicker">KOSPI DAWN</span>
-          <strong>코스피 시초가 예측</strong>
+    <header className="topNavbar">
+      <div className="navBrand">
+        <a className="brandLogo" href="/">
+          KOSPI DAWN
         </a>
-        <nav className="topNav" aria-label="주요 메뉴">
-          {navItems.map((item) => (
-            <a className="topNavLink" href={item.href} key={item.href}>
-              {item.label}
-            </a>
-          ))}
+        <nav className="navLinks">
+          <a className="navLink active" href="/">Chart</a>
+          <a className="navLink" href="/history">History</a>
+          <a className="navLink" href="/about">Model</a>
         </nav>
       </div>
-      <div className="pageIntro">
-        <p className="brandKicker">{eyebrow}</p>
-        <h1>{title}</h1>
-        <p className="pageIntroText">{description}</p>
+      
+      <div className="navStatusRow">
+        <div className="navStatusItem">
+          <span className={`statusDot ${isFresh ? 'isFresh' : 'isStale'}`}></span>
+          <span style={{ color: isFresh ? "var(--positive)" : "var(--gold)" }}>
+            {isFresh ? "LIVE" : "DELAYED"}
+          </span>
+        </div>
+        <div className="navStatusItem">
+          Update: <span className="time">{lastUpdated}</span>
+        </div>
       </div>
     </header>
   );

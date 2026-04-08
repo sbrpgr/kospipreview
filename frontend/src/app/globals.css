@@ -1,36 +1,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg: #06090F;
-  --bg-gradient-1: rgba(56, 189, 248, 0.06);
-  --bg-gradient-2: rgba(99, 102, 241, 0.04);
-  --surface: rgba(15, 20, 32, 0.75);
-  --surface-strong: rgba(20, 28, 46, 0.85);
-  --surface-elevated: rgba(25, 35, 55, 0.9);
-  --border: rgba(99, 143, 255, 0.1);
-  --border-hover: rgba(99, 143, 255, 0.2);
-  --text: #F0F4F8;
-  --text-secondary: #8B9CC0;
-  --text-dim: #5B6B8D;
-  --positive: #22D67A;
-  --positive-bg: rgba(34, 214, 122, 0.08);
-  --negative: #FF4757;
-  --negative-bg: rgba(255, 71, 87, 0.08);
-  --accent: #6C8CFF;
-  --accent-bright: #818CF8;
-  --accent-bg: rgba(108, 140, 255, 0.08);
-  --gold: #F5B731;
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.35);
-  --glass-blur: blur(20px);
-  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --bg: #0B0E14;
+  --bg-app: #06080B;
+  --surface: #11141A;
+  --surface-strong: #161A22;
+  --surface-elevated: #1D222D;
+  --border: #1E232F;
+  --border-hover: #293040;
+  --border-active: #4F618F;
+  --text: #D5DEF2;
+  --text-secondary: #9AA7C1;
+  --text-dim: #5D6882;
+  --positive: #0ECB81;
+  --positive-bg: rgba(14, 203, 129, 0.1);
+  --negative: #F6465D;
+  --negative-bg: rgba(246, 70, 93, 0.1);
+  --accent: #2962FF;
+  --accent-bright: #4D7BFF;
+  --accent-bg: rgba(41, 98, 255, 0.1);
+  --gold: #FCD535;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
   --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --transition: 0.15s ease-in-out;
 }
 
 * {
@@ -39,806 +35,396 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-html {
-  scroll-behavior: smooth;
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Fullscreen dashboard */
 }
 
 body {
-  margin: 0;
   color: var(--text);
-  line-height: 1.65;
-  background-color: var(--bg);
-  background-image: 
-    radial-gradient(ellipse 80% 60% at 20% 0%, var(--bg-gradient-1), transparent),
-    radial-gradient(ellipse 60% 50% at 80% 100%, var(--bg-gradient-2), transparent);
-  background-attachment: fixed;
+  line-height: 1.4;
+  background-color: var(--bg-app);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 13px;
 }
 
-/* ───────────── Animations ───────────── */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-sm);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.4); }
-}
-
-@keyframes ping {
-  75%, 100% { transform: scale(2.5); opacity: 0; }
-}
-
-/* ───────────── Reset ───────────── */
 a {
   color: inherit;
   text-decoration: none;
-  transition: color var(--transition), opacity var(--transition);
+  transition: color var(--transition);
 }
-
-a:hover { opacity: 0.85; }
 
 button {
   font: inherit;
   cursor: pointer;
   transition: all var(--transition);
+  background: none;
+  border: none;
+  color: inherit;
+  margin: 0;
+  padding: 0;
 }
 
 h1, h2, h3, p { margin: 0; }
 
-/* ───────────── Layout ───────────── */
-.pageShell {
-  width: min(1080px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 24px 0 80px;
-  animation: fadeInUp 0.5s ease-out forwards;
+/* ───────────── Layout Dashboard ───────────── */
+.dashboardShell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-app);
 }
 
-/* ───────────── Header ───────────── */
-.siteHeader {
-  margin-bottom: 32px;
-}
-
-.siteHeaderTop {
+.topNavbar {
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 24px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-sm);
-  flex-wrap: wrap;
+  padding: 0 16px;
+  flex-shrink: 0;
+  z-index: 10;
 }
 
-.brandLockup {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 1px;
-  text-decoration: none;
-}
-
-.brandLockup strong {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: 0.01em;
-}
-
-.topNav {
+.dashboardBody {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.topNavLink {
-  padding: 7px 16px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  transition: all var(--transition);
-}
-
-.topNavLink:hover {
-  background: var(--accent-bg);
-  color: var(--accent);
-  border-color: rgba(108, 140, 255, 0.2);
-}
-
-.pageIntro {
-  margin-top: 28px;
-  max-width: 680px;
-}
-
-.pageIntroText {
-  margin-top: 10px;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  line-height: 1.7;
-}
-
-.brandKicker,
-.sectionEyebrow,
-.eyebrow {
-  margin: 0 0 6px;
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-h1 {
-  font-size: clamp(2rem, 3.5vw, 2.8rem);
-  line-height: 1.15;
-  font-weight: 900;
-  letter-spacing: -0.025em;
-  color: #fff;
-}
-
-h2 {
-  font-size: 1.15rem;
-  line-height: 1.35;
-  font-weight: 700;
-  color: #fff;
-}
-
-/* ───────────── Live Status Bar ───────────── */
-.liveStatusBar {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  background: var(--surface);
-  padding: 10px 20px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  margin-bottom: 24px;
-  backdrop-filter: var(--glass-blur);
-}
-
-.liveStatusDot {
-  position: relative;
-  width: 10px;
-  height: 10px;
-}
-
-.liveStatusDotInner {
-  width: 100%;
-  height: 100%;
-  background: var(--positive);
-  border-radius: 50%;
-  box-shadow: 0 0 8px rgba(34, 214, 122, 0.4);
-}
-
-.liveStatusPing {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--positive);
-  border-radius: 50%;
-  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.liveStatusText {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--positive);
-}
-
-.liveStatusTime {
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  margin-left: auto;
-}
-
-/* ───────────── Hero Panel ───────────── */
-.heroPanel {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-lg);
-  padding: 32px;
-  transition: border-color var(--transition);
-  position: relative;
+  flex: 1;
   overflow: hidden;
 }
 
-.heroPanel::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0.3;
+.mainArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
 }
 
-.heroPanel:hover {
-  border-color: var(--border-hover);
+.chartWorkspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: var(--bg-app);
 }
 
-.heroGrid {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 28px;
-  align-items: start;
+.bottomPanel {
+  height: 280px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
 }
 
-.heroRange {
-  margin: 10px 0 14px;
-  font-size: clamp(2.6rem, 5.5vw, 4.2rem);
+.rightSidebar {
+  width: 340px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* ───────────── Top Navbar Areas ───────────── */
+.navBrand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brandLogo {
   font-weight: 900;
-  line-height: 1;
+  font-size: 1.1rem;
+  color: var(--accent-bright);
   letter-spacing: -0.04em;
-  background: linear-gradient(135deg, #fff 0%, #8B9CC0 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.heroPoint {
+  text-transform: uppercase;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1rem;
+}
+
+.navLinks {
+  display: flex;
+  gap: 4px;
+}
+
+.navLink {
+  padding: 6px 12px;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-
-.heroSignal {
-  font-size: 0.9rem;
-  color: var(--text-dim);
-  line-height: 1.6;
-  margin-top: 8px;
-  padding: 10px 14px;
-  background: rgba(255,255,255,0.02);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255,255,255,0.04);
 }
 
-.heroAside {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.statCard {
-  padding: 16px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-md);
-  background: var(--surface-strong);
-  transition: all var(--transition);
-}
-
-.statCard:hover {
-  background: var(--surface-elevated);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.statLabel {
-  display: block;
-  color: var(--text-dim);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-.statValue {
-  display: block;
-  font-size: 1.15rem;
-  font-weight: 800;
+.navLink:hover, .navLink.active {
   color: #fff;
+  background: var(--surface-strong);
 }
 
-.statValueSm {
-  font-size: 0.9rem;
+.navStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ───────────── Live Status Dot ───────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.4); }
+}
+
+.navStatusItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.navStatusItem .time {
+  font-family: var(--font-mono);
   color: var(--text-secondary);
 }
 
-.heroFooter {
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--positive);
+}
+
+.statusDot.isFresh {
+  background: var(--positive);
+  box-shadow: 0 0 6px rgba(14, 203, 129, 0.5);
+  animation: pulse-dot 2s infinite;
+}
+
+.statusDot.isStale {
+  background: var(--negative);
+}
+
+/* ───────────── Panel Components ───────────── */
+.panelHeader {
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255,255,255,0.05);
-  flex-wrap: wrap;
-}
-
-.heroFooterText {
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   font-size: 0.82rem;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
-/* ───────────── Yesterday Verification ───────────── */
-.yesterdayVerify {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.verifyCard {
-  padding: 14px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.verifyLabel {
-  display: block;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-dim);
-  letter-spacing: 0.08em;
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-.verifyValue {
-  font-size: 0.95rem;
-  font-weight: 600;
+  letter-spacing: 0.05em;
   color: var(--text);
 }
 
-/* ───────────── Copy Button ───────────── */
-.copyButton {
-  padding: 8px 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(108, 140, 255, 0.25);
-  background: rgba(108, 140, 255, 0.08);
-  color: var(--accent);
-  font-weight: 600;
-  font-size: 0.82rem;
+.panelTitle::before {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 1px;
 }
 
-.copyButton:hover {
-  background: rgba(108, 140, 255, 0.15);
-  border-color: rgba(108, 140, 255, 0.4);
-  box-shadow: 0 0 12px rgba(108, 140, 255, 0.15);
-  transform: translateY(-1px);
-}
-
-/* ───────────── Section Card ───────────── */
-.sectionCard {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-md);
-  padding: 28px;
-  margin-bottom: 24px;
-  transition: border-color var(--transition);
-}
-
-.sectionCard:hover {
-  border-color: var(--border-hover);
-}
-
-.sectionHeader {
+/* ───────────── Orderbook / List Rows ───────────── */
+.dataRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* ───────────── Indicator Section ───────────── */
-.indicatorSectionLabel {
-  margin: 22px 0 12px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.indicatorSectionLabel::before {
-  content: '';
-  display: inline-block;
-  width: 3px;
-  height: 14px;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
-.indicatorGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.indicatorCard {
-  padding: 18px;
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: var(--radius-md);
-  background: var(--surface-strong);
-  transition: all var(--transition);
-  position: relative;
-  overflow: hidden;
-}
-
-.indicatorCard:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,0.1);
-  box-shadow: var(--shadow-sm);
-}
-
-.indicatorCard.isPrimary {
-  border-color: rgba(108, 140, 255, 0.15);
-  background: linear-gradient(135deg, var(--surface-strong), rgba(108, 140, 255, 0.03));
-}
-
-.indicatorCard.isUpdating {
-  box-shadow: 0 0 15px var(--positive-bg);
-  border-color: var(--positive);
-}
-
-.indicatorLabel {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.indicatorValue {
-  margin-top: 8px;
-  font-size: 1.35rem;
-  font-weight: 800;
-  font-family: var(--font-mono);
-  line-height: 1.2;
-  color: #fff;
-}
-
-.indicatorChange {
-  margin-top: 8px;
-  font-weight: 700;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.indicatorUpdated {
-  margin-top: 8px;
-  font-size: 0.72rem;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-}
-
-.isPositive { color: var(--positive); }
-.isNegative { color: var(--negative); }
-
-.sourceLink {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 0.6rem;
-  color: var(--text-dim);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  opacity: 0;
-  transition: opacity var(--transition);
-}
-
-.indicatorCard:hover .sourceLink {
-  opacity: 0.6;
-}
-
-.sourceLink:hover {
-  opacity: 1 !important;
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-/* ───────────── Chart Section ───────────── */
-.chartContainer {
-  width: 100%;
-  height: 380px;
-  margin-top: 20px;
-}
-
-/* ───────────── Table ───────────── */
-.tableWrap {
-  overflow-x: auto;
-  margin-top: 20px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255,255,255,0.04);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88rem;
-  color: var(--text-secondary);
-}
-
-th {
-  color: var(--text-dim);
-  font-weight: 700;
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  background: rgba(0,0,0,0.15);
-  text-align: left;
-}
-
-td {
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
-  white-space: nowrap;
-}
-
-tbody tr {
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
   transition: background var(--transition);
 }
 
-tbody tr:hover {
-  background: rgba(108, 140, 255, 0.03);
+.dataRow:hover {
+  background: var(--surface-strong);
 }
 
-tbody tr:last-child td {
-  border-bottom: none;
+.dataRowLabel {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
-/* ───────────── Hit / Miss Badge ───────────── */
-.hitBadge {
-  display: inline-flex;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-
-.hitBadge.hit {
-  background: var(--positive-bg);
-  color: var(--positive);
-}
-
-.hitBadge.miss {
-  background: var(--negative-bg);
-  color: var(--negative);
-}
-
-/* ───────────── Stats Inline ───────────── */
-.statsInline {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.statsInline span {
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.03);
-  color: var(--text-dim);
-  font-size: 0.78rem;
+.dataRowValue {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
   font-weight: 600;
+  color: #fff;
+}
+
+.dataRowChange {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  min-width: 65px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.isPos { color: var(--positive); }
+.isNeg { color: var(--negative); }
+.isNeu { color: var(--text-dim); }
+
+/* ───────────── Hero Info / Chart Top ───────────── */
+.chartTopInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.chartTickerBox {
+  display: flex;
+  flex-direction: column;
+}
+
+.chartTickerLabel {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.chartTickerValue {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
   font-family: var(--font-mono);
 }
 
-/* ───────────── Diagnostics ───────────── */
-.diagnosticsGrid {
-  display: grid;
-  grid-template-columns: 1fr 1.3fr;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.diagnosticPanel {
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  background: rgba(0,0,0,0.12);
-}
-
-.chipRow {
+.chartTickerBand {
+  font-size: 0.9rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-secondary);
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  align-items: baseline;
 }
 
-.dataChip {
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: var(--accent-bg);
-  border: 1px solid rgba(108, 140, 255, 0.15);
-  color: var(--accent);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.coefficientList {
-  display: grid;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.coefficientRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
-
-/* ───────────── FAQ / SEO ───────────── */
-.faqList {
-  display: grid;
-  gap: 0;
-}
-
-.faqList article {
-  padding: 18px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-
-.faqList article:last-child {
-  border-bottom: none;
-}
-
-.faqList h3 {
-  margin-bottom: 8px;
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.proseSection h2 {
-  margin: 20px 0 12px;
-  color: #fff;
-}
-
-.disclaimer {
-  margin-top: 20px;
-  line-height: 1.7;
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  padding: 16px;
-  background: rgba(255,71,87,0.03);
-  border: 1px solid rgba(255,71,87,0.08);
+.chartSummaryTag {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-}
-
-/* ───────────── Footer ───────────── */
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-top: 48px;
-  padding: 24px 0;
-  border-top: 1px solid rgba(255,255,255,0.04);
-  color: var(--text-dim);
-  font-size: 0.82rem;
-}
-
-.footer a:hover {
-  color: var(--accent);
-}
-
-/* ───────────── SUB PAGES ───────────── */
-.innerPage {
-  padding-top: 12px;
-}
-
-.innerPage .siteHeader {
-  margin-bottom: 32px;
-}
-
-.innerPage .sectionCard.proseSection h2 {
-  margin-top: 28px;
-  margin-bottom: 12px;
-}
-
-.innerPage .sectionCard.proseSection p {
   color: var(--text-secondary);
-  line-height: 1.8;
-  margin-bottom: 14px;
-  font-size: 1rem;
+  margin-top: 4px;
+  max-width: fit-content;
 }
 
-/* ───────────── Intraday Chart Inner ───────────── */
-.intradayChartWrap {
-  margin-top: 20px;
-  padding: 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255,255,255,0.04);
-  background: rgba(0,0,0,0.12);
+/* ───────────── Chart Wrappers ───────────── */
+.mainChartWrap {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  min-height: 0; /* allows flex box to shrink below its content height */
 }
 
-.intradayChartHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
+/* ───────────── Dense Table (Data grid) ───────────── */
+.dataGrid {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.intradayChartTitle {
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.intradayChartSubtitle {
-  font-size: 0.72rem;
+.dataGrid th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
   color: var(--text-dim);
-  margin-top: 3px;
-}
-
-.intradayChartLive {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
   font-weight: 600;
-  color: var(--positive);
+  font-size: 0.75rem;
+  padding: 8px 16px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  z-index: 2;
 }
 
-.intradayChartLiveDot {
+.dataGrid th:first-child, .dataGrid td:first-child { text-align: left; }
+
+.dataGrid td {
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.dataGrid tbody tr:hover {
+  background: var(--surface-strong);
+}
+
+/* Hit/Miss Micro Badge */
+.microBadge {
   display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--positive);
-  animation: pulse-dot 2s ease-in-out infinite;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.microBadge.hit { background: var(--positive-bg); color: var(--positive); border: 1px solid rgba(14,203,129,0.3); }
+.microBadge.miss { background: var(--negative-bg); color: var(--negative); border: 1px solid rgba(246,70,93,0.3); }
+
+/* ───────────── Misc ───────────── */
+.scrollable {
+  flex: 1;
+  overflow-y: auto;
 }
 
-/* ───────────── RESPONSIVE ───────────── */
-@media (max-width: 940px) {
-  .indicatorGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .heroGrid { grid-template-columns: 1fr; }
-  .diagnosticsGrid { grid-template-columns: 1fr; }
-  .yesterdayVerify { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 640px) {
-  .pageShell {
-    width: calc(100% - 20px);
-    padding-top: 14px;
+/* ───────────── Responsive ───────────── */
+@media (max-width: 900px) {
+  .dashboardBody {
+    flex-direction: column;
+    overflow-y: auto;
   }
-  .siteHeaderTop,
-  .heroPanel,
-  .sectionCard {
-    padding: 18px;
-    border-radius: var(--radius-lg);
+  .rightSidebar {
+    width: 100%;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid var(--border);
   }
-  .indicatorGrid { gap: 8px; }
-  .indicatorValue { font-size: 1.15rem; }
-  .heroRange { font-size: 2.4rem; }
-  th, td { white-space: normal; font-size: 0.82rem; padding: 10px 8px; }
-  .liveStatusBar { flex-wrap: wrap; gap: 8px; }
+  .bottomPanel {
+    height: auto;
+  }
+  .dashboardLayout {
+    height: auto;
+    min-height: 100vh;
+  }
+  .mainChartWrap {
+    height: 400px;
+    flex: none;
+  }
 }

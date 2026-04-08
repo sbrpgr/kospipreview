@@ -1,59 +1,48 @@
 import type { HistoryData } from "@/lib/data";
 
-type AccuracyTableProps = {
-  history: HistoryData;
-};
+export function AccuracyTable({ history }: { history: HistoryData }) {
+  const records = [...history.records].reverse().slice(0, 15); // Show latest 15 in bottom panel
 
-export function AccuracyTable({ history }: AccuracyTableProps) {
   return (
-    <section className="sectionCard">
-      <div className="sectionHeader">
-        <div>
-          <p className="sectionEyebrow">검증 기록</p>
-          <h2>일자별 예측 편차</h2>
-        </div>
-        <div className="statsInline">
-          <span>평균오차(MAE) {history.summary.mae30d}pt</span>
-          <span>{history.records.length}일 기록</span>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="panelHeader">
+        <div className="panelTitle">Prediction History</div>
+        <div style={{ fontSize: "0.7rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+          Recent 15 trading days
         </div>
       </div>
-      <div className="tableWrap">
-        <table>
+      
+      <div className="scrollable">
+        <table className="dataGrid">
           <thead>
             <tr>
-              <th>날짜</th>
-              <th>예측 밴드</th>
-              <th>실제 시작가</th>
-              <th>편차</th>
-              <th>적중</th>
+              <th>Date</th>
+              <th>Pred Low</th>
+              <th>Pred High</th>
+              <th>Actual Open</th>
+              <th>Deviation</th>
+              <th style={{ textAlign: "center" }}>Result</th>
             </tr>
           </thead>
           <tbody>
-            {history.records.map((record) => {
-              const center = (record.low + record.high) / 2;
-              const deviation = record.actualOpen - center;
-              const isPositive = deviation >= 0;
+            {records.map((r, i) => {
+              const center = (r.low + r.high) / 2;
+              const dev = r.actualOpen - center;
+              const isDevPos = dev >= 0;
+              const isHit = r.actualOpen >= r.low && r.actualOpen <= r.high;
+
               return (
-                <tr key={record.date}>
-                  <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.82rem" }}>{record.date}</td>
-                  <td>
-                    {record.low.toLocaleString("ko-KR", { maximumFractionDigits: 0 })} ~ {record.high.toLocaleString("ko-KR", { maximumFractionDigits: 0 })}
+                <tr key={i}>
+                  <td style={{ color: "var(--text-secondary)" }}>{r.date}</td>
+                  <td>{Math.round(r.low).toLocaleString()}</td>
+                  <td>{Math.round(r.high).toLocaleString()}</td>
+                  <td style={{ color: "#fff", fontWeight: 700 }}>{r.actualOpen.toLocaleString()}</td>
+                  <td className={isDevPos ? "isNeg" : "isPos"} style={{ fontWeight: 600 }}>
+                    {isDevPos ? "+" : ""}{dev.toFixed(1)}
                   </td>
-                  <td style={{ fontWeight: 700, color: "#fff" }}>
-                    {record.actualOpen.toLocaleString("ko-KR", { maximumFractionDigits: 0 })}
-                  </td>
-                  <td>
-                    <span style={{
-                      color: isPositive ? "var(--negative)" : "var(--positive)",
-                      fontWeight: 700,
-                      fontFamily: "var(--font-mono)",
-                    }}>
-                      {isPositive ? "+" : ""}{deviation.toFixed(0)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`hitBadge ${record.hit ? "hit" : "miss"}`}>
-                      {record.hit ? "HIT" : "MISS"}
+                  <td style={{ textAlign: "center" }}>
+                    <span className={`microBadge ${isHit ? 'hit' : 'miss'}`}>
+                      {isHit ? 'HIT' : 'MISS'}
                     </span>
                   </td>
                 </tr>
@@ -62,6 +51,6 @@ export function AccuracyTable({ history }: AccuracyTableProps) {
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
   );
 }

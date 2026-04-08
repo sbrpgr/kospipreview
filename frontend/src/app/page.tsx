@@ -1,10 +1,8 @@
 import { ChartSection } from "@/components/chart-section";
-import { HeroPrediction } from "@/components/hero-prediction";
-import { IndicatorCard } from "@/components/indicator-card";
-import { LiveStatus } from "@/components/live-status";
 import { AccuracyTable } from "@/components/accuracy-table";
-import { SeoContent } from "@/components/seo-content";
 import { SiteHeader } from "@/components/site-header";
+import { IndicatorList } from "@/components/indicator-list";
+import { DashboardStats } from "@/components/dashboard-stats";
 import {
   getDataFreshness,
   getHistoryData,
@@ -12,6 +10,7 @@ import {
   getPredictionData,
 } from "@/lib/data";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { formatSignedPercent } from "@/lib/format";
 
 export default async function Home() {
   const [prediction, indicators, history, freshness] = await Promise.all([
@@ -28,75 +27,48 @@ export default async function Home() {
   }).format(new Date(freshness.newestModifiedAt));
 
   return (
-    <main className="pageShell">
+    <div className="dashboardShell">
       <AutoRefresh intervalMs={120000} />
 
-      <SiteHeader
-        description="미국 시장 마감 데이터와 핵심 선행지표를 종합 분석하여, 다음 거래일 코스피 시초가 예측 밴드를 제시합니다."
-        eyebrow="실시간 예측"
-        title="코스피 시초가 예측"
-      />
+      {/* Top Navbar */}
+      <SiteHeader lastUpdated={updatedAt} status={freshness.status} />
 
-      <LiveStatus lastUpdated={updatedAt} status={freshness.status} />
-
-      <HeroPrediction prediction={prediction} />
-
-      {/* 핵심 선행지표 */}
-      <section className="sectionCard">
-        <div className="sectionHeader">
-          <div>
-            <p className="sectionEyebrow">선행지표</p>
-            <h2>핵심 시장 지표</h2>
+      <main className="dashboardBody">
+        {/* Main Chart Workspace */}
+        <section className="mainArea">
+          <div className="chartTopInfo">
+            <div className="chartTickerBox">
+              <span className="chartTickerLabel">{prediction.predictionDate} KOSPI PROJECTION</span>
+              <div className="chartTickerBand">
+                <span className="chartTickerValue">{prediction.pointPrediction.toLocaleString("ko-KR")}</span>
+                <span className={prediction.predictedChangePct >= 0 ? "isPos" : "isNeg"} style={{ fontSize: "1.1rem" }}>
+                  {formatSignedPercent(prediction.predictedChangePct)}
+                </span>
+              </div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "0.85rem", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+                Band: {prediction.rangeLow.toLocaleString("ko-KR")} ~ {prediction.rangeHigh.toLocaleString("ko-KR")}
+              </div>
+              <div className="chartSummaryTag">
+                {prediction.signalSummary}
+              </div>
+            </div>
           </div>
-        </div>
+          
+          <div className="chartWorkspace">
+            <ChartSection history={history} />
+          </div>
 
-        <div className="indicatorSectionLabel">주요 지표</div>
-        <div className="indicatorGrid">
-          {indicators.primary.map((indicator) => (
-            <IndicatorCard
-              changePct={indicator.changePct}
-              emphasized
-              key={indicator.key}
-              label={indicator.label}
-              updatedAt={indicator.updatedAt}
-              value={indicator.value}
-              sourceUrl={indicator.sourceUrl}
-              dataSource={indicator.dataSource}
-            />
-          ))}
-        </div>
+          <div className="bottomPanel">
+            <AccuracyTable history={history} />
+          </div>
+        </section>
 
-        <div className="indicatorSectionLabel">보조 지표</div>
-        <div className="indicatorGrid">
-          {indicators.secondary.map((indicator) => (
-            <IndicatorCard
-              changePct={indicator.changePct}
-              key={indicator.key}
-              label={indicator.label}
-              updatedAt={indicator.updatedAt}
-              value={indicator.value}
-              sourceUrl={indicator.sourceUrl}
-              dataSource={indicator.dataSource}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* 추세 차트 */}
-      <ChartSection history={history} />
-
-      {/* 편차 기록 */}
-      <AccuracyTable history={history} />
-
-      {/* SEO */}
-      <SeoContent />
-
-      <footer className="footer">
-        <a href="/about">서비스 소개</a>
-        <a href="/history">예측 기록</a>
-        <a href="/privacy">개인정보처리방침</a>
-        <span>© 2026 KOSPI Dawn</span>
-      </footer>
-    </main>
+        {/* Right Sidebar (Orderbook/Indicator style) */}
+        <aside className="rightSidebar">
+          <DashboardStats prediction={prediction} />
+          <IndicatorList indicators={indicators} />
+        </aside>
+      </main>
+    </div>
   );
 }
