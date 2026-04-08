@@ -64,15 +64,22 @@ PREMARKET_STALE_MINUTES = 45
 KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
 
 CORE_PRIMARY_WEIGHTS = {
-    "k200f": 0.50,
-    "ewy": 0.35,
-    "krw_strength": 0.15,
+    "ewy": 0.80,
+    "krw_strength": 0.20,
 }
-CORE_PRIMARY_SCALE = 0.25
-SECONDARY_CORRECTION_RATIO = 0.25
-MEAN_REVERSION_THRESHOLD_PCT = 3.0
-MEAN_REVERSION_SLOPE = 0.09
-MEAN_REVERSION_FLOOR = 0.55
+CORE_PRIMARY_SCALE = 0.56
+SECONDARY_CORRECTION_RATIO = 0.18
+AUX_CORRECTION_MIN_PCT = 0.45
+AUX_CORRECTION_MAX_PCT = 1.40
+AUX_CORRECTION_CORE_SHARE = 0.35
+MEAN_REVERSION_THRESHOLD_PCT = 5.0
+MEAN_REVERSION_SLOPE = 0.04
+MEAN_REVERSION_FLOOR = 0.78
+CORE_GUARD_BAND_MIN_PCT = 1.2
+CORE_GUARD_BAND_SHARE = 0.45
+REGIME_CLIP_MIN_PCT = 2.5
+REGIME_CLIP_PREV_CLOSE_SHARE = 0.9
+REGIME_CLIP_CORE_BUFFER_PCT = 1.25
 
 TV_FUTURES_SCAN_URL = "https://scanner.tradingview.com/futures/scan"
 TV_KOSPI_NIGHT_SYMBOL = "KRX:K2I1!"
@@ -339,8 +346,10 @@ def train_lgbm(dataset: pd.DataFrame) -> dict:
     final_center.fit(X, y)
     feature_importance = {key: int(value) for key, value in zip(feat_cols, final_center.feature_importances_)}
     target_bounds = {
-        "p02": float(np.percentile(y, 2)),
-        "p98": float(np.percentile(y, 98)),
+        "p01": float(np.percentile(y, 1)),
+        "p99": float(np.percentile(y, 99)),
+        "min": float(np.min(y)),
+        "max": float(np.max(y)),
     }
 
     return {
@@ -455,6 +464,46 @@ def compute_core_anchor_change(core_inputs: dict[str, float | None]) -> float | 
     return primary_change * CORE_PRIMARY_SCALE
 
 
+def apply_auxiliary_correction(core_anchor_change: float, raw_ml_change: float) -> float:
+    raw_gap = (raw_ml_change - core_anchor_change) * SECONDARY_CORRECTION_RATIO
+    cap = max(AUX_CORRECTION_MIN_PCT, abs(core_anchor_change) * AUX_CORRECTION_CORE_SHARE)
+    cap = min(AUX_CORRECTION_MAX_PCT, cap)
+    limited_gap = float(np.clip(raw_gap, -cap, cap))
+    return core_anchor_change + limited_gap
+
+
+def apply_core_guardrail(predicted_change: float, core_anchor_change: float | None) -> float:
+    if core_anchor_change is None:
+        return predicted_change
+    guard_band = max(CORE_GUARD_BAND_MIN_PCT, abs(core_anchor_change) * CORE_GUARD_BAND_SHARE)
+    return float(np.clip(predicted_change, core_anchor_change - guard_band, core_anchor_change + guard_band))
+
+
+def compute_adaptive_bounds(
+    bounds: dict[str, float],
+    prev_close_change: float,
+    core_anchor_change: float | None,
+) -> tuple[float | None, float | None]:
+    lower = bounds.get("p01", bounds.get("p05", bounds.get("p02", bounds.get("min"))))
+    upper = bounds.get("p99", bounds.get("p95", bounds.get("p98", bounds.get("max"))))
+
+    regime_cap = max(REGIME_CLIP_MIN_PCT, abs(prev_close_change) * REGIME_CLIP_PREV_CLOSE_SHARE)
+    if core_anchor_change is not None:
+        regime_cap = max(regime_cap, abs(core_anchor_change) + REGIME_CLIP_CORE_BUFFER_PCT)
+
+    if lower is None:
+        lower = -regime_cap
+    else:
+        lower = float(min(lower, -regime_cap))
+
+    if upper is None:
+        upper = regime_cap
+    else:
+        upper = float(max(upper, regime_cap))
+
+    return lower, upper
+
+
 def apply_mean_reversion_damping(predicted_change: float, prev_close_change: float) -> float:
     if predicted_change == 0:
         return predicted_change
@@ -504,7 +553,6 @@ def build_latest(
     raw_ml_change = float(result["model_c"].predict(feature_vector)[0])
 
     core_inputs = {
-        "k200f": compute_live_return_pct("k200f", live_market, history_market, live_overrides),
         "ewy": returns.get("ewy"),
         "krw_strength": (-returns["krw"]) if "krw" in returns else None,
     }
@@ -512,16 +560,16 @@ def build_latest(
 
     blended_change = raw_ml_change
     if core_anchor_change is not None:
-        blended_change = core_anchor_change + (raw_ml_change - core_anchor_change) * SECONDARY_CORRECTION_RATIO
+        blended_change = apply_auxiliary_correction(core_anchor_change, raw_ml_change)
 
     damped_change = apply_mean_reversion_damping(blended_change, prev_close_change)
+    guarded_change = apply_core_guardrail(damped_change, core_anchor_change)
     bounds = result.get("target_bounds", {})
-    lower = bounds.get("p02")
-    upper = bounds.get("p98")
+    lower, upper = compute_adaptive_bounds(bounds, prev_close_change, core_anchor_change)
     if lower is not None and upper is not None:
-        predicted_change = float(np.clip(damped_change, lower, upper))
+        predicted_change = float(np.clip(guarded_change, lower, upper))
     else:
-        predicted_change = damped_change
+        predicted_change = guarded_change
 
     point_prediction = prev_close * (1 + predicted_change / 100)
     buffer = result["mae"] * choose_band_multiplier(vix)
@@ -593,7 +641,7 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "engine": "LightGBM",
             "vix": round(latest["vix"], 2),
             "lgbmRmse": round(result["rmse"], 2),
-            "calculationMode": "CoreAnchor+MLCorrection",
+            "calculationMode": "EWYFXCore+AuxCorrection",
             "coreAnchorPct": round(float(latest["core_anchor_c"]), 2) if latest["core_anchor_c"] is not None else None,
             "rawModelPct": round(float(latest["raw_pred_c"]), 2),
             "prevCloseChangePct": round(float(latest["prev_close_change_c"]), 2),
