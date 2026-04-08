@@ -1,7 +1,7 @@
 import type { HistoryData } from "@/lib/data";
 
 export function AccuracyTable({ history }: { history: HistoryData }) {
-  const records = [...history.records].reverse().slice(0, 15);
+  const records = [...history.records].slice(0, 15);
 
   return (
     <div className="cleanTableWrap">
@@ -10,30 +10,30 @@ export function AccuracyTable({ history }: { history: HistoryData }) {
           <tr>
             <th>Date</th>
             <th>Pred Range</th>
-            <th>Actual Close</th>
+            <th>Actual Open</th>
             <th>Deviation</th>
             <th style={{ textAlign: "center" }}>Result</th>
           </tr>
         </thead>
         <tbody>
-          {records.map((r, i) => {
-            const center = (r.low + r.high) / 2;
-            const dev = r.actualOpen - center;
-            const isDevPos = dev >= 0;
-            const isHit = r.actualOpen >= r.low && r.actualOpen <= r.high;
+          {records.map((record) => {
+            const center = (record.low + record.high) / 2;
+            const deviation = record.actualOpen - center;
+            const isDeviationPositive = deviation >= 0;
 
             return (
-              <tr key={i}>
-                <td style={{ color: "var(--text-secondary)", fontFamily: "var(--font-sans)" }}>{r.date}</td>
-                <td>{Math.round(r.low).toLocaleString()} — {Math.round(r.high).toLocaleString()}</td>
-                <td style={{ color: "#fff", fontWeight: 800 }}>{r.actualOpen.toLocaleString()}</td>
-                <td style={{ color: isDevPos ? "var(--negative)" : "var(--positive)", fontWeight: 700 }}>
-                  {isDevPos ? "+" : ""}{dev.toFixed(1)}
+              <tr key={record.date}>
+                <td style={{ color: "var(--text-secondary)", fontFamily: "var(--font-sans)" }}>{record.date}</td>
+                <td>
+                  {Math.round(record.low).toLocaleString("ko-KR")} ~ {Math.round(record.high).toLocaleString("ko-KR")}
+                </td>
+                <td style={{ color: "var(--text)", fontWeight: 800 }}>{record.actualOpen.toLocaleString("ko-KR")}</td>
+                <td style={{ color: isDeviationPositive ? "var(--negative)" : "var(--positive)", fontWeight: 700 }}>
+                  {isDeviationPositive ? "+" : ""}
+                  {deviation.toFixed(1)}
                 </td>
                 <td style={{ textAlign: "center" }}>
-                  <span className={`badge ${isHit ? 'hit' : 'miss'}`}>
-                    {isHit ? 'HIT' : 'MISS'}
-                  </span>
+                  <span className={`badge ${record.hit ? "hit" : "miss"}`}>{record.hit ? "HIT" : "MISS"}</span>
                 </td>
               </tr>
             );

@@ -1,26 +1,53 @@
 type SiteHeaderProps = {
   lastUpdated: string;
-  status: string;
+  status: "fresh" | "aging" | "stale" | string;
 };
 
+const STATUS_META = {
+  fresh: { label: "LIVE", className: "" },
+  aging: { label: "CHECKING", className: "isAging" },
+  stale: { label: "STALE", className: "isStale" },
+} as const;
+
 export function SiteHeader({ lastUpdated, status }: SiteHeaderProps) {
-  const isFresh = status === "fresh";
+  const meta = STATUS_META[status as keyof typeof STATUS_META] ?? {
+    label: "UNKNOWN",
+    className: "isStale",
+  };
 
   return (
     <header className="siteHeader">
       <a className="brandLockup" href="/">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L2 22H22L12 2Z" fill="var(--accent-bright)" />
-        </svg>
-        KOSPI DAWN
+        <span className="brandMark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M4 16L9 11L13 14L20 7"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M15 7H20V12"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+        <span className="brandText">
+          <span className="brandTitle">KOSPI DAWN</span>
+          <span className="brandSubtitle">Opening Range Tracker</span>
+        </span>
       </a>
-      
+
       <div className="statusRow">
-        <div className={`statusLabel ${isFresh ? '' : 'isStale'}`}>
+        <div className={`statusLabel ${meta.className}`}>
           <div className="statusDot" />
-          {isFresh ? "LIVE" : "DELAYED"}
+          {meta.label}
         </div>
-        <div className="statusTime">Update: {lastUpdated}</div>
+        <div className="statusTime">Last refresh: {lastUpdated}</div>
       </div>
     </header>
   );

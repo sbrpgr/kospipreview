@@ -2,30 +2,30 @@
   "primary": [
     {
       "key": "ewy",
-      "label": "EWY (한국 ETF)",
+      "label": "EWY (Korea ETF)",
       "value": "$127.27",
       "changePct": 0.49,
       "updatedAt": "2026-04-07T19:59:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     },
     {
       "key": "krw",
-      "label": "원/달러 환율",
-      "value": "1,472.04원",
-      "changePct": -0.42,
-      "updatedAt": "2026-04-08T06:05:00+00:00",
+      "label": "USD/KRW",
+      "value": "1,482.88원",
+      "changePct": 0.31,
+      "updatedAt": "2026-04-08T08:41:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     },
     {
       "key": "wti",
-      "label": "WTI 원유",
-      "value": "$95.79",
-      "changePct": -0.53,
-      "updatedAt": "2026-04-08T05:55:00+00:00",
+      "label": "WTI",
+      "value": "$96.51",
+      "changePct": 0.22,
+      "updatedAt": "2026-04-08T08:31:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     },
     {
       "key": "sp500",
@@ -34,73 +34,73 @@
       "changePct": 0.4,
       "updatedAt": "2026-04-07T19:59:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EGSPC",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     }
   ],
   "secondary": [
     {
       "key": "nasdaq",
-      "label": "나스닥 100",
+      "label": "NASDAQ 100",
       "value": "24,207.07",
       "changePct": 0.49,
       "updatedAt": "2026-04-07T19:59:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     },
     {
       "key": "vix",
-      "label": "VIX 변동성",
-      "value": "25.74",
-      "changePct": 2.47,
-      "updatedAt": "2026-04-07T20:14:00+00:00",
+      "label": "VIX",
+      "value": "20.54",
+      "changePct": -1.91,
+      "updatedAt": "2026-04-08T08:26:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     },
     {
       "key": "koru",
-      "label": "KORU (코리아 3x)",
+      "label": "KORU 3x",
       "value": "$314.00",
       "changePct": 1.59,
       "updatedAt": "2026-04-07T19:59:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     },
     {
       "key": "dow",
-      "label": "다우존스",
+      "label": "Dow Jones",
       "value": "46,591.34",
       "changePct": 0.07,
       "updatedAt": "2026-04-07T19:59:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EDJI",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     },
     {
       "key": "gold",
-      "label": "금 시세",
-      "value": "$4,862.50",
-      "changePct": 0.72,
-      "updatedAt": "2026-04-08T05:55:00+00:00",
+      "label": "Gold",
+      "value": "$4,832.20",
+      "changePct": 0.09,
+      "updatedAt": "2026-04-08T08:31:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     },
     {
       "key": "us10y",
-      "label": "미 10년 국채금리",
+      "label": "US 10Y",
       "value": "4.34%",
       "changePct": -0.05,
       "updatedAt": "2026-04-07T18:59:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ETNX",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     },
     {
       "key": "sox",
-      "label": "필라델피아 반도체",
+      "label": "PHLX Semiconductor",
       "value": "8,005.50",
       "changePct": 1.24,
       "updatedAt": "2026-04-07T19:59:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ESOX",
-      "dataSource": "Yahoo Finance (1분 단위)"
+      "dataSource": "Yahoo Finance"
     }
   ],
-  "generatedAt": "2026-04-08T06:05:54.404485+00:00"
+  "generatedAt": "2026-04-08T08:42:02.330613+00:00"
 }
