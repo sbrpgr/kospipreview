@@ -64,6 +64,18 @@ PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
 PREMARKET_STALE_MINUTES = 45
 KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
 
+# Core prediction uses night-futures proxy + EWY + FX, while the ML model is a correction layer.
+CORE_PRIMARY_WEIGHTS = {
+    "k200f": 0.50,
+    "ewy": 0.35,
+    "krw_strength": 0.15,
+}
+CORE_PRIMARY_SCALE = 0.25
+SECONDARY_CORRECTION_RATIO = 0.25
+MEAN_REVERSION_THRESHOLD_PCT = 3.0
+MEAN_REVERSION_SLOPE = 0.09
+MEAN_REVERSION_FLOOR = 0.55
+
 LGBM_BASE = dict(
     n_estimators=300,
     learning_rate=0.05,
@@ -109,7 +121,7 @@ def main() -> None:
 def fetch_market_data() -> dict[str, pd.DataFrame]:
     period = f"{LOOKBACK_DAYS}d"
     frames: dict[str, pd.DataFrame] = {}
-    all_tickers = {**KOREA_TICKERS, **FEATURE_TICKERS}
+    all_tickers = {**KOREA_TICKERS, **FEATURE_TICKERS, **INDICATOR_ONLY_TICKERS}
 
     for name, ticker in all_tickers.items():
       print(f"  - downloading {name} ({ticker})")
@@ -243,6 +255,10 @@ def train_lgbm(dataset: pd.DataFrame) -> dict:
     final_center = lgb.LGBMRegressor(**LGBM_CENTER)
     final_center.fit(X, y)
     feature_importance = {key: int(value) for key, value in zip(feat_cols, final_center.feature_importances_)}
+    target_bounds = {
+        "p02": float(np.percentile(y, 2)),
+        "p98": float(np.percentile(y, 98)),
+    }
 
     return {
         "rmse": rmse,
@@ -253,6 +269,7 @@ def train_lgbm(dataset: pd.DataFrame) -> dict:
         "preds": preds,
         "feat_cols": feat_cols,
         "model_c": final_center,
+        "target_bounds": target_bounds,
     }
 
 
@@ -301,35 +318,110 @@ def resolve_latest_completed_krx_close(live_series: pd.Series, history_series: p
     return float(completed.iloc[-1]["close"])
 
 
+def compute_live_return_pct(
+    name: str,
+    live_market: dict[str, pd.DataFrame],
+    history_market: dict[str, pd.DataFrame],
+) -> float | None:
+    live_frame = live_market.get(name, pd.DataFrame())
+    live_series = live_frame["Close"].dropna() if "Close" in live_frame else pd.Series(dtype=float)
+    if live_series.empty:
+        return None
+
+    current_value = float(live_series.iloc[-1])
+    latest_ts = as_utc_datetime(pd.Timestamp(live_series.index[-1]))
+
+    history_frame = history_market.get(name, pd.DataFrame())
+    history_series = history_frame["Close"].dropna() if "Close" in history_frame else pd.Series(dtype=float)
+    previous_close = resolve_previous_close(history_series, latest_ts)
+    if previous_close is None or previous_close == 0:
+        if len(live_series) < 2:
+            return None
+        previous_close = float(live_series.iloc[0])
+
+    return (current_value / previous_close - 1) * 100
+
+
+def compute_core_anchor_change(core_inputs: dict[str, float | None]) -> float | None:
+    weighted_sum = 0.0
+    total_weight = 0.0
+    for key, weight in CORE_PRIMARY_WEIGHTS.items():
+        value = core_inputs.get(key)
+        if value is None:
+            continue
+        weighted_sum += float(value) * weight
+        total_weight += weight
+
+    if total_weight == 0:
+        return None
+
+    primary_change = weighted_sum / total_weight
+    return primary_change * CORE_PRIMARY_SCALE
+
+
+def apply_mean_reversion_damping(predicted_change: float, prev_close_change: float) -> float:
+    if predicted_change == 0:
+        return predicted_change
+    if np.sign(predicted_change) != np.sign(prev_close_change):
+        return predicted_change
+
+    magnitude = abs(prev_close_change)
+    if magnitude <= MEAN_REVERSION_THRESHOLD_PCT:
+        return predicted_change
+
+    excess = magnitude - MEAN_REVERSION_THRESHOLD_PCT
+    damping = max(MEAN_REVERSION_FLOOR, 1 - excess * MEAN_REVERSION_SLOPE)
+    return predicted_change * damping
+
+
 def build_latest(live_market: dict[str, pd.DataFrame], result: dict, history_market: dict[str, pd.DataFrame]) -> dict:
     returns: dict[str, float] = {}
     vix = 20.0
 
     for name in ALL_FEATURES:
-        live_series = live_market[name]["Close"].dropna()
-        history_series = history_market[name]["Close"].dropna()
-        if live_series.empty or history_series.empty:
+        change_pct = compute_live_return_pct(name, live_market, history_market)
+        if change_pct is None:
             continue
-
-        current_value = float(live_series.iloc[-1])
-        latest_ts = as_utc_datetime(pd.Timestamp(live_series.index[-1]))
-        previous_close = resolve_previous_close(history_series, latest_ts)
-        if previous_close is None or previous_close == 0:
-            continue
-        returns[name] = (current_value / previous_close - 1) * 100
+        returns[name] = change_pct
         if name == "vix":
-            vix = current_value
+            live_series = live_market[name]["Close"].dropna()
+            if not live_series.empty:
+                vix = float(live_series.iloc[-1])
 
     prev_kospi_series = history_market["kospi"]["Close"] if "kospi" in history_market else pd.Series(dtype=float)
     live_kospi_frame = live_market.get("kospi", pd.DataFrame())
     live_kospi_series = live_kospi_frame["Close"] if "Close" in live_kospi_frame else pd.Series(dtype=float)
     prev_close = resolve_latest_completed_krx_close(live_kospi_series, prev_kospi_series)
+    prev_kospi_non_na = prev_kospi_series.dropna()
+    prior_close = float(prev_kospi_non_na.iloc[-1]) if not prev_kospi_non_na.empty else prev_close
+    prev_close_change = ((prev_close / prior_close - 1) * 100) if prior_close else 0.0
 
     feature_vector = np.array(
         [[returns.get(column.replace("_return", ""), 0.0) for column in result["feat_cols"]]],
         dtype=np.float64,
     )
-    predicted_change = float(result["model_c"].predict(feature_vector)[0])
+    raw_ml_change = float(result["model_c"].predict(feature_vector)[0])
+
+    core_inputs = {
+        "k200f": compute_live_return_pct("k200f", live_market, history_market),
+        "ewy": returns.get("ewy"),
+        "krw_strength": (-returns["krw"]) if "krw" in returns else None,
+    }
+    core_anchor_change = compute_core_anchor_change(core_inputs)
+
+    blended_change = raw_ml_change
+    if core_anchor_change is not None:
+        blended_change = core_anchor_change + (raw_ml_change - core_anchor_change) * SECONDARY_CORRECTION_RATIO
+
+    damped_change = apply_mean_reversion_damping(blended_change, prev_close_change)
+    bounds = result.get("target_bounds", {})
+    lower = bounds.get("p02")
+    upper = bounds.get("p98")
+    if lower is not None and upper is not None:
+        predicted_change = float(np.clip(damped_change, lower, upper))
+    else:
+        predicted_change = damped_change
+
     point_prediction = prev_close * (1 + predicted_change / 100)
     buffer = result["mae"] * choose_band_multiplier(vix)
 
@@ -338,6 +430,9 @@ def build_latest(live_market: dict[str, pd.DataFrame], result: dict, history_mar
         "r_low": point_prediction - buffer,
         "r_high": point_prediction + buffer,
         "pred_c": predicted_change,
+        "raw_pred_c": raw_ml_change,
+        "core_anchor_c": core_anchor_change,
+        "prev_close_change_c": prev_close_change,
         "vix": vix,
         "returns": returns,
         "prev_close": prev_close,
@@ -397,6 +492,10 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "engine": "LightGBM",
             "vix": round(latest["vix"], 2),
             "lgbmRmse": round(result["rmse"], 2),
+            "calculationMode": "CoreAnchor+MLCorrection",
+            "coreAnchorPct": round(float(latest["core_anchor_c"]), 2) if latest["core_anchor_c"] is not None else None,
+            "rawModelPct": round(float(latest["raw_pred_c"]), 2),
+            "prevCloseChangePct": round(float(latest["prev_close_change_c"]), 2),
         },
         "yesterday": {
             "predictionLow": round(float(yesterday_row["low"]), 2) if yesterday_row is not None else 0,
