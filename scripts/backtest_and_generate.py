@@ -40,9 +40,20 @@ FEATURE_TICKERS = {
     "krw": "KRW=X",
 }
 
+# Yahoo Finance does not reliably expose a direct KOSPI200 futures contract symbol.
+# We surface a proxy indicator card with the KOSPI 200 index symbol instead.
+INDICATOR_ONLY_TICKERS = {
+    "k200f": "^KS200",
+}
+
+INDICATOR_TICKERS = {
+    **FEATURE_TICKERS,
+    **INDICATOR_ONLY_TICKERS,
+}
+
 INDICATOR_SOURCE_URLS = {
     key: f"https://finance.yahoo.com/quote/{ticker.replace('=', '%3D').replace('^', '%5E')}"
-    for key, ticker in FEATURE_TICKERS.items()
+    for key, ticker in INDICATOR_TICKERS.items()
 }
 
 LOOKBACK_DAYS = 3 * 365
@@ -113,7 +124,7 @@ def fetch_market_data() -> dict[str, pd.DataFrame]:
 def fetch_live_indicators() -> dict[str, pd.DataFrame]:
     frames: dict[str, pd.DataFrame] = {}
 
-    for name, ticker in {**KOREA_TICKERS, **FEATURE_TICKERS}.items():
+    for name, ticker in {**KOREA_TICKERS, **INDICATOR_TICKERS}.items():
         df = yf.download(
             ticker,
             period="2d",
@@ -347,13 +358,23 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
 
 def write_indicators_json(live_market: dict[str, pd.DataFrame]) -> None:
     primary_keys = ["ewy", "krw", "wti", "sp500"]
-    secondary_keys = ["nasdaq", "vix", "koru", "dow", "gold", "us10y", "sox"]
+    secondary_keys = ["nasdaq", "vix", "koru", "k200f", "dow", "gold", "us10y", "sox"]
     now_utc = datetime.now(timezone.utc)
     in_us_premarket_now = is_us_premarket_window(now_utc)
 
     def build_indicator(name: str) -> dict:
-        series = live_market[name]["Close"].dropna()
+        proxy_tag = "(Proxy)" if name == "k200f" else ""
+        proxy_note = (
+            "Yahoo proxy: direct KOSPI 200 futures contract symbol is unavailable, using ^KS200 index."
+            if name == "k200f"
+            else ""
+        )
+
+        frame = live_market.get(name, pd.DataFrame())
+        series = frame["Close"].dropna() if "Close" in frame else pd.Series(dtype=float)
         if series.empty:
+            premarket_note = "장전 시세 추적 불가" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else ""
+            notes = " · ".join(note for note in [proxy_note, premarket_note] if note)
             return {
                 "key": name,
                 "label": indicator_label(name),
@@ -362,8 +383,8 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame]) -> None:
                 "updatedAt": "",
                 "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
                 "dataSource": "Yahoo Finance",
-                "displayTag": "(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
-                "trackingNote": "장전 시세 추적 불가" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
+                "displayTag": proxy_tag or ("(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else ""),
+                "trackingNote": notes,
                 "isPremarket": False,
             }
 
@@ -377,6 +398,8 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame]) -> None:
             and name in PREMARKET_TRACK_KEYS
             and (not is_premarket_quote or age_minutes > PREMARKET_STALE_MINUTES)
         )
+        premarket_note = "장전 시세 추적 불가" if premarket_untracked else ""
+        notes = " · ".join(note for note in [proxy_note, premarket_note] if note)
 
         return {
             "key": name,
@@ -386,8 +409,8 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame]) -> None:
             "updatedAt": latest_ts.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
-            "displayTag": "(장전)" if premarket_untracked else "",
-            "trackingNote": "장전 시세 추적 불가" if premarket_untracked else "",
+            "displayTag": proxy_tag or ("(장전)" if premarket_untracked else ""),
+            "trackingNote": notes,
             "isPremarket": is_premarket_quote,
         }
 
@@ -482,6 +505,7 @@ def indicator_label(name: str) -> str:
         "nasdaq": "NASDAQ 100",
         "vix": "VIX",
         "koru": "KORU 3x",
+        "k200f": "KOSPI 200 Futures",
         "dow": "Dow Jones",
         "gold": "Gold",
         "us10y": "US 10Y",
