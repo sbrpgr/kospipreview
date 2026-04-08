@@ -125,6 +125,14 @@ function getDashboardVersion(
   ].join("|");
 }
 
+function getIndicatorsVersion(indicators: IndicatorData) {
+  const firstPrimary = indicators.primary[0]?.value ?? "";
+  const firstSecondary = indicators.secondary[0]?.value ?? "";
+  const k200fValue = [...indicators.primary, ...indicators.secondary].find((indicator) => indicator.key === "k200f")?.value ?? "";
+
+  return [indicators.generatedAt ?? "", getLatestIndicatorUpdate(indicators), firstPrimary, firstSecondary, k200fValue].join("|");
+}
+
 async function fetchJson<T>(path: string) {
   const response = await fetch(`${path}?t=${Date.now()}`, {
     cache: "no-store",
@@ -141,10 +149,17 @@ async function fetchJson<T>(path: string) {
   return response.json() as Promise<T>;
 }
 
-async function fetchDashboardPayload() {
-  const [prediction, indicators, history] = await Promise.all([
+async function fetchIndicatorsPayload() {
+  const indicators = await fetchJson<IndicatorData>("/data/indicators.json");
+  return {
+    indicators,
+    indicatorsVersion: getIndicatorsVersion(indicators),
+  };
+}
+
+async function fetchDashboardPayload(indicators: IndicatorData) {
+  const [prediction, history] = await Promise.all([
     fetchJson<PredictionData>("/data/prediction.json"),
-    fetchJson<IndicatorData>("/data/indicators.json"),
     fetchJson<HistoryData>("/data/history.json"),
   ]);
 
@@ -204,6 +219,7 @@ export function LiveDashboard({
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
   const [isSyncing, setIsSyncing] = useState(false);
   const versionRef = useRef(getDashboardVersion(initialPrediction, initialIndicators, initialHistory, initialFreshness));
+  const indicatorsVersionRef = useRef(getIndicatorsVersion(initialIndicators));
 
   useEffect(() => {
     let cancelled = false;
@@ -217,18 +233,28 @@ export function LiveDashboard({
       setIsSyncing(true);
 
       try {
-        const next = await fetchDashboardPayload();
+        const indicatorSnapshot = await fetchIndicatorsPayload();
         if (cancelled) {
           return;
         }
 
-        if (next.version !== versionRef.current) {
-          versionRef.current = next.version;
-          setPrediction(next.prediction);
-          setIndicators(next.indicators);
-          setHistory(next.history);
-          setFreshness(next.freshness);
-          setLastChangedAt(next.freshness.newestModifiedAt);
+        const indicatorsChanged = indicatorSnapshot.indicatorsVersion !== indicatorsVersionRef.current;
+
+        if (indicatorsChanged) {
+          indicatorsVersionRef.current = indicatorSnapshot.indicatorsVersion;
+          const next = await fetchDashboardPayload(indicatorSnapshot.indicators);
+          if (cancelled) {
+            return;
+          }
+
+          if (next.version !== versionRef.current) {
+            versionRef.current = next.version;
+            setPrediction(next.prediction);
+            setIndicators(next.indicators);
+            setHistory(next.history);
+            setFreshness(next.freshness);
+            setLastChangedAt(next.freshness.newestModifiedAt);
+          }
         }
 
         setLastCheckedAt(new Date().toISOString());
