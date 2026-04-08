@@ -100,7 +100,7 @@ def main() -> None:
 
     write_prediction_json(latest, result, history_df)
     write_history_json(result, history_df)
-    write_indicators_json(live_market)
+    write_indicators_json(live_market, market)
     write_diagnostics_json(result)
     print(f"Done. Output directory: {DATA_DIR}")
 
@@ -255,6 +255,28 @@ def train_lgbm(dataset: pd.DataFrame) -> dict:
     }
 
 
+def resolve_previous_close(history_series: pd.Series, latest_ts_utc: datetime) -> float | None:
+    series = history_series.dropna()
+    if series.empty:
+        return None
+
+    index = pd.DatetimeIndex(series.index)
+    if index.tz is None:
+        index_utc = index.tz_localize("UTC")
+    else:
+        index_utc = index.tz_convert("UTC")
+
+    # Exclude the live quote date to avoid picking an in-progress daily candle.
+    completed = series[index_utc.date < latest_ts_utc.date()]
+    if not completed.empty:
+        return float(completed.iloc[-1])
+
+    # Fallback when data does not include prior-day timestamps in UTC form.
+    if len(series) >= 2:
+        return float(series.iloc[-2])
+    return float(series.iloc[-1])
+
+
 def build_latest(live_market: dict[str, pd.DataFrame], result: dict, history_market: dict[str, pd.DataFrame]) -> dict:
     returns: dict[str, float] = {}
     vix = 20.0
@@ -266,7 +288,10 @@ def build_latest(live_market: dict[str, pd.DataFrame], result: dict, history_mar
             continue
 
         current_value = float(live_series.iloc[-1])
-        previous_close = float(history_series.iloc[-1])
+        latest_ts = as_utc_datetime(pd.Timestamp(live_series.index[-1]))
+        previous_close = resolve_previous_close(history_series, latest_ts)
+        if previous_close is None or previous_close == 0:
+            continue
         returns[name] = (current_value / previous_close - 1) * 100
         if name == "vix":
             vix = current_value
@@ -357,7 +382,7 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
     (DATA_DIR / "prediction.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
 
 
-def write_indicators_json(live_market: dict[str, pd.DataFrame]) -> None:
+def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: dict[str, pd.DataFrame]) -> None:
     primary_keys = ["ewy", "krw", "wti", "sp500"]
     secondary_keys = ["nasdaq", "vix", "koru", "k200f", "dow", "gold", "us10y", "sox"]
     now_utc = datetime.now(timezone.utc)
@@ -390,8 +415,12 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame]) -> None:
             }
 
         current_value = float(series.iloc[-1])
-        start_value = float(series.iloc[0])
         latest_ts = as_utc_datetime(pd.Timestamp(series.index[-1]))
+        history_frame = history_market.get(name, pd.DataFrame())
+        history_series = history_frame["Close"].dropna() if "Close" in history_frame else pd.Series(dtype=float)
+        previous_close = resolve_previous_close(history_series, latest_ts)
+        if previous_close is None or previous_close == 0:
+            previous_close = float(series.iloc[0])
         age_minutes = (now_utc - latest_ts).total_seconds() / 60
         is_premarket_quote = is_timestamp_in_us_premarket(latest_ts)
         premarket_untracked = (
@@ -406,7 +435,7 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame]) -> None:
             "key": name,
             "label": indicator_label(name),
             "value": format_value(name, current_value),
-            "changePct": round((current_value / start_value - 1) * 100, 2),
+            "changePct": round((current_value / previous_close - 1) * 100, 2),
             "updatedAt": latest_ts.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
