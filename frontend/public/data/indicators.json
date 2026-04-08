@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,478.43원",
+      "value": "1,478.50원",
       "changePct": -1.95,
-      "updatedAt": "2026-04-08T21:30:00+00:00",
+      "updatedAt": "2026-04-08T21:33:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$396.01",
-      "changePct": 27.3,
-      "updatedAt": "2026-04-08T21:32:26+00:00",
+      "value": "$397.88",
+      "changePct": 27.9,
+      "updatedAt": "2026-04-08T21:33:49+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T21:32:41.716486+00:00",
+  "generatedAt": "2026-04-08T21:34:05.625632+00:00",
   "isUsPremarketNow": false
 }
