@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$137.18",
-      "changePct": 7.85,
-      "updatedAt": "2026-04-08T23:46:08+00:00",
+      "value": "$137.51",
+      "changePct": 8.12,
+      "updatedAt": "2026-04-08T23:47:26+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$96.93",
-      "changePct": -14.18,
-      "updatedAt": "2026-04-08T23:35:00+00:00",
+      "value": "$96.99",
+      "changePct": -14.13,
+      "updatedAt": "2026-04-08T23:37:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -51,7 +51,7 @@
       "label": "NASDAQ 100",
       "value": "24,903.17",
       "changePct": 2.9,
-      "updatedAt": "2026-04-08T21:16:00+00:00",
+      "updatedAt": "2026-04-08T21:15:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$381.25",
-      "changePct": 22.55,
-      "updatedAt": "2026-04-08T23:46:12+00:00",
+      "value": "$384.00",
+      "changePct": 23.44,
+      "updatedAt": "2026-04-08T23:47:26+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,736.20",
-      "changePct": 1.7,
-      "updatedAt": "2026-04-08T23:36:00+00:00",
+      "value": "$4,735.90",
+      "changePct": 1.69,
+      "updatedAt": "2026-04-08T23:37:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T23:46:17.701189+00:00",
+  "generatedAt": "2026-04-08T23:47:37.306137+00:00",
   "isUsPremarketNow": false
 }
