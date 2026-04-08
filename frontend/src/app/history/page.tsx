@@ -17,15 +17,17 @@ export default async function HistoryPage() {
   }).format(new Date(freshness.newestModifiedAt));
 
   return (
-    <div className="dashboardShell">
+    <div className="pageContainer">
       <SiteHeader lastUpdated={updatedAt} status={freshness.status} />
-      <main className="dashboardBody" style={{ flexDirection: "column", padding: "20px", overflowY: "auto" }}>
-        <h2 style={{ marginBottom: "20px" }}>예측 기록 상세</h2>
-        <div style={{ height: "400px", marginBottom: "30px", border: "1px solid var(--border)", display: "flex", flexDirection: "column" }}>
+      <main>
+        <h2 className="sectionTitle">예측 기록 상세</h2>
+        <div style={{ marginBottom: "60px" }}>
             <AccuracyTable history={history} />
         </div>
-        <h2 style={{ marginBottom: "20px" }}>모델 백테스트 검증 (과거 데이터)</h2>
-        <ModelDiagnostics diagnostics={diagnostics} />
+        <h2 className="sectionTitle">모델 백테스트 검증 (과거 데이터)</h2>
+        <div className="prose">
+          <ModelDiagnostics diagnostics={diagnostics} />
+        </div>
       </main>
     </div>
   );

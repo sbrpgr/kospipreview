@@ -24,29 +24,24 @@ export function ChartSection({ history }: ChartSectionProps) {
       실제시가: record.actualOpen,
       예측하단: record.low,
       예측상단: record.high,
-      예측중심: Math.round((record.low + record.high) / 2),
     }));
   }, [history]);
 
   const domainY = useMemo(() => {
     if (!chartData.length) return ["dataMin", "dataMax"];
-    const minVal = Math.min(
-      ...chartData.map((d) => Math.min(d.실제시가, d.예측하단))
-    );
-    const maxVal = Math.max(
-      ...chartData.map((d) => Math.max(d.실제시가, d.예측상단))
-    );
+    const minVal = Math.min(...chartData.map((d) => Math.min(d.실제시가, d.예측하단)));
+    const maxVal = Math.max(...chartData.map((d) => Math.max(d.실제시가, d.예측상단)));
     const padding = (maxVal - minVal) * 0.05;
     return [Math.floor(minVal - padding), Math.ceil(maxVal + padding)];
   }, [chartData]);
 
   return (
-    <div className="mainChartWrap">
+    <div className="chartContainer">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+        <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="bandGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.15} />
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.1} />
               <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
@@ -54,22 +49,22 @@ export function ChartSection({ history }: ChartSectionProps) {
               <stop offset="100%" stopColor="var(--positive)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={true} horizontal={true} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis 
             dataKey="date" 
             stroke="var(--text-dim)" 
-            fontSize={10} 
-            tickMargin={8}
+            fontSize={12} 
+            tickMargin={12}
             tickLine={false}
-            axisLine={{ stroke: 'var(--border)' }}
+            axisLine={false}
             fontFamily="var(--font-mono)"
             minTickGap={20}
           />
           <YAxis 
             domain={domainY} 
             stroke="var(--text-dim)" 
-            fontSize={10} 
-            tickMargin={8}
+            fontSize={12} 
+            tickMargin={12}
             tickLine={false}
             axisLine={false}
             tickFormatter={(val: number) => val.toLocaleString()}
@@ -78,24 +73,23 @@ export function ChartSection({ history }: ChartSectionProps) {
           />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: "var(--bg-app)", 
+              backgroundColor: "var(--surface-strong)", 
               borderColor: "var(--border)",
               color: "var(--text)",
-              borderRadius: "4px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
-              fontSize: "0.75rem",
+              borderRadius: "var(--radius-sm)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+              fontSize: "0.85rem",
               fontFamily: "var(--font-mono)",
-              padding: "8px 12px"
             }}
-            itemStyle={{ color: "var(--text-secondary)", fontSize: "0.8rem", paddingBottom: "4px" }}
-            labelStyle={{ color: "var(--accent-bright)", fontWeight: "bold", marginBottom: "4px" }}
+            itemStyle={{ color: "var(--text-secondary)", fontSize: "0.9rem", paddingBottom: "4px" }}
+            labelStyle={{ color: "var(--text)", fontWeight: "bold", marginBottom: "8px" }}
           />
           
           <Area 
             type="monotone" 
             name="예측 상단" 
             dataKey="예측상단" 
-            stroke="rgba(41, 98, 255, 0.4)"
+            stroke="var(--accent-bright)"
             strokeWidth={1}
             strokeDasharray="4 4"
             fillOpacity={0}
@@ -105,7 +99,7 @@ export function ChartSection({ history }: ChartSectionProps) {
             type="monotone" 
             name="예측 하단" 
             dataKey="예측하단" 
-            stroke="rgba(41, 98, 255, 0.4)"
+            stroke="var(--accent-bright)"
             strokeWidth={1}
             strokeDasharray="4 4"
             fillOpacity={1}
@@ -116,9 +110,9 @@ export function ChartSection({ history }: ChartSectionProps) {
             name="실제 시초가"
             dataKey="실제시가" 
             stroke="var(--positive)" 
-            strokeWidth={2} 
-            dot={{ r: 2, fill: "var(--bg-app)", strokeWidth: 1.5, stroke: "var(--positive)" }}
-            activeDot={{ r: 4, strokeWidth: 0, fill: "var(--positive)" }}
+            strokeWidth={2.5} 
+            dot={{ r: 3, fill: "var(--surface)", strokeWidth: 2, stroke: "var(--positive)" }}
+            activeDot={{ r: 6, strokeWidth: 0, fill: "var(--positive)" }}
             fillOpacity={1}
             fill="url(#actualGradient)"
           />

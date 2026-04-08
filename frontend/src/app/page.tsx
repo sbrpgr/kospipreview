@@ -2,7 +2,6 @@ import { ChartSection } from "@/components/chart-section";
 import { AccuracyTable } from "@/components/accuracy-table";
 import { SiteHeader } from "@/components/site-header";
 import { IndicatorList } from "@/components/indicator-list";
-import { DashboardStats } from "@/components/dashboard-stats";
 import {
   getDataFreshness,
   getHistoryData,
@@ -27,48 +26,49 @@ export default async function Home() {
   }).format(new Date(freshness.newestModifiedAt));
 
   return (
-    <div className="dashboardShell">
+    <div className="pageContainer">
       <AutoRefresh intervalMs={120000} />
 
-      {/* Top Navbar */}
       <SiteHeader lastUpdated={updatedAt} status={freshness.status} />
 
-      <main className="dashboardBody">
-        {/* Main Chart Workspace */}
-        <section className="mainArea">
-          <div className="chartTopInfo">
-            <div className="chartTickerBox">
-              <span className="chartTickerLabel">{prediction.predictionDate} KOSPI PROJECTION</span>
-              <div className="chartTickerBand">
-                <span className="chartTickerValue">{prediction.pointPrediction.toLocaleString("ko-KR")}</span>
-                <span className={prediction.predictedChangePct >= 0 ? "isPos" : "isNeg"} style={{ fontSize: "1.1rem" }}>
-                  {formatSignedPercent(prediction.predictedChangePct)}
-                </span>
-              </div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "0.85rem", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-                Band: {prediction.rangeLow.toLocaleString("ko-KR")} ~ {prediction.rangeHigh.toLocaleString("ko-KR")}
-              </div>
-              <div className="chartSummaryTag">
-                {prediction.signalSummary}
-              </div>
-            </div>
+      <main>
+        {/* Giant Hero Prediction */}
+        <section className="heroSection">
+          <div className="heroDate">{prediction.predictionDate} 코스피 전망</div>
+          <div className="heroPrice">{prediction.pointPrediction.toLocaleString("ko-KR")}</div>
+          <div className="heroChangeLabel">
+            <span className={prediction.predictedChangePct >= 0 ? "isPos" : "isNeg"}>
+              {prediction.predictedChangePct >= 0 ? "▲" : "▼"} {Math.abs(prediction.predictedChangePct).toFixed(2)}%
+            </span>
           </div>
-          
-          <div className="chartWorkspace">
-            <ChartSection history={history} />
+          <br/>
+          <div className="heroBand">
+            예측 밴드 {prediction.rangeLow.toLocaleString("ko-KR")} — {prediction.rangeHigh.toLocaleString("ko-KR")}
           </div>
-
-          <div className="bottomPanel">
-            <AccuracyTable history={history} />
+          <div className="heroMessage">
+            {prediction.signalSummary}
           </div>
         </section>
 
-        {/* Right Sidebar (Orderbook/Indicator style) */}
-        <aside className="rightSidebar">
-          <DashboardStats prediction={prediction} />
-          <IndicatorList indicators={indicators} />
-        </aside>
+        {/* Chart */}
+        <ChartSection history={history} />
+
+        {/* Indicators Card Grid */}
+        <h2 className="sectionTitle">시장 지표</h2>
+        <IndicatorList indicators={indicators} />
+
+        {/* History Table */}
+        <h2 className="sectionTitle" style={{ marginTop: "60px" }}>최근 예측 기록</h2>
+        <AccuracyTable history={history} />
       </main>
+
+      <footer className="footer">
+        <div>© 2026 KOSPI Dawn. All rights reserved.</div>
+        <div className="footerLinks">
+          <a href="/about">모델 설명</a>
+          <a href="/privacy">개인정보처리방침</a>
+        </div>
+      </footer>
     </div>
   );
 }
