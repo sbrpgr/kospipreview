@@ -62,6 +62,7 @@ ALL_FEATURES = list(FEATURE_TICKERS.keys())
 HISTORY_RECORDS = 30
 PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
 PREMARKET_STALE_MINUTES = 45
+KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
 
 LGBM_BASE = dict(
     n_estimators=300,
@@ -277,6 +278,29 @@ def resolve_previous_close(history_series: pd.Series, latest_ts_utc: datetime) -
     return float(series.iloc[-1])
 
 
+def resolve_latest_completed_krx_close(live_series: pd.Series, history_series: pd.Series) -> float:
+    history = history_series.dropna()
+    fallback = float(history.iloc[-1]) if not history.empty else 2500.0
+
+    live = live_series.dropna()
+    if live.empty:
+        return fallback
+
+    index = pd.DatetimeIndex(live.index)
+    if index.tz is None:
+        index_utc = index.tz_localize("UTC")
+    else:
+        index_utc = index.tz_convert("UTC")
+    index_kst = index_utc.tz_convert(KST)
+
+    frame = pd.DataFrame({"close": live.values}, index=index_kst)
+    session_close_rows = frame.groupby(frame.index.date).tail(1)
+    completed = session_close_rows[session_close_rows.index.time >= KRX_SESSION_CLOSE_CUTOFF]
+    if completed.empty:
+        return fallback
+    return float(completed.iloc[-1]["close"])
+
+
 def build_latest(live_market: dict[str, pd.DataFrame], result: dict, history_market: dict[str, pd.DataFrame]) -> dict:
     returns: dict[str, float] = {}
     vix = 20.0
@@ -296,8 +320,10 @@ def build_latest(live_market: dict[str, pd.DataFrame], result: dict, history_mar
         if name == "vix":
             vix = current_value
 
-    prev_kospi_series = history_market["kospi"]["Close"].dropna()
-    prev_close = float(prev_kospi_series.iloc[-1]) if not prev_kospi_series.empty else 2500.0
+    prev_kospi_series = history_market["kospi"]["Close"] if "kospi" in history_market else pd.Series(dtype=float)
+    live_kospi_frame = live_market.get("kospi", pd.DataFrame())
+    live_kospi_series = live_kospi_frame["Close"] if "Close" in live_kospi_frame else pd.Series(dtype=float)
+    prev_close = resolve_latest_completed_krx_close(live_kospi_series, prev_kospi_series)
 
     feature_vector = np.array(
         [[returns.get(column.replace("_return", ""), 0.0) for column in result["feat_cols"]]],
@@ -389,8 +415,6 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
     in_us_premarket_now = is_us_premarket_window(now_utc)
 
     def build_indicator(name: str) -> dict:
-        proxy_tag = "(Proxy)" if name == "k200f" else ""
-
         frame = live_market.get(name, pd.DataFrame())
         series = frame["Close"].dropna() if "Close" in frame else pd.Series(dtype=float)
         if series.empty:
@@ -402,7 +426,7 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
                 "updatedAt": "",
                 "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
                 "dataSource": "Yahoo Finance",
-                "displayTag": proxy_tag or ("(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else ""),
+                "displayTag": "(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
                 "isPremarket": False,
             }
 
@@ -429,7 +453,7 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
             "updatedAt": latest_ts.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
-            "displayTag": proxy_tag or ("(장전)" if premarket_untracked else ""),
+            "displayTag": "(장전)" if premarket_untracked else "",
             "isPremarket": is_premarket_quote,
         }
 
