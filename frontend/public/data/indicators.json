@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$139.27",
-      "changePct": 9.5,
-      "updatedAt": "2026-04-08T22:48:04+00:00",
+      "value": "$139.22",
+      "changePct": 9.46,
+      "updatedAt": "2026-04-08T22:48:30+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -27,7 +27,7 @@
       "label": "WTI",
       "value": "$96.91",
       "changePct": -14.2,
-      "updatedAt": "2026-04-08T22:38:00+00:00",
+      "updatedAt": "2026-04-08T22:39:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -51,7 +51,7 @@
       "label": "NASDAQ 100",
       "value": "24,903.17",
       "changePct": 2.9,
-      "updatedAt": "2026-04-08T21:15:00+00:00",
+      "updatedAt": "2026-04-08T21:16:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$398.21",
-      "changePct": 28.0,
-      "updatedAt": "2026-04-08T22:47:50+00:00",
+      "value": "$398.40",
+      "changePct": 28.07,
+      "updatedAt": "2026-04-08T22:48:43+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,741.20",
-      "changePct": 1.81,
-      "updatedAt": "2026-04-08T22:38:00+00:00",
+      "value": "$4,738.90",
+      "changePct": 1.76,
+      "updatedAt": "2026-04-08T22:39:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T22:48:10.549867+00:00",
+  "generatedAt": "2026-04-08T22:49:27.823814+00:00",
   "isUsPremarketNow": false
 }
