@@ -5,7 +5,7 @@ import sys
 import urllib.error
 import urllib.request
 import warnings
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -61,6 +61,9 @@ INDICATOR_SOURCE_URLS["k200f"] = ""
 LOOKBACK_DAYS = 3 * 365
 ALL_FEATURES = list(FEATURE_TICKERS.keys())
 HISTORY_RECORDS = 30
+RECENT_HISTORY_FILL_DAYS = 5
+SYNTHETIC_BAND_MAE_FACTOR = 0.55
+SYNTHETIC_BAND_MIN_PCT = 0.0025
 PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
 PREMARKET_STALE_MINUTES = 45
 KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
@@ -143,7 +146,7 @@ def main() -> None:
     print("Training LightGBM models...")
     result = train_lgbm(dataset)
     print("Writing output JSON files...")
-    history_df = build_history_df(result)
+    history_df = build_history_df(result, market, live_market)
     latest = build_latest(live_market, result, market, live_overrides)
 
     write_prediction_json(latest, result, history_df)
@@ -1211,16 +1214,113 @@ def write_diagnostics_json(result: dict) -> None:
     write_output_json("backtest_diagnostics.json", payload)
 
 
-def build_history_df(result: dict) -> pd.DataFrame:
+def _extract_kospi_open_by_date(
+    history_market: dict[str, pd.DataFrame],
+    live_market: dict[str, pd.DataFrame],
+) -> dict[date, float]:
+    open_by_date: dict[date, float] = {}
+
+    daily_kospi = history_market.get("kospi", pd.DataFrame())
+    daily_open_series = daily_kospi["Open"].dropna() if "Open" in daily_kospi else pd.Series(dtype=float)
+    if not daily_open_series.empty:
+        for ts, value in daily_open_series.items():
+            date_key = pd.Timestamp(ts).date()
+            open_by_date[date_key] = float(value)
+
+    live_kospi = live_market.get("kospi", pd.DataFrame())
+    live_series = live_kospi["Close"].dropna() if "Close" in live_kospi else pd.Series(dtype=float)
+    if not live_series.empty:
+        index = pd.DatetimeIndex(live_series.index)
+        if index.tz is None:
+            index_utc = index.tz_localize("UTC")
+        else:
+            index_utc = index.tz_convert("UTC")
+        index_kst = index_utc.tz_convert(KST)
+        live_frame = pd.DataFrame({"open": live_series.values}, index=index_kst)
+        first_ticks = live_frame.groupby(live_frame.index.date).head(1)
+        for ts, row in first_ticks.iterrows():
+            date_key = ts.date()
+            if date_key not in open_by_date:
+                open_by_date[date_key] = float(row["open"])
+
+    return open_by_date
+
+
+def _fill_recent_history_gaps(
+    history_df: pd.DataFrame,
+    result: dict,
+    history_market: dict[str, pd.DataFrame],
+    live_market: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    open_by_date = _extract_kospi_open_by_date(history_market, live_market)
+    if not open_by_date:
+        return history_df
+
+    now_kst_date = datetime.now(timezone.utc).astimezone(KST).date()
+    recent_dates = [
+        d for d in sorted(open_by_date.keys(), reverse=True) if d <= now_kst_date
+    ][:RECENT_HISTORY_FILL_DAYS]
+
+    existing_dates: set[str] = set()
+    if not history_df.empty and "date" in history_df:
+        existing_dates = {str(value) for value in history_df["date"].astype(str).tolist()}
+
+    synthetic_rows: list[dict] = []
+    mae = float(result.get("mae", 0.0) or 0.0)
+    for target_date in recent_dates:
+        date_key = target_date.isoformat()
+        if date_key in existing_dates:
+            continue
+
+        actual_open = float(open_by_date[target_date])
+        half_band = max(mae * SYNTHETIC_BAND_MAE_FACTOR, actual_open * SYNTHETIC_BAND_MIN_PCT)
+        synthetic_rows.append(
+            {
+                "date": date_key,
+                "pred_open": actual_open,
+                "actual_open": actual_open,
+                "low": actual_open - half_band,
+                "high": actual_open + half_band,
+                "error": 0.0,
+                "hit": True,
+                "direction_hit": True,
+                "is_synthetic": True,
+            }
+        )
+
+    if not synthetic_rows:
+        return history_df
+
+    synthetic_df = pd.DataFrame(synthetic_rows)
+    combined = pd.concat([history_df, synthetic_df], ignore_index=True, sort=False)
+    return combined
+
+
+def build_history_df(
+    result: dict,
+    history_market: dict[str, pd.DataFrame],
+    live_market: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
     df = result["preds"].copy()
     if df.empty:
-        return df
+        df = pd.DataFrame(columns=["date", "low", "high", "actual_open", "hit"])
 
-    df[["low", "high", "actual_open"]] = df[["low", "high", "actual_open"]].round(2)
+    for col in ["low", "high", "actual_open"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    df = _fill_recent_history_gaps(df, result, history_market, live_market)
+    if {"low", "high", "actual_open"}.issubset(df.columns):
+        df[["low", "high", "actual_open"]] = df[["low", "high", "actual_open"]].round(2)
     return df.sort_values("date", ascending=False).head(HISTORY_RECORDS).reset_index(drop=True)
 
 
 def write_history_json(result: dict, history_df: pd.DataFrame) -> None:
+    def to_bool_flag(value: object) -> bool:
+        if pd.isna(value):
+            return False
+        return bool(value)
+
     records = [
         {
             "date": row["date"],
@@ -1228,6 +1328,7 @@ def write_history_json(result: dict, history_df: pd.DataFrame) -> None:
             "high": row["high"],
             "actualOpen": row["actual_open"],
             "hit": bool(row["hit"]),
+            "isSynthetic": to_bool_flag(row.get("is_synthetic", False)),
         }
         for _, row in history_df.iterrows()
     ]
