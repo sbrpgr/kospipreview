@@ -317,8 +317,6 @@ export function LiveDashboard({
           <div className="heroFootnote">{statusMessage}</div>
         </section>
 
-        <ChartSection history={history} />
-
         <div className="sectionTitleRow">
           <h2 className="sectionTitle">시장 지표 (야후 파이낸스)</h2>
           <div className="liveMetaBadge">
@@ -332,6 +330,8 @@ export function LiveDashboard({
           {" · "}장전 시간(미국 ET 04:00~09:30)에 추적 불가 항목은 카드에 (장전)으로 표기됩니다.
         </div>
         <IndicatorList indicators={indicators} />
+
+        <ChartSection history={history} />
 
         <h2 className="sectionTitle" style={{ marginTop: "60px" }}>
           최근 실측 기록
