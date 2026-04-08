@@ -390,17 +390,10 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
 
     def build_indicator(name: str) -> dict:
         proxy_tag = "(Proxy)" if name == "k200f" else ""
-        proxy_note = (
-            "Yahoo proxy: direct KOSPI 200 futures contract symbol is unavailable, using ^KS200 index."
-            if name == "k200f"
-            else ""
-        )
 
         frame = live_market.get(name, pd.DataFrame())
         series = frame["Close"].dropna() if "Close" in frame else pd.Series(dtype=float)
         if series.empty:
-            premarket_note = "장전 시세 추적 불가" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else ""
-            notes = " · ".join(note for note in [proxy_note, premarket_note] if note)
             return {
                 "key": name,
                 "label": indicator_label(name),
@@ -410,7 +403,6 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
                 "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
                 "dataSource": "Yahoo Finance",
                 "displayTag": proxy_tag or ("(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else ""),
-                "trackingNote": notes,
                 "isPremarket": False,
             }
 
@@ -428,8 +420,6 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
             and name in PREMARKET_TRACK_KEYS
             and (not is_premarket_quote or age_minutes > PREMARKET_STALE_MINUTES)
         )
-        premarket_note = "장전 시세 추적 불가" if premarket_untracked else ""
-        notes = " · ".join(note for note in [proxy_note, premarket_note] if note)
 
         return {
             "key": name,
@@ -440,7 +430,6 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
             "displayTag": proxy_tag or ("(장전)" if premarket_untracked else ""),
-            "trackingNote": notes,
             "isPremarket": is_premarket_quote,
         }
 

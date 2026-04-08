@@ -63,7 +63,6 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
             <div className="indSource">
               기준 시각 {formatUpdatedAt(indicator.updatedAt)} KST · {indicator.dataSource ?? "Yahoo Finance"}
             </div>
-            {indicator.trackingNote ? <div className="indSourceNote">{indicator.trackingNote}</div> : null}
           </a>
         );
       })}

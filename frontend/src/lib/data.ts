@@ -69,7 +69,6 @@ export async function getIndicatorData() {
       sourceUrl?: string;
       dataSource?: string;
       displayTag?: string;
-      trackingNote?: string;
       isPremarket?: boolean;
     }>;
     secondary: Array<{
@@ -81,7 +80,6 @@ export async function getIndicatorData() {
       sourceUrl?: string;
       dataSource?: string;
       displayTag?: string;
-      trackingNote?: string;
       isPremarket?: boolean;
     }>;
     generatedAt?: string;
