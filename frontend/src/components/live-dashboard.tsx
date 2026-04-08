@@ -88,15 +88,15 @@ function pickLatestRecordDate(
 function getStatusMeta(status: FreshnessData["status"], latestRecordDate: string | null) {
   if (status === "stale") {
     return latestRecordDate
-      ? `최근 반영 일자는 ${latestRecordDate} 기준입니다. 자동 갱신 파이프라인 점검이 필요합니다.`
-      : "최근 반영 일자를 확인하지 못했습니다. 자동 갱신 상태를 점검해 주세요.";
+      ? `최근 반영 일자는 ${latestRecordDate} 기준입니다. 지표별 갱신 주기가 다르므로 최신 값은 각 데이터 출처에서 확인해 주세요.`
+      : "최근 반영 일자를 확인하지 못했습니다. 지표별 갱신 주기가 다르므로 최신 값은 각 데이터 출처에서 확인해 주세요.";
   }
 
   if (status === "aging") {
-    return "데이터를 계속 확인 중입니다. 해외 지표 마감 시각과 배포 주기에 따라 반영이 조금 늦어질 수 있습니다.";
+    return "해외 지표 마감 시각과 배포 주기에 따라 반영 시차가 발생할 수 있습니다. 최신 값은 각 데이터 출처에서 확인해 주세요.";
   }
 
-  return "브라우저가 1분마다 최신 배포 데이터를 다시 확인합니다. 페이지를 새로고침하지 않아도 지표 값이 자동으로 바뀝니다.";
+  return "지표마다 갱신 주기가 다릅니다. 화면 값은 참고용이며 최신 값은 각 데이터 출처에서 확인해 주세요.";
 }
 
 function getDashboardVersion(
@@ -377,12 +377,13 @@ export function LiveDashboard({
           <h2 className="sectionTitle">시장 지표 (야후 파이낸스)</h2>
           <div className="liveMetaBadge">
             <span className="liveMetaDot" />
-            1분 단위 자동 확인
+            지표별 갱신 주기 상이
           </div>
         </div>
         <div className="sectionSubtext">
-          시장지표 (1분 단위 확인 · 최종시장시각 {marketTimestampLabel} KST · 사이트반영시각 {deployTimestampLabel} KST
+          시장지표 (최종시장시각 {marketTimestampLabel} KST · 사이트반영시각 {deployTimestampLabel} KST
           {" · "}마지막확인 {checkedTimestampLabel} KST · 마지막변경 {changedTimestampLabel} KST)
+          {" · "}지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주세요.
           {" · "}장전 시간(미국 ET 04:00~09:30)에 추적 불가 항목은 카드에 (장전)으로 표기됩니다.
         </div>
         <IndicatorList indicators={indicators} />
