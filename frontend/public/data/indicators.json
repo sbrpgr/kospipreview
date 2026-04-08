@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$138.09",
-      "changePct": 8.57,
-      "updatedAt": "2026-04-08T23:33:12+00:00",
+      "value": "$138.12",
+      "changePct": 8.59,
+      "updatedAt": "2026-04-08T23:35:39+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$96.91",
-      "changePct": -14.2,
-      "updatedAt": "2026-04-08T23:24:00+00:00",
+      "value": "$96.88",
+      "changePct": -14.23,
+      "updatedAt": "2026-04-08T23:25:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -51,7 +51,7 @@
       "label": "NASDAQ 100",
       "value": "24,903.17",
       "changePct": 2.9,
-      "updatedAt": "2026-04-08T21:16:00+00:00",
+      "updatedAt": "2026-04-08T21:15:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -73,7 +73,7 @@
       "label": "KORU 3x",
       "value": "$389.00",
       "changePct": 25.04,
-      "updatedAt": "2026-04-08T23:34:24+00:00",
+      "updatedAt": "2026-04-08T23:35:46+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,737.00",
-      "changePct": 1.72,
-      "updatedAt": "2026-04-08T23:24:00+00:00",
+      "value": "$4,734.30",
+      "changePct": 1.66,
+      "updatedAt": "2026-04-08T23:25:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T23:34:30.593813+00:00",
+  "generatedAt": "2026-04-08T23:35:56.101687+00:00",
   "isUsPremarketNow": false
 }
