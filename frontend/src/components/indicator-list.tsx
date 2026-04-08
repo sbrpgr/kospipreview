@@ -2,11 +2,15 @@
 
 import type { IndicatorData } from "@/lib/data";
 
-function normalizeIndicatorValue(key: string, value: string) {
-  if (key === "krw") {
-    return value.replace(/\?\?/g, "원");
+function formatIndicatorValue(key: string, value: string) {
+  if (key !== "krw") {
+    return value;
   }
-  return value;
+
+  return value
+    .replace(/ì/g, "원")
+    .replace(/\?\?/g, "원")
+    .replace(/원원/g, "원");
 }
 
 function changeLabel(value: number) {
@@ -19,6 +23,15 @@ function changeLabel(value: number) {
   return "보합";
 }
 
+function formatUpdatedAt(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Seoul",
+  }).format(new Date(value));
+}
+
 export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
   const allIndicators = [...indicators.primary, ...indicators.secondary];
 
@@ -26,7 +39,7 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
     <div className="indicatorGrid">
       {allIndicators.map((indicator) => {
         const isPositive = indicator.changePct >= 0;
-        const displayValue = normalizeIndicatorValue(indicator.key, indicator.value);
+        const displayValue = formatIndicatorValue(indicator.key, indicator.value);
 
         return (
           <a
@@ -35,12 +48,15 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
             rel="noopener noreferrer"
             className="indCard"
             key={indicator.key}
+            data-indicator-key={indicator.key}
+            data-indicator-updated-at={indicator.updatedAt}
           >
             <div className="indLabel">{indicator.label}</div>
             <div className="indValue">{displayValue}</div>
             <div className={`indChange ${isPositive ? "isPos" : "isNeg"}`}>
               {changeLabel(indicator.changePct)} {Math.abs(indicator.changePct).toFixed(2)}%
             </div>
+            <div className="indSource">기준 시각 {formatUpdatedAt(indicator.updatedAt)} KST</div>
           </a>
         );
       })}

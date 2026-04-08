@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AccuracyTable } from "@/components/accuracy-table";
 import { ChartSection } from "@/components/chart-section";
 import { IndicatorList } from "@/components/indicator-list";
@@ -20,6 +20,9 @@ type LiveDashboardProps = {
   initialHistory: HistoryData;
   initialFreshness: FreshnessData;
 };
+
+const POLL_INTERVAL_MS = 60_000;
+const CLOCK_INTERVAL_MS = 1_000;
 
 function formatKoreanDateTime(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -70,45 +73,62 @@ function getLatestIndicatorUpdate(indicators: IndicatorData) {
 function getStatusMeta(status: FreshnessData["status"], latestRecordDate: string | null) {
   if (status === "stale") {
     return latestRecordDate
-      ? `최근 반영 일자는 ${latestRecordDate} 기준입니다. 자동 수집이 멈췄을 가능성이 있습니다.`
-      : "최근 반영 일자를 확인하지 못했습니다. 자동 수집 상태를 점검해 주세요.";
+      ? `최근 반영 일자는 ${latestRecordDate} 기준입니다. 자동 갱신 파이프라인 점검이 필요합니다.`
+      : "최근 반영 일자를 확인하지 못했습니다. 자동 갱신 상태를 점검해 주세요.";
   }
 
   if (status === "aging") {
-    return "새 데이터를 확인 중입니다. 해외 지표 장마감과 배포 주기에 따라 반영이 조금 늦을 수 있습니다.";
+    return "데이터를 계속 확인 중입니다. 해외 지표 마감 시각과 배포 주기에 따라 반영이 조금 늦어질 수 있습니다.";
   }
 
-  return "브라우저는 1분마다 최신 배포 데이터를 다시 확인합니다. 실제 데이터 생성과 배포는 평일 5분 주기로 진행됩니다.";
+  return "브라우저가 1분마다 최신 배포 데이터를 다시 확인합니다. 페이지를 새로고침하지 않아도 지표 값이 자동으로 바뀝니다.";
+}
+
+function getDashboardVersion(
+  prediction: PredictionData,
+  indicators: IndicatorData,
+  history: HistoryData,
+  freshness: FreshnessData,
+) {
+  const firstPrimary = indicators.primary[0]?.value ?? "";
+  const firstSecondary = indicators.secondary[0]?.value ?? "";
+  const latestRecord = history.records[0]?.date ?? "";
+
+  return [
+    prediction.generatedAt ?? "",
+    prediction.lastCalculatedAt ?? "",
+    prediction.pointPrediction,
+    indicators.generatedAt ?? "",
+    getLatestIndicatorUpdate(indicators),
+    firstPrimary,
+    firstSecondary,
+    history.generatedAt ?? "",
+    latestRecord,
+    freshness.newestModifiedAt,
+  ].join("|");
 }
 
 async function fetchJson<T>(path: string) {
-  const response = await fetch(`${path}?t=${Date.now()}`, { cache: "no-store" });
+  const response = await fetch(`${path}?t=${Date.now()}`, {
+    cache: "no-store",
+    headers: {
+      pragma: "no-cache",
+      "cache-control": "no-cache",
+    },
+  });
+
   if (!response.ok) {
     throw new Error(`Failed to fetch ${path}`);
   }
+
   return response.json() as Promise<T>;
-}
-
-async function fetchLatestJson<T>(fileName: string) {
-  const githubUrl = `https://raw.githubusercontent.com/sbrpgr/kospipreview/main/frontend/public/data/${fileName}?t=${Date.now()}`;
-
-  try {
-    const response = await fetch(githubUrl, { cache: "no-store" });
-    if (response.ok) {
-      return (await response.json()) as T;
-    }
-  } catch {
-    // Fall back to the currently deployed JSON when GitHub is temporarily unavailable.
-  }
-
-  return fetchJson<T>(`/data/${fileName}`);
 }
 
 async function fetchDashboardPayload() {
   const [prediction, indicators, history] = await Promise.all([
-    fetchLatestJson<PredictionData>("prediction.json"),
-    fetchLatestJson<IndicatorData>("indicators.json"),
-    fetchLatestJson<HistoryData>("history.json"),
+    fetchJson<PredictionData>("/data/prediction.json"),
+    fetchJson<IndicatorData>("/data/indicators.json"),
+    fetchJson<HistoryData>("/data/history.json"),
   ]);
 
   const timestamps = [
@@ -137,16 +157,19 @@ async function fetchDashboardPayload() {
     status = "stale";
   }
 
+  const freshness = {
+    status,
+    ageHours: Number(ageHours.toFixed(1)),
+    newestModifiedAt,
+    latestRecordDate,
+  } satisfies FreshnessData;
+
   return {
     prediction,
     indicators,
     history,
-    freshness: {
-      status,
-      ageHours: Number(ageHours.toFixed(1)),
-      newestModifiedAt,
-      latestRecordDate,
-    } satisfies FreshnessData,
+    freshness,
+    version: getDashboardVersion(prediction, indicators, history, freshness),
   };
 }
 
@@ -162,10 +185,13 @@ export function LiveDashboard({
   const [freshness, setFreshness] = useState(initialFreshness);
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
   const [currentAt, setCurrentAt] = useState<string | null>(null);
+  const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
   const [isSyncing, setIsSyncing] = useState(false);
+  const versionRef = useRef(getDashboardVersion(initialPrediction, initialIndicators, initialHistory, initialFreshness));
 
   useEffect(() => {
     let cancelled = false;
+    let pollTimer: number | null = null;
 
     const updateCurrentTime = () => {
       if (!cancelled) {
@@ -173,18 +199,28 @@ export function LiveDashboard({
       }
     };
 
-    const refreshData = async () => {
+    const syncDashboard = async () => {
+      if (cancelled) {
+        return;
+      }
+
       setIsSyncing(true);
+
       try {
         const next = await fetchDashboardPayload();
         if (cancelled) {
           return;
         }
 
-        setPrediction(next.prediction);
-        setIndicators(next.indicators);
-        setHistory(next.history);
-        setFreshness(next.freshness);
+        if (next.version !== versionRef.current) {
+          versionRef.current = next.version;
+          setPrediction(next.prediction);
+          setIndicators(next.indicators);
+          setHistory(next.history);
+          setFreshness(next.freshness);
+          setLastChangedAt(next.freshness.newestModifiedAt);
+        }
+
         setLastCheckedAt(new Date().toISOString());
       } catch {
         if (!cancelled) {
@@ -197,17 +233,37 @@ export function LiveDashboard({
       }
     };
 
+    const scheduleNextPoll = () => {
+      if (!cancelled) {
+        pollTimer = window.setTimeout(async () => {
+          await syncDashboard();
+          scheduleNextPoll();
+        }, POLL_INTERVAL_MS);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void syncDashboard();
+      }
+    };
+
     updateCurrentTime();
-    setLastCheckedAt(new Date().toISOString());
-    const initialTimer = window.setTimeout(refreshData, 1000);
-    const interval = window.setInterval(refreshData, 60000);
-    const clock = window.setInterval(updateCurrentTime, 1000);
+    void syncDashboard();
+    scheduleNextPoll();
+
+    const clockTimer = window.setInterval(updateCurrentTime, CLOCK_INTERVAL_MS);
+    window.addEventListener("focus", handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
-      window.clearTimeout(initialTimer);
-      window.clearInterval(interval);
-      window.clearInterval(clock);
+      if (pollTimer !== null) {
+        window.clearTimeout(pollTimer);
+      }
+      window.clearInterval(clockTimer);
+      window.removeEventListener("focus", handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -219,6 +275,7 @@ export function LiveDashboard({
   );
   const checkedTimestampLabel = lastCheckedAt ? formatCompactTimestamp(lastCheckedAt) : "-";
   const currentTimestampLabel = currentAt ? formatCompactTimestamp(currentAt) : "-";
+  const changedTimestampLabel = lastChangedAt ? formatCompactTimestamp(lastChangedAt) : "-";
   const statusMessage = getStatusMeta(freshness.status, freshness.latestRecordDate);
 
   return (
@@ -229,6 +286,7 @@ export function LiveDashboard({
         deployUpdatedAt={deployTimestampLabel}
         currentAt={currentTimestampLabel}
         checkedAt={checkedTimestampLabel}
+        changedAt={changedTimestampLabel}
         status={freshness.status}
         isSyncing={isSyncing}
       />
@@ -265,16 +323,17 @@ export function LiveDashboard({
           <h2 className="sectionTitle">시장 지표</h2>
           <div className="liveMetaBadge">
             <span className="liveMetaDot" />
-            1분마다 새 배포 확인
+            1분 단위 자동 확인
           </div>
         </div>
         <div className="sectionSubtext">
-          시장지표 (최신 시장 기준시각 {marketTimestampLabel} KST · 사이트 반영시각 {deployTimestampLabel} KST · 마지막 확인 {checkedTimestampLabel} KST)
+          시장지표 (1분 단위 갱신 · 최종시장시각 {marketTimestampLabel} KST · 사이트반영시각 {deployTimestampLabel} KST
+          {" · "}마지막확인 {checkedTimestampLabel} KST · 마지막변경 {changedTimestampLabel} KST)
         </div>
         <IndicatorList indicators={indicators} />
 
         <h2 className="sectionTitle" style={{ marginTop: "60px" }}>
-          최근 예측 기록
+          최근 실측 기록
         </h2>
         <AccuracyTable history={history} />
       </main>
