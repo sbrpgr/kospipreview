@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$96.82",
-      "changePct": -14.28,
-      "updatedAt": "2026-04-08T22:59:00+00:00",
+      "value": "$96.81",
+      "changePct": -14.29,
+      "updatedAt": "2026-04-08T23:00:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$395.00",
-      "changePct": 26.97,
-      "updatedAt": "2026-04-08T23:09:03+00:00",
+      "value": "$395.02",
+      "changePct": 26.98,
+      "updatedAt": "2026-04-08T23:10:34+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,741.50",
-      "changePct": 1.81,
-      "updatedAt": "2026-04-08T22:59:00+00:00",
+      "value": "$4,739.50",
+      "changePct": 1.77,
+      "updatedAt": "2026-04-08T23:00:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T23:09:23.458421+00:00",
+  "generatedAt": "2026-04-08T23:10:41.949496+00:00",
   "isUsPremarketNow": false
 }
