@@ -54,10 +54,9 @@ jobs:
           git diff --cached --quiet || git commit -m "chore: auto-update data $(date -u +'%Y-%m-%d %H:%M UTC')"
 
       - name: Push changes
-        uses: ad-m/github-push-action@v0.8.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
+        run: |
+          git pull --rebase origin "${{ github.ref_name }}"
+          git push origin "HEAD:${{ github.ref_name }}"
 
       - name: Prepare Firebase credentials
         shell: bash
