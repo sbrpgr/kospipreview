@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$139.30",
-      "changePct": 9.52,
-      "updatedAt": "2026-04-08T21:29:11+00:00",
+      "value": "$139.21",
+      "changePct": 9.45,
+      "updatedAt": "2026-04-08T21:32:18+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -51,7 +51,7 @@
       "label": "NASDAQ 100",
       "value": "24,903.17",
       "changePct": 2.9,
-      "updatedAt": "2026-04-08T21:15:00+00:00",
+      "updatedAt": "2026-04-08T21:16:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$395.53",
-      "changePct": 27.14,
-      "updatedAt": "2026-04-08T21:30:58+00:00",
+      "value": "$396.01",
+      "changePct": 27.3,
+      "updatedAt": "2026-04-08T21:32:26+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T21:31:21.237552+00:00",
+  "generatedAt": "2026-04-08T21:32:41.716486+00:00",
   "isUsPremarketNow": false
 }
