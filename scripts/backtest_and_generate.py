@@ -21,7 +21,8 @@ if str(ROOT) not in sys.path:
 
 DATA_DIR = ROOT / "frontend" / "public" / "data"
 DOCS_DIR = ROOT / "docs"
-CACHE_DIR = ROOT / ".cache" / "yfinance"
+# Keep yfinance timezone cache outside the repository so CI git state stays clean.
+CACHE_DIR = Path.home() / ".cache" / "kospipreview-yfinance"
 
 KST = timezone(timedelta(hours=9))
 US_ET = ZoneInfo("America/New_York")
