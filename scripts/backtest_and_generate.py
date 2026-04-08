@@ -22,9 +22,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 DATA_DIR = ROOT / "frontend" / "public" / "data"
+OUT_DATA_DIR = ROOT / "frontend" / "out" / "data"
 DOCS_DIR = ROOT / "docs"
 # Keep yfinance timezone cache outside the repository so CI git state stays clean.
 CACHE_DIR = Path.home() / ".cache" / "kospipreview-yfinance"
+DAY_FUTURES_CLOSE_CACHE_FILE = DATA_DIR / "day_futures_close_cache.json"
 
 KST = timezone(timedelta(hours=9))
 US_ET = ZoneInfo("America/New_York")
@@ -138,6 +140,14 @@ def main() -> None:
     print(f"Done. Output directory: {DATA_DIR}")
 
 
+def write_output_json(file_name: str, payload: dict) -> None:
+    encoded = json.dumps(payload, ensure_ascii=False, indent=2)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    OUT_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    (DATA_DIR / file_name).write_text(encoded, encoding="utf8")
+    (OUT_DATA_DIR / file_name).write_text(encoded, encoding="utf8")
+
+
 def fetch_market_data() -> dict[str, pd.DataFrame]:
     period = f"{LOOKBACK_DAYS}d"
     frames: dict[str, pd.DataFrame] = {}
@@ -153,6 +163,70 @@ def fetch_market_data() -> dict[str, pd.DataFrame]:
       frames[name] = df.rename_axis("date").sort_index()
 
     return frames
+
+
+def latest_closed_day_futures_session_date(now_kst: datetime) -> str:
+    today = pd.Timestamp(now_kst.date())
+    if now_kst.weekday() < 5 and now_kst.time() >= KOSPI_DAY_FUTURES_SESSION_CLOSE:
+        target = today
+    else:
+        target = today - pd.offsets.BDay(1)
+    return pd.Timestamp(target).date().isoformat()
+
+
+def load_day_futures_close_cache() -> dict | None:
+    if not DAY_FUTURES_CLOSE_CACHE_FILE.exists():
+        return None
+
+    try:
+        payload = json.loads(DAY_FUTURES_CLOSE_CACHE_FILE.read_text(encoding="utf8"))
+    except (OSError, ValueError, TypeError):
+        return None
+
+    session_date = payload.get("session_date")
+    if not isinstance(session_date, str) or not session_date:
+        return None
+
+    try:
+        close = float(payload.get("close"))
+    except (TypeError, ValueError):
+        return None
+
+    if close == 0:
+        return None
+
+    return {
+        "close": close,
+        "updated_at": payload.get("updated_at"),
+        "session_date": session_date,
+        "provider": payload.get("provider", "day-close-cache"),
+        "selection": payload.get("selection", "cached"),
+        "cached_at": payload.get("cached_at"),
+    }
+
+
+def save_day_futures_close_cache(quote: dict) -> None:
+    session_date = quote.get("session_date")
+    if not session_date:
+        return
+
+    try:
+        close = float(quote.get("close"))
+    except (TypeError, ValueError):
+        return
+
+    if close == 0:
+        return
+
+    payload = {
+        "close": round(close, 6),
+        "updated_at": quote.get("updated_at"),
+        "session_date": session_date,
+        "provider": quote.get("provider", "esignal-day-cache"),
+        "selection": quote.get("selection", "session-close"),
+        "cached_at": datetime.now(timezone.utc).isoformat(),
+    }
+    write_output_json("day_futures_close_cache.json", payload)
 
 
 def fetch_esignal_kospi_day_close_quote() -> dict | None:
@@ -223,6 +297,29 @@ def fetch_esignal_kospi_day_close_quote() -> dict | None:
         "provider": "esignal-day-cache",
         "selection": "latest-tick-fallback",
     }
+
+
+def resolve_day_futures_close_quote() -> dict | None:
+    now_kst = datetime.now(timezone.utc).astimezone(KST)
+    target_session_date = latest_closed_day_futures_session_date(now_kst)
+    cached = load_day_futures_close_cache()
+
+    if cached:
+        cached_session_date = str(cached.get("session_date", ""))
+        if cached_session_date >= target_session_date:
+            cached["selection"] = cached.get("selection", "cached")
+            return cached
+
+    fetched = fetch_esignal_kospi_day_close_quote()
+    if fetched:
+        fetched_session_date = str(fetched.get("session_date", ""))
+        if fetched_session_date:
+            save_day_futures_close_cache(fetched)
+        if cached and fetched_session_date and str(cached.get("session_date", "")) > fetched_session_date:
+            return cached
+        return fetched
+
+    return cached
 
 
 def apply_day_futures_reference(
@@ -400,7 +497,7 @@ def fetch_live_indicators() -> tuple[dict[str, pd.DataFrame], dict[str, dict]]:
             df.columns = df.columns.get_level_values(0)
         frames[name] = df.sort_index()
 
-    day_close_quote = fetch_esignal_kospi_day_close_quote()
+    day_close_quote = resolve_day_futures_close_quote()
     k200f_quote = fetch_esignal_kospi_night_quote(day_close_quote)
     if k200f_quote is None:
         k200f_quote = fetch_tradingview_kospi_night_quote(day_close_quote)
@@ -891,7 +988,7 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "hit": bool(yesterday_row["hit"]) if yesterday_row is not None else False,
         },
     }
-    (DATA_DIR / "prediction.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
+    write_output_json("prediction.json", payload)
 
 
 def write_indicators_json(
@@ -999,7 +1096,7 @@ def write_indicators_json(
         "generatedAt": now_utc.isoformat(),
         "isUsPremarketNow": in_us_premarket_now,
     }
-    (DATA_DIR / "indicators.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
+    write_output_json("indicators.json", payload)
 
 
 def write_diagnostics_json(result: dict) -> None:
@@ -1010,7 +1107,7 @@ def write_diagnostics_json(result: dict) -> None:
         "featureImportance": result["fi"],
         "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
-    (DATA_DIR / "backtest_diagnostics.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
+    write_output_json("backtest_diagnostics.json", payload)
 
 
 def build_history_df(result: dict) -> pd.DataFrame:
@@ -1039,7 +1136,7 @@ def write_history_json(result: dict, history_df: pd.DataFrame) -> None:
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "records": records,
     }
-    (DATA_DIR / "history.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
+    write_output_json("history.json", payload)
 
 
 def choose_band_multiplier(vix: float) -> float:

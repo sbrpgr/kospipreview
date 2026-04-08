@@ -44,7 +44,15 @@ jobs:
       - name: Rebuild model artifacts
         run: python ./scripts/backtest_and_generate.py
 
+      - name: Restore static export cache
+        id: static-export-cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/out
+          key: next-export-${{ runner.os }}-${{ hashFiles('frontend/src/**', 'frontend/package-lock.json', 'frontend/next.config.ts', 'frontend/tsconfig.json') }}
+
       - name: Setup Node
+        if: steps.static-export-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -52,12 +60,20 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
+        if: steps.static-export-cache.outputs.cache-hit != 'true'
         working-directory: frontend
         run: npm ci
 
       - name: Build frontend
+        if: steps.static-export-cache.outputs.cache-hit != 'true'
         working-directory: frontend
         run: npm run build
+
+      - name: Sync latest data into static export
+        shell: bash
+        run: |
+          mkdir -p frontend/out/data
+          cp frontend/public/data/*.json frontend/out/data/
 
       - name: Commit updated data files
         run: |
@@ -95,7 +111,7 @@ jobs:
         shell: bash
         run: |
           # Re-dispatch after a short delay; practical cadence becomes one cycle per workflow runtime.
-          sleep 15
+          sleep 5
 
           curl --fail --silent --show-error -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \

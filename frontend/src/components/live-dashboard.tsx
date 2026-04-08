@@ -105,9 +105,9 @@ function getDashboardVersion(
   history: HistoryData,
   freshness: FreshnessData,
 ) {
-  const firstPrimary = indicators.primary[0]?.value ?? "";
-  const firstSecondary = indicators.secondary[0]?.value ?? "";
-  const latestRecord = history.records[0]?.date ?? "";
+  const historyFingerprint = history.records
+    .map((record) => [record.date, record.low, record.high, record.actualOpen, record.hit ? "1" : "0"].join("~"))
+    .join(";");
 
   return [
     prediction.generatedAt ?? "",
@@ -117,24 +117,30 @@ function getDashboardVersion(
     prediction.nightFuturesSimpleChangePct ?? "",
     prediction.futuresDayClose ?? "",
     prediction.futuresDayCloseDate ?? "",
-    indicators.generatedAt ?? "",
-    getLatestIndicatorUpdate(indicators),
-    firstPrimary,
-    firstSecondary,
+    getIndicatorsVersion(indicators),
     history.generatedAt ?? "",
-    latestRecord,
+    historyFingerprint,
     freshness.newestModifiedAt,
   ].join("|");
 }
 
 function getIndicatorsVersion(indicators: IndicatorData) {
-  const firstPrimary = indicators.primary[0]?.value ?? "";
-  const firstSecondary = indicators.secondary[0]?.value ?? "";
-  const k200f = [...indicators.primary, ...indicators.secondary].find((indicator) => indicator.key === "k200f");
-  const k200fValue = k200f?.value ?? "";
-  const k200fReference = k200f?.referenceValue ?? "";
+  const indicatorFingerprint = [...indicators.primary, ...indicators.secondary]
+    .map((indicator) =>
+      [
+        indicator.key,
+        indicator.value,
+        indicator.changePct,
+        indicator.updatedAt,
+        indicator.referenceValue ?? "",
+        indicator.referenceDate ?? "",
+        indicator.displayTag ?? "",
+        indicator.isPremarket ? "1" : "0",
+      ].join("~"),
+    )
+    .join(";");
 
-  return [indicators.generatedAt ?? "", getLatestIndicatorUpdate(indicators), firstPrimary, firstSecondary, k200fValue, k200fReference].join("|");
+  return [indicators.generatedAt ?? "", getLatestIndicatorUpdate(indicators), indicatorFingerprint].join("|");
 }
 
 async function fetchJson<T>(path: string) {
