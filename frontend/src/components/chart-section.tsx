@@ -36,88 +36,89 @@ export function ChartSection({ history }: ChartSectionProps) {
   }, [chartData]);
 
   return (
-    <div className="chartContainer">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-          <defs>
-            <linearGradient id="bandGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.1} />
-              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--positive)" stopOpacity={0.1} />
-              <stop offset="100%" stopColor="var(--positive)" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-          <XAxis 
-            dataKey="date" 
-            stroke="var(--text-dim)" 
-            fontSize={12} 
-            tickMargin={12}
-            tickLine={false}
-            axisLine={false}
-            fontFamily="var(--font-mono)"
-            minTickGap={20}
-          />
-          <YAxis 
-            domain={domainY} 
-            stroke="var(--text-dim)" 
-            fontSize={12} 
-            tickMargin={12}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(val: number) => val.toLocaleString()}
-            fontFamily="var(--font-mono)"
-            orientation="right"
-          />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: "var(--surface-strong)", 
-              borderColor: "var(--border)",
-              color: "var(--text)",
-              borderRadius: "var(--radius-sm)",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
-              fontSize: "0.85rem",
-              fontFamily: "var(--font-mono)",
-            }}
-            itemStyle={{ color: "var(--text-secondary)", fontSize: "0.9rem", paddingBottom: "4px" }}
-            labelStyle={{ color: "var(--text)", fontWeight: "bold", marginBottom: "8px" }}
-          />
-          
-          <Area 
-            type="monotone" 
-            name="예측 상단" 
-            dataKey="예측상단" 
-            stroke="var(--accent-bright)"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            fillOpacity={0}
-            fill="none"
-          />
-          <Area 
-            type="monotone" 
-            name="예측 하단" 
-            dataKey="예측하단" 
-            stroke="var(--accent-bright)"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            fillOpacity={1}
-            fill="url(#bandGradient)"
-          />
-          <Area 
-            type="monotone" 
-            name="실제 시초가"
-            dataKey="실제시가" 
-            stroke="var(--positive)" 
-            strokeWidth={2.5} 
-            dot={{ r: 3, fill: "var(--surface)", strokeWidth: 2, stroke: "var(--positive)" }}
-            activeDot={{ r: 6, strokeWidth: 0, fill: "var(--positive)" }}
-            fillOpacity={1}
-            fill="url(#actualGradient)"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div className="card">
+      <div className="chartContainer">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="bandGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--border-hover)" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="var(--border-hover)" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--positive)" stopOpacity={0.15} />
+                <stop offset="100%" stopColor="var(--positive)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis 
+              dataKey="date" 
+              stroke="var(--text-dim)" 
+              fontSize={12} 
+              tickMargin={12}
+              tickLine={false}
+              axisLine={false}
+              fontFamily="var(--font-mono)"
+              minTickGap={20}
+            />
+            <YAxis 
+              domain={domainY} 
+              stroke="var(--text-dim)" 
+              fontSize={12} 
+              tickMargin={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(val: number) => val.toLocaleString()}
+              fontFamily="var(--font-mono)"
+              orientation="right"
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: "var(--surface)", 
+                borderColor: "var(--border)",
+                color: "var(--text)",
+                borderRadius: "var(--radius-md)",
+                boxShadow: "var(--shadow-md)",
+                fontSize: "0.85rem",
+                fontFamily: "var(--font-mono)"
+              }}
+              itemStyle={{ color: "var(--text-secondary)", fontSize: "0.9rem", paddingBottom: "4px" }}
+              labelStyle={{ color: "var(--text)", fontWeight: "bold", marginBottom: "8px" }}
+            />
+            
+            <Area 
+              type="monotone" 
+              name="예측 상단" 
+              dataKey="예측상단" 
+              stroke="var(--text-dim)"
+              strokeWidth={1}
+              strokeDasharray="4 4"
+              fillOpacity={0}
+            />
+            <Area 
+              type="monotone" 
+              name="예측 하단" 
+              dataKey="예측하단" 
+              stroke="var(--text-dim)"
+              strokeWidth={1}
+              strokeDasharray="4 4"
+              fillOpacity={1}
+              fill="url(#bandGradient)"
+            />
+            <Area 
+              type="monotone" 
+              name="실제 시초가"
+              dataKey="실제시가" 
+              stroke="var(--positive)" /* Red in domestic markets */
+              strokeWidth={3} 
+              dot={{ r: 3, fill: "var(--surface)", strokeWidth: 2, stroke: "var(--positive)" }}
+              activeDot={{ r: 6, strokeWidth: 0, fill: "var(--positive)" }}
+              fillOpacity={1}
+              fill="url(#actualGradient)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

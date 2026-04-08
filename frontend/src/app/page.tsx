@@ -33,7 +33,7 @@ export default async function Home() {
 
       <main>
         {/* Giant Hero Prediction */}
-        <section className="heroSection">
+        <section className="card heroSection">
           <div className="heroDate">{prediction.predictionDate} 코스피 전망</div>
           <div className="heroPrice">{prediction.pointPrediction.toLocaleString("ko-KR")}</div>
           <div className="heroChangeLabel">

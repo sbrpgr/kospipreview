@@ -1,30 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 :root {
-  --bg: #15171e;
-  --bg-app: #0e0f14;
-  --surface: #1e212b;
-  --surface-strong: #262936;
-  --surface-elevated: #2f3445;
-  --border: #2a2e3d;
-  --border-hover: #3d4356;
-  --text: #e8eaf1;
-  --text-secondary: #9ba1b4;
-  --text-dim: #6d748a;
+  /* LIGHT/WHITE THEME */
+  --bg-app: #F5F7FA;
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-strong: #F8F9FB;
+  --border: #E8EBF2;
+  --border-hover: #D1D6E6;
+  --text: #1E232F;
+  --text-secondary: #5D6882;
+  --text-dim: #8E98B0;
   
-  /* Softer Fintech Colors */
-  --positive: #22d67a;
-  --positive-bg: rgba(34, 214, 122, 0.12);
-  --negative: #ff4757;
-  --negative-bg: rgba(255, 71, 87, 0.12);
-  --accent: #4c82ff;
-  --accent-bright: #7aafff;
-  --accent-bg: rgba(76, 130, 255, 0.12);
-  --gold: #ffbe3d;
+  /* Accent Colors (Inspired by reference site) */
+  --brand: #FF4D8D;
+  --brand-bg: rgba(255, 77, 141, 0.08);
   
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  /* Chart / Directional Colors (Korean Market: Red = Up, Blue = Down) */
+  --positive: #E12343; /* Red for UP */
+  --positive-bg: rgba(225, 35, 67, 0.08);
+  --negative: #1E66E0; /* Blue for DOWN */
+  --negative-bg: rgba(30, 102, 224, 0.08);
+  
+  --accent: #2962FF; /* Neutral highlight */
+  --gold: #F59E0B;
+  
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.05);
+  
   --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   --transition: 0.2s ease-in-out;
@@ -42,7 +49,7 @@ html, body {
   background-color: var(--bg-app);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 15px; /* Bigger, easier to read */
+  font-size: 15px;
   line-height: 1.6;
 }
 
@@ -50,10 +57,6 @@ a {
   color: inherit;
   text-decoration: none;
   transition: color var(--transition);
-}
-
-a:hover {
-  color: var(--accent-bright);
 }
 
 button {
@@ -69,11 +72,21 @@ button {
 
 h1, h2, h3, h4, p { margin: 0; }
 
-/* ───────────── Layout ───────────── */
+/* ───────────── Layout Container ───────────── */
 .pageContainer {
-  width: min(840px, 100% - 32px);
+  width: min(780px, 100% - 32px);
   margin: 0 auto;
-  padding: 30px 0 80px;
+  padding: 24px 0 80px;
+}
+
+/* ───────────── Base Card Style ───────────── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  padding: 28px;
+  margin-bottom: 24px;
 }
 
 /* ───────────── Header ───────────── */
@@ -81,46 +94,26 @@ h1, h2, h3, h4, p { margin: 0; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
   margin-bottom: 32px;
   flex-wrap: wrap;
   gap: 16px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
 }
 
 .brandLockup {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-weight: 800;
-  font-size: 1.1rem;
-  color: #fff;
+  gap: 10px;
+  font-weight: 900;
+  font-size: 1.15rem;
+  color: var(--brand); /* Pink branding */
   letter-spacing: -0.02em;
 }
 
-.navMenu {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.navLink {
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition);
-}
-
-.navLink:hover {
-  background: var(--surface-strong);
-  color: #fff;
-}
-
-/* ───────────── Live Status ───────────── */
+/* ───────────── Status ───────────── */
 .statusRow {
   display: flex;
   align-items: center;
@@ -132,15 +125,15 @@ h1, h2, h3, h4, p { margin: 0; }
   align-items: center;
   gap: 6px;
   font-size: 0.85rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  background: var(--positive-bg);
-  color: var(--positive);
+  font-weight: 800;
+  padding: 5px 12px;
+  background: var(--brand-bg);
+  color: var(--brand);
   border-radius: 999px;
 }
 
 .statusLabel.isStale {
-  background: rgba(255,190,61,0.15);
+  background: rgba(245, 158, 11, 0.1);
   color: var(--gold);
 }
 
@@ -152,83 +145,79 @@ h1, h2, h3, h4, p { margin: 0; }
 }
 
 .statusTime {
-  font-size: 0.85rem;
-  font-family: var(--font-mono);
+  font-size: 0.8rem;
   color: var(--text-dim);
+  font-weight: 500;
 }
 
-/* ───────────── Main Hero (Giant Number) ───────────── */
+/* ───────────── Hero Card ───────────── */
 .heroSection {
-  margin-bottom: 40px;
   text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .heroDate {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: var(--accent-bright);
-  margin-bottom: 12px;
+  color: var(--brand);
+  background: var(--brand-bg);
+  padding: 6px 16px;
+  border-radius: 999px;
+  margin-bottom: 20px;
 }
 
 .heroPrice {
-  font-size: clamp(3rem, 8vw, 4.5rem);
+  font-size: clamp(3.2rem, 8vw, 4.8rem);
   font-weight: 900;
   letter-spacing: -0.04em;
-  color: #fff;
-  line-height: 1.1;
-  font-family: var(--font-sans);
+  color: var(--text);
+  line-height: 1;
 }
 
 .heroChangeLabel {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 800;
   font-family: var(--font-mono);
-  margin-top: 8px;
+  margin-top: 16px;
 }
 
 .heroBand {
-  margin-top: 16px;
+  margin-top: 24px;
   display: inline-block;
-  padding: 10px 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  padding: 14px 28px;
+  background: var(--surface-strong);
   border-radius: 999px;
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
 }
 
 .heroMessage {
-  margin-top: 20px;
+  margin-top: 24px;
   font-size: 1.05rem;
   color: var(--text-secondary);
   line-height: 1.6;
+  max-width: 500px;
 }
 
 /* ───────────── Section Titles ───────────── */
 .sectionTitle {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  color: #fff;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  color: var(--text);
+  margin: 40px 0 20px 8px;
 }
 
 /* ───────────── Chart Container ───────────── */
 .chartContainer {
-  margin: 30px 0 40px;
-  height: 420px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 24px 24px 16px 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  height: 380px;
+  width: 100%;
 }
 
 /* ───────────── Indicator Grid ───────────── */
@@ -236,7 +225,6 @@ h1, h2, h3, h4, p { margin: 0; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
-  margin-bottom: 40px;
 }
 
 .indCard {
@@ -244,33 +232,36 @@ h1, h2, h3, h4, p { margin: 0; }
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 20px;
-  transition: transform 0.2s, border-color 0.2s;
-  position: relative;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  display: block;
 }
 
 .indCard:hover {
-  transform: translateY(-2px);
-  border-color: var(--border-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand);
 }
 
 .indLabel {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .indValue {
   font-size: 1.4rem;
-  font-weight: 800;
-  color: #fff;
+  font-weight: 900;
+  color: var(--text);
   font-family: var(--font-mono);
   margin-bottom: 4px;
 }
 
 .indChange {
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 800;
   font-family: var(--font-mono);
 }
 
@@ -281,39 +272,38 @@ h1, h2, h3, h4, p { margin: 0; }
 /* ───────────── Clean Table ───────────── */
 .cleanTableWrap {
   background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
   overflow-x: auto;
-  margin-bottom: 40px;
 }
 
 .cleanTable {
   width: 100%;
   border-collapse: collapse;
   text-align: right;
-  font-family: var(--font-mono);
 }
 
 .cleanTable th {
   background: var(--surface-strong);
   color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 0.9rem;
-  padding: 16px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 18px 20px;
   border-bottom: 1px solid var(--border);
-  font-family: var(--font-sans);
 }
 
 .cleanTable th:first-child, .cleanTable td:first-child { text-align: left; }
 
 .cleanTable td {
-  padding: 16px;
+  padding: 16px 20px;
   font-size: 0.95rem;
   border-bottom: 1px solid var(--border);
+  font-weight: 500;
 }
 
 .cleanTable tbody tr:hover {
-  background: rgba(255,255,255,0.02);
+  background: var(--surface-strong);
 }
 
 .cleanTable tbody tr:last-child td {
@@ -322,13 +312,11 @@ h1, h2, h3, h4, p { margin: 0; }
 
 .badge {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
   font-size: 0.8rem;
-  font-weight: 700;
-  font-family: var(--font-sans);
+  font-weight: 800;
 }
-
 .badge.hit { background: var(--positive-bg); color: var(--positive); }
 .badge.miss { background: var(--negative-bg); color: var(--negative); }
 
@@ -336,20 +324,25 @@ h1, h2, h3, h4, p { margin: 0; }
 .footer {
   margin-top: 60px;
   padding-top: 30px;
-  border-top: 1px solid var(--border);
+  border-top: 1px dashed var(--border);
   text-align: center;
   color: var(--text-dim);
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .footerLinks {
   display: flex;
   justify-content: center;
   gap: 20px;
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
-/* ───────────── Utils ───────────── */
+.footerLinks a:hover {
+  text-decoration: underline;
+}
+
+/* ───────────── Subpages Prose ───────────── */
 .prose {
   color: var(--text-secondary);
   line-height: 1.8;
@@ -357,13 +350,14 @@ h1, h2, h3, h4, p { margin: 0; }
 }
 
 .prose h3 {
-  color: #fff;
-  margin: 30px 0 16px;
-  font-size: 1.25rem;
+  color: var(--text);
+  margin: 32px 0 16px;
+  font-size: 1.3rem;
+  font-weight: 800;
 }
 
 .prose p {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .prose ul {
@@ -372,5 +366,5 @@ h1, h2, h3, h4, p { margin: 0; }
 }
 
 .prose li {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
