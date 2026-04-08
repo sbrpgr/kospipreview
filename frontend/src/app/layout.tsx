@@ -10,11 +10,16 @@ const notoSansKR = Noto_Sans_KR({
 export const metadata: Metadata = {
   title: "KOSPI Dawn | 코스피 시초가 예측 대시보드",
   description:
-    "EWY, 환율, VIX 등 핵심 선행지표를 기반으로 내일 코스피 시초가 밴드를 예측하는 대시보드",
+    "EWY, 환율, VIX 등 해외 선행 지표를 기반으로 다음 거래일 코스피 시초가 밴드를 예측하는 대시보드입니다.",
   openGraph: {
-    title: "KOSPI Dawn — 코스피 시초가 예측",
-    description: "LightGBM 앙상블 기반 코스피 시초가 예측 대시보드",
+    title: "KOSPI Dawn | 코스피 시초가 예측",
+    description: "LightGBM 기반 코스피 시초가 예측 대시보드",
     type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "KOSPI Dawn | 코스피 시초가 예측",
+    description: "LightGBM 기반 코스피 시초가 예측 대시보드",
   },
 };
 

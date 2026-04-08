@@ -22,9 +22,7 @@ export function LiveStatus({ lastUpdated, status }: { lastUpdated: string; statu
       <span className="liveStatusText" style={{ color: statusColor }}>
         {statusLabel}
       </span>
-      <span className="liveStatusTime">
-        최종 갱신 {lastUpdated}
-      </span>
+      <span className="liveStatusTime">최종 갱신 {lastUpdated}</span>
     </div>
   );
 }
