@@ -387,13 +387,21 @@ def resolve_previous_close(history_series: pd.Series, latest_ts_utc: datetime) -
     return float(series.iloc[-1])
 
 
-def resolve_latest_completed_krx_close(live_series: pd.Series, history_series: pd.Series) -> float:
+def resolve_latest_completed_krx_session(live_series: pd.Series, history_series: pd.Series) -> tuple[float, str | None]:
     history = history_series.dropna()
     fallback = float(history.iloc[-1]) if not history.empty else 2500.0
+    fallback_date: str | None = None
+    if not history.empty:
+        history_idx = pd.DatetimeIndex(history.index)
+        if history_idx.tz is None:
+            history_kst = history_idx.tz_localize("UTC").tz_convert(KST)
+        else:
+            history_kst = history_idx.tz_convert(KST)
+        fallback_date = history_kst[-1].date().isoformat()
 
     live = live_series.dropna()
     if live.empty:
-        return fallback
+        return fallback, fallback_date
 
     index = pd.DatetimeIndex(live.index)
     if index.tz is None:
@@ -406,8 +414,15 @@ def resolve_latest_completed_krx_close(live_series: pd.Series, history_series: p
     session_close_rows = frame.groupby(frame.index.date).tail(1)
     completed = session_close_rows[session_close_rows.index.time >= KRX_SESSION_CLOSE_CUTOFF]
     if completed.empty:
-        return fallback
-    return float(completed.iloc[-1]["close"])
+        return fallback, fallback_date
+
+    latest_index = completed.index[-1]
+    return float(completed.iloc[-1]["close"]), latest_index.date().isoformat()
+
+
+def resolve_latest_completed_krx_close(live_series: pd.Series, history_series: pd.Series) -> float:
+    close, _ = resolve_latest_completed_krx_session(live_series, history_series)
+    return close
 
 
 def compute_live_return_pct(
@@ -541,7 +556,7 @@ def build_latest(
     prev_kospi_series = history_market["kospi"]["Close"] if "kospi" in history_market else pd.Series(dtype=float)
     live_kospi_frame = live_market.get("kospi", pd.DataFrame())
     live_kospi_series = live_kospi_frame["Close"] if "Close" in live_kospi_frame else pd.Series(dtype=float)
-    prev_close = resolve_latest_completed_krx_close(live_kospi_series, prev_kospi_series)
+    prev_close, latest_record_date = resolve_latest_completed_krx_session(live_kospi_series, prev_kospi_series)
     prev_kospi_non_na = prev_kospi_series.dropna()
     prior_close = float(prev_kospi_non_na.iloc[-1]) if not prev_kospi_non_na.empty else prev_close
     prev_close_change = ((prev_close / prior_close - 1) * 100) if prior_close else 0.0
@@ -585,6 +600,7 @@ def build_latest(
         "vix": vix,
         "returns": returns,
         "prev_close": prev_close,
+        "latest_record_date": latest_record_date,
     }
 
 
@@ -622,7 +638,9 @@ def next_prediction_date_label(now_kst: datetime) -> str:
 def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) -> None:
     now_utc = datetime.now(timezone.utc)
     now_kst = now_utc.astimezone(KST)
-    latest_record_date = history_df.iloc[0]["date"] if not history_df.empty else None
+    latest_record_date = latest.get("latest_record_date")
+    if not latest_record_date and not history_df.empty:
+        latest_record_date = history_df.iloc[0]["date"]
     yesterday_row = history_df.iloc[0] if not history_df.empty else None
 
     payload = {

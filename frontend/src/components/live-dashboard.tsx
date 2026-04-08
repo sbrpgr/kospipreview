@@ -70,6 +70,37 @@ function getLatestIndicatorUpdate(indicators: IndicatorData) {
   );
 }
 
+function toKstDateTimestamp(dateText: string | null | undefined) {
+  if (!dateText) {
+    return Number.NaN;
+  }
+
+  const ts = new Date(`${dateText}T00:00:00+09:00`).getTime();
+  return Number.isNaN(ts) ? Number.NaN : ts;
+}
+
+function pickLatestRecordDate(
+  historyDate: string | null | undefined,
+  predictionDate: string | null | undefined,
+) {
+  const historyTs = toKstDateTimestamp(historyDate);
+  const predictionTs = toKstDateTimestamp(predictionDate);
+
+  if (!Number.isNaN(historyTs) && !Number.isNaN(predictionTs)) {
+    return historyTs >= predictionTs ? historyDate ?? null : predictionDate ?? null;
+  }
+
+  if (!Number.isNaN(predictionTs)) {
+    return predictionDate ?? null;
+  }
+
+  if (!Number.isNaN(historyTs)) {
+    return historyDate ?? null;
+  }
+
+  return predictionDate ?? historyDate ?? null;
+}
+
 function getStatusMeta(status: FreshnessData["status"], latestRecordDate: string | null) {
   if (status === "stale") {
     return latestRecordDate
@@ -143,7 +174,7 @@ async function fetchDashboardPayload() {
     .filter((value) => !Number.isNaN(value));
 
   const newestModifiedAt = timestamps.length ? new Date(Math.max(...timestamps)).toISOString() : new Date().toISOString();
-  const latestRecordDate = history.records[0]?.date ?? prediction.latestRecordDate ?? null;
+  const latestRecordDate = pickLatestRecordDate(history.records[0]?.date, prediction.latestRecordDate);
   const ageHours = (Date.now() - new Date(newestModifiedAt).getTime()) / (1000 * 60 * 60);
   const latestRecordAgeDays = latestRecordDate
     ? (Date.now() - new Date(`${latestRecordDate}T00:00:00+09:00`).getTime()) / (1000 * 60 * 60 * 24)

@@ -122,6 +122,37 @@ function latestIndicatorTimestamp(indicators: Awaited<ReturnType<typeof getIndic
     .sort((a, b) => b - a)[0];
 }
 
+function toKstDateTimestamp(dateText: string | null | undefined) {
+  if (!dateText) {
+    return Number.NaN;
+  }
+
+  const ts = new Date(`${dateText}T00:00:00+09:00`).getTime();
+  return Number.isNaN(ts) ? Number.NaN : ts;
+}
+
+function pickLatestRecordDate(
+  historyDate: string | null | undefined,
+  predictionDate: string | null | undefined,
+) {
+  const historyTs = toKstDateTimestamp(historyDate);
+  const predictionTs = toKstDateTimestamp(predictionDate);
+
+  if (!Number.isNaN(historyTs) && !Number.isNaN(predictionTs)) {
+    return historyTs >= predictionTs ? historyDate ?? null : predictionDate ?? null;
+  }
+
+  if (!Number.isNaN(predictionTs)) {
+    return predictionDate ?? null;
+  }
+
+  if (!Number.isNaN(historyTs)) {
+    return historyDate ?? null;
+  }
+
+  return predictionDate ?? historyDate ?? null;
+}
+
 export async function getDataFreshness() {
   const [prediction, indicators, history] = await Promise.all([
     getPredictionData(),
@@ -147,7 +178,7 @@ export async function getDataFreshness() {
   const newestModifiedAt = timestamps.length ? Math.max(...timestamps) : Date.now();
   const ageHours = (Date.now() - newestModifiedAt) / (1000 * 60 * 60);
 
-  const latestRecordDate = history.records[0]?.date ?? prediction.latestRecordDate ?? null;
+  const latestRecordDate = pickLatestRecordDate(history.records[0]?.date, prediction.latestRecordDate);
   const latestRecordAgeDays = latestRecordDate
     ? (Date.now() - new Date(`${latestRecordDate}T00:00:00+09:00`).getTime()) / (1000 * 60 * 60 * 24)
     : Number.POSITIVE_INFINITY;
