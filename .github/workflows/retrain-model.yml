@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       loop:
-        description: "Keep chaining this workflow every ~5 minutes during KST night/premarket window"
+        description: "Keep chaining this workflow continuously after each successful run"
         required: false
         default: "on"
   schedule:
@@ -89,20 +89,13 @@ jobs:
         run: npx firebase-tools@latest deploy --project kospipreview --only hosting --non-interactive
 
       - name: Queue next polling run
-        if: success() && github.event_name == 'workflow_dispatch' && github.event.inputs.loop == 'on'
+        if: success() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.loop == 'on'))
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          kst_hour="$(TZ=Asia/Seoul date +%H)"
-          # Keep chaining only during KST premarket/open overlap window.
-          if [ "$kst_hour" -lt 17 ] || [ "$kst_hour" -ge 23 ]; then
-            echo "Outside chaining window (KST 17:00-23:00). Skipping."
-            exit 0
-          fi
-
-          # Re-dispatch immediately; practical cadence becomes one cycle per workflow runtime (~1-2 min).
-          sleep 5
+          # Re-dispatch after a short delay; practical cadence becomes one cycle per workflow runtime.
+          sleep 15
 
           curl --fail --silent --show-error -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
