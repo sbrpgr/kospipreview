@@ -89,11 +89,26 @@ async function fetchJson<T>(path: string) {
   return response.json() as Promise<T>;
 }
 
+async function fetchLatestJson<T>(fileName: string) {
+  const githubUrl = `https://raw.githubusercontent.com/sbrpgr/kospipreview/main/frontend/public/data/${fileName}?t=${Date.now()}`;
+
+  try {
+    const response = await fetch(githubUrl, { cache: "no-store" });
+    if (response.ok) {
+      return (await response.json()) as T;
+    }
+  } catch {
+    // Fall back to the currently deployed JSON when GitHub is temporarily unavailable.
+  }
+
+  return fetchJson<T>(`/data/${fileName}`);
+}
+
 async function fetchDashboardPayload() {
   const [prediction, indicators, history] = await Promise.all([
-    fetchJson<PredictionData>("/data/prediction.json"),
-    fetchJson<IndicatorData>("/data/indicators.json"),
-    fetchJson<HistoryData>("/data/history.json"),
+    fetchLatestJson<PredictionData>("prediction.json"),
+    fetchLatestJson<IndicatorData>("indicators.json"),
+    fetchLatestJson<HistoryData>("history.json"),
   ]);
 
   const timestamps = [
