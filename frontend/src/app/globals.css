@@ -294,6 +294,47 @@ p {
   line-height: 0.95;
 }
 
+.heroDualForecast {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.heroForecastCard {
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.heroForecastCard.isModel {
+  border-color: rgba(37, 99, 235, 0.25);
+  background: linear-gradient(180deg, rgba(239, 246, 255, 0.92), rgba(255, 255, 255, 0.86));
+}
+
+.heroForecastLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.heroForecastValue {
+  font-size: clamp(1.8rem, 4vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.05;
+  font-family: var(--font-mono);
+}
+
+.heroForecastChange {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
 .heroChangeLabel {
   display: inline-flex;
   align-items: center;
@@ -405,12 +446,24 @@ p {
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
   cursor: pointer;
   display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
 .indCard:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
   border-color: var(--border-hover);
+}
+
+.indCard.isStatic {
+  cursor: default;
+}
+
+.indCard.isStatic:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border);
 }
 
 .indLabel {

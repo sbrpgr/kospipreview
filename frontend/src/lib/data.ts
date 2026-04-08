@@ -38,6 +38,8 @@ export async function getPredictionData() {
     rangeLow: number;
     rangeHigh: number;
     pointPrediction: number;
+    nightFuturesSimplePoint?: number | null;
+    nightFuturesSimpleChangePct?: number | null;
     predictedChangePct: number;
     prevClose: number;
     signalSummary: string;

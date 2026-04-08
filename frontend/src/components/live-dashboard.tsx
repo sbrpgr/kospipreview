@@ -113,6 +113,8 @@ function getDashboardVersion(
     prediction.generatedAt ?? "",
     prediction.lastCalculatedAt ?? "",
     prediction.pointPrediction,
+    prediction.nightFuturesSimplePoint ?? "",
+    prediction.nightFuturesSimpleChangePct ?? "",
     indicators.generatedAt ?? "",
     getLatestIndicatorUpdate(indicators),
     firstPrimary,
@@ -280,6 +282,9 @@ export function LiveDashboard({
   const checkedTimestampLabel = lastCheckedAt ? formatCompactTimestamp(lastCheckedAt) : "-";
   const changedTimestampLabel = lastChangedAt ? formatCompactTimestamp(lastChangedAt) : "-";
   const statusMessage = getStatusMeta(freshness.status, freshness.latestRecordDate);
+  const nightSimplePoint = typeof prediction.nightFuturesSimplePoint === "number" ? prediction.nightFuturesSimplePoint : null;
+  const nightSimpleChangePct =
+    typeof prediction.nightFuturesSimpleChangePct === "number" ? prediction.nightFuturesSimpleChangePct : null;
 
   return (
     <div className="pageContainer">
@@ -294,16 +299,31 @@ export function LiveDashboard({
             </div>
           </div>
 
-          <div className="heroPrice">{prediction.pointPrediction.toLocaleString("ko-KR")}</div>
-
-          <div className="heroChangeLabel">
-            <span className={prediction.predictedChangePct >= 0 ? "isPos" : "isNeg"}>
-              {prediction.predictedChangePct >= 0 ? "상방" : "하방"} {Math.abs(prediction.predictedChangePct).toFixed(2)}%
-            </span>
+          <div className="heroDualForecast">
+            <div className="heroForecastCard">
+              <div className="heroForecastLabel">야간선물 단순환산</div>
+              <div className="heroForecastValue">{nightSimplePoint?.toLocaleString("ko-KR") ?? "-"}</div>
+              <div
+                className={`heroForecastChange ${
+                  nightSimpleChangePct === null ? "isNeu" : nightSimpleChangePct >= 0 ? "isPos" : "isNeg"
+                }`}
+              >
+                {nightSimpleChangePct === null
+                  ? "데이터 미연결"
+                  : `${nightSimpleChangePct >= 0 ? "상방" : "하방"} ${Math.abs(nightSimpleChangePct).toFixed(2)}%`}
+              </div>
+            </div>
+            <div className="heroForecastCard isModel">
+              <div className="heroForecastLabel">모델 예측</div>
+              <div className="heroForecastValue">{prediction.pointPrediction.toLocaleString("ko-KR")}</div>
+              <div className={`heroForecastChange ${prediction.predictedChangePct >= 0 ? "isPos" : "isNeg"}`}>
+                {prediction.predictedChangePct >= 0 ? "상방" : "하방"} {Math.abs(prediction.predictedChangePct).toFixed(2)}%
+              </div>
+            </div>
           </div>
 
           <div className="heroBand">
-            예상 밴드 {prediction.rangeLow.toLocaleString("ko-KR")} ~ {prediction.rangeHigh.toLocaleString("ko-KR")}
+            모델 예상 밴드 {prediction.rangeLow.toLocaleString("ko-KR")} ~ {prediction.rangeHigh.toLocaleString("ko-KR")}
           </div>
 
           <div className="heroMessage">{prediction.signalSummary}</div>

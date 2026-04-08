@@ -54,7 +54,7 @@ INDICATOR_SOURCE_URLS = {
     key: f"https://finance.yahoo.com/quote/{ticker.replace('=', '%3D').replace('^', '%5E')}"
     for key, ticker in INDICATOR_TICKERS.items()
 }
-INDICATOR_SOURCE_URLS["k200f"] = "https://www.tradingview.com/symbols/KRX-K2I1!/"
+INDICATOR_SOURCE_URLS["k200f"] = ""
 
 LOOKBACK_DAYS = 3 * 365
 ALL_FEATURES = list(FEATURE_TICKERS.keys())
@@ -84,6 +84,13 @@ REGIME_CLIP_CORE_BUFFER_PCT = 1.25
 TV_FUTURES_SCAN_URL = "https://scanner.tradingview.com/futures/scan"
 TV_KOSPI_NIGHT_SYMBOL = "KRX:K2I1!"
 NIGHT_FUTURES_STALE_MINUTES = 180
+ESIGNAL_KOSPI_NIGHT_PAGE_URL = "https://esignal.co.kr/kospi200-futures-night/"
+ESIGNAL_KOSPI_NIGHT_CACHE_URL = "https://esignal.co.kr/data/cache/kospif_ngt.js"
+ESIGNAL_REQUEST_TIMEOUT = 10
+ESIGNAL_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+)
 
 LGBM_BASE = dict(
     n_estimators=300,
@@ -203,6 +210,64 @@ def fetch_tradingview_kospi_night_quote() -> dict | None:
         "update_mode": update_mode or "",
         "description": description or "KOSPI 200 Futures",
         "exchange": exchange or "KRX",
+        "provider": "tradingview",
+    }
+
+
+def fetch_esignal_kospi_night_quote() -> dict | None:
+    req = urllib.request.Request(
+        ESIGNAL_KOSPI_NIGHT_CACHE_URL,
+        headers={
+            "User-Agent": ESIGNAL_USER_AGENT,
+            "Referer": ESIGNAL_KOSPI_NIGHT_PAGE_URL,
+            "Accept": "application/json,text/javascript,*/*;q=0.1",
+            "Cache-Control": "no-cache",
+        },
+        method="GET",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=ESIGNAL_REQUEST_TIMEOUT) as response:
+            body = response.read().decode("utf-8")
+    except (urllib.error.URLError, TimeoutError):
+        return None
+
+    try:
+        payload = json.loads(body)
+        ticks = payload.get("data", [])
+        if not ticks:
+            return None
+        latest_tick = ticks[-1]
+        ts_ms = int(latest_tick[0])
+        price = float(latest_tick[1])
+        open_price = payload.get("open")
+        if open_price is None:
+            open_price = ticks[0][1]
+        previous_close = float(open_price)
+        if previous_close == 0:
+            previous_close = price
+    except (ValueError, TypeError, IndexError, KeyError):
+        return None
+
+    updated_at = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
+    now_utc = datetime.now(timezone.utc)
+    age_minutes = (now_utc - updated_at).total_seconds() / 60
+    updated_kst = updated_at.astimezone(KST)
+    in_night_window = updated_kst.time() >= time(18, 0) or updated_kst.time() <= time(6, 0)
+    is_live_night = age_minutes <= NIGHT_FUTURES_STALE_MINUTES and in_night_window
+    change_pct = ((price / previous_close - 1) * 100) if previous_close else 0.0
+
+    return {
+        "price": price,
+        "previous_close": previous_close,
+        "change_pct": change_pct,
+        "updated_at": updated_at.isoformat(),
+        "age_minutes": round(age_minutes, 1),
+        "is_live_night": is_live_night,
+        "update_mode": "cache-json",
+        "description": "KOSPI 200 Night Futures",
+        "exchange": "KRX",
+        "provider": "esignal",
     }
 
 
@@ -226,7 +291,9 @@ def fetch_live_indicators() -> tuple[dict[str, pd.DataFrame], dict[str, dict]]:
             df.columns = df.columns.get_level_values(0)
         frames[name] = df.sort_index()
 
-    k200f_quote = fetch_tradingview_kospi_night_quote()
+    k200f_quote = fetch_esignal_kospi_night_quote()
+    if k200f_quote is None:
+        k200f_quote = fetch_tradingview_kospi_night_quote()
     overrides["k200f"] = k200f_quote or {"is_live_night": False}
 
     if k200f_quote and k200f_quote.get("is_live_night"):
@@ -560,6 +627,7 @@ def build_latest(
     prev_kospi_non_na = prev_kospi_series.dropna()
     prior_close = float(prev_kospi_non_na.iloc[-1]) if not prev_kospi_non_na.empty else prev_close
     prev_close_change = ((prev_close / prior_close - 1) * 100) if prior_close else 0.0
+    night_futures_change = compute_live_return_pct("k200f", live_market, history_market, live_overrides)
 
     feature_vector = np.array(
         [[returns.get(column.replace("_return", ""), 0.0) for column in result["feat_cols"]]],
@@ -587,6 +655,9 @@ def build_latest(
         predicted_change = guarded_change
 
     point_prediction = prev_close * (1 + predicted_change / 100)
+    night_futures_simple_point = (
+        prev_close * (1 + float(night_futures_change) / 100) if night_futures_change is not None else None
+    )
     buffer = result["mae"] * choose_band_multiplier(vix)
 
     return {
@@ -594,6 +665,8 @@ def build_latest(
         "r_low": point_prediction - buffer,
         "r_high": point_prediction + buffer,
         "pred_c": predicted_change,
+        "night_futures_simple_point": night_futures_simple_point,
+        "night_futures_change_c": night_futures_change,
         "raw_pred_c": raw_ml_change,
         "core_anchor_c": core_anchor_change,
         "prev_close_change_c": prev_close_change,
@@ -647,6 +720,14 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
         "generatedAt": now_utc.isoformat(),
         "predictionDate": next_prediction_date_label(now_kst),
         "pointPrediction": round(latest["point"], 2),
+        "nightFuturesSimplePoint": (
+            round(float(latest["night_futures_simple_point"]), 2)
+            if latest["night_futures_simple_point"] is not None
+            else None
+        ),
+        "nightFuturesSimpleChangePct": (
+            round(float(latest["night_futures_change_c"]), 2) if latest["night_futures_change_c"] is not None else None
+        ),
         "rangeLow": round(latest["r_low"], 2),
         "rangeHigh": round(latest["r_high"], 2),
         "predictedChangePct": round(latest["pred_c"], 2),
@@ -698,8 +779,8 @@ def write_indicators_json(
                     "value": format_value(name, price),
                     "changePct": round(change_pct, 2),
                     "updatedAt": updated_at.isoformat(),
-                    "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
-                    "dataSource": "TradingView",
+                    "sourceUrl": "",
+                    "dataSource": "실시간 수집",
                     "displayTag": "(야간)",
                     "isPremarket": False,
                 }
@@ -710,8 +791,8 @@ def write_indicators_json(
                 "value": "N/A",
                 "changePct": 0,
                 "updatedAt": "",
-                "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
-                "dataSource": "TradingView",
+                "sourceUrl": "",
+                "dataSource": "실시간 수집",
                 "displayTag": "(미연결)",
                 "isPremarket": False,
             }

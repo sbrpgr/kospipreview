@@ -50,17 +50,12 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
         const isPositive = indicator.changePct >= 0;
         const displayValue = formatIndicatorValue(indicator.key, indicator.value);
         const displayTag = indicator.displayTag?.trim() || "";
-
-        return (
-          <a
-            href={indicator.sourceUrl || "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="indCard"
-            key={indicator.key}
-            data-indicator-key={indicator.key}
-            data-indicator-updated-at={indicator.updatedAt}
-          >
+        const hasSourceUrl = Boolean(indicator.sourceUrl?.trim());
+        const isSourceHidden = indicator.key === "k200f";
+        const isClickable = hasSourceUrl && !isSourceHidden;
+        const cardClassName = `indCard${isClickable ? "" : " isStatic"}`;
+        const cardContent = (
+          <>
             <div className="indLabelRow">
               <div className="indLabel">{indicator.label}</div>
               {displayTag ? <span className="indPhase">{displayTag}</span> : null}
@@ -72,6 +67,28 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
             <div className="indSource">
               기준 시각 {formatUpdatedAt(indicator.updatedAt)} KST · {indicator.dataSource ?? "Yahoo Finance"}
             </div>
+          </>
+        );
+
+        if (!isClickable) {
+          return (
+            <div className={cardClassName} key={indicator.key} data-indicator-key={indicator.key} data-indicator-updated-at={indicator.updatedAt}>
+              {cardContent}
+            </div>
+          );
+        }
+
+        return (
+          <a
+            href={indicator.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cardClassName}
+            key={indicator.key}
+            data-indicator-key={indicator.key}
+            data-indicator-updated-at={indicator.updatedAt}
+          >
+            {cardContent}
           </a>
         );
       })}
