@@ -65,20 +65,33 @@ PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
 PREMARKET_STALE_MINUTES = 45
 KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
 
-CORE_PRIMARY_WEIGHTS = {
-    "ewy": 0.80,
-    "krw_strength": 0.20,
+NIGHT_FUTURES_PRIMARY_SCALE = 1.0
+AUXILIARY_SIGNAL_WEIGHTS = {
+    "ewy": 0.55,
+    "krw_strength": 0.25,
+    "sp500": 0.10,
+    "nasdaq": 0.10,
 }
-CORE_PRIMARY_SCALE = 0.56
-SECONDARY_CORRECTION_RATIO = 0.18
-AUX_CORRECTION_MIN_PCT = 0.45
-AUX_CORRECTION_MAX_PCT = 1.40
-AUX_CORRECTION_CORE_SHARE = 0.35
+AUXILIARY_SIGNAL_SCALE = 0.22
+ML_RESIDUAL_BLEND = 0.12
+ML_RESIDUAL_CAP_MIN_PCT = 0.18
+ML_RESIDUAL_CAP_MAX_PCT = 0.75
+ML_RESIDUAL_CAP_SHARE = 0.45
+AUX_RESIDUAL_BLEND = 0.25
+AUX_RESIDUAL_CAP_MIN_PCT = 0.15
+AUX_RESIDUAL_CAP_MAX_PCT = 0.65
+AUX_RESIDUAL_CAP_SHARE = 0.35
+ANCHOR_GUARD_BAND_MIN_PCT = 0.35
+ANCHOR_GUARD_BAND_MAX_PCT = 1.15
+ANCHOR_GUARD_BAND_SHARE = 0.65
+ANCHOR_GUARD_BAND_OFFSET_PCT = 0.20
+FALLBACK_ML_BLEND = 0.18
+FALLBACK_AUX_BLEND = 0.72
+FALLBACK_GUARD_BAND_MIN_PCT = 0.55
+FALLBACK_GUARD_BAND_SHARE = 0.50
 MEAN_REVERSION_THRESHOLD_PCT = 5.0
 MEAN_REVERSION_SLOPE = 0.04
 MEAN_REVERSION_FLOOR = 0.78
-CORE_GUARD_BAND_MIN_PCT = 1.2
-CORE_GUARD_BAND_SHARE = 0.45
 REGIME_CLIP_MIN_PCT = 2.5
 REGIME_CLIP_PREV_CLOSE_SHARE = 0.9
 REGIME_CLIP_CORE_BUFFER_PCT = 1.25
@@ -750,11 +763,18 @@ def compute_live_return_pct(
     return (current_value / previous_close - 1) * 100
 
 
-def compute_core_anchor_change(core_inputs: dict[str, float | None]) -> float | None:
+def compute_auxiliary_anchor_change(returns: dict[str, float]) -> float | None:
+    aux_inputs = {
+        "ewy": returns.get("ewy"),
+        "krw_strength": (-returns["krw"]) if "krw" in returns else None,
+        "sp500": returns.get("sp500"),
+        "nasdaq": returns.get("nasdaq"),
+    }
+
     weighted_sum = 0.0
     total_weight = 0.0
-    for key, weight in CORE_PRIMARY_WEIGHTS.items():
-        value = core_inputs.get(key)
+    for key, weight in AUXILIARY_SIGNAL_WEIGHTS.items():
+        value = aux_inputs.get(key)
         if value is None:
             continue
         weighted_sum += float(value) * weight
@@ -763,36 +783,99 @@ def compute_core_anchor_change(core_inputs: dict[str, float | None]) -> float | 
     if total_weight == 0:
         return None
 
-    primary_change = weighted_sum / total_weight
-    return primary_change * CORE_PRIMARY_SCALE
+    auxiliary_mean = weighted_sum / total_weight
+    return auxiliary_mean * AUXILIARY_SIGNAL_SCALE
 
 
-def apply_auxiliary_correction(core_anchor_change: float, raw_ml_change: float) -> float:
-    raw_gap = (raw_ml_change - core_anchor_change) * SECONDARY_CORRECTION_RATIO
-    cap = max(AUX_CORRECTION_MIN_PCT, abs(core_anchor_change) * AUX_CORRECTION_CORE_SHARE)
-    cap = min(AUX_CORRECTION_MAX_PCT, cap)
-    limited_gap = float(np.clip(raw_gap, -cap, cap))
-    return core_anchor_change + limited_gap
+def compute_night_centered_change(
+    raw_ml_change: float,
+    night_futures_change: float | None,
+    auxiliary_anchor_change: float | None,
+) -> tuple[float, dict[str, float | None]]:
+    if night_futures_change is None:
+        base_anchor = auxiliary_anchor_change if auxiliary_anchor_change is not None else raw_ml_change
+        ml_gap = raw_ml_change - base_anchor
+        ml_adjust = ml_gap * FALLBACK_ML_BLEND
+
+        aux_adjust = 0.0
+        if auxiliary_anchor_change is not None:
+            aux_adjust = (auxiliary_anchor_change - base_anchor) * FALLBACK_AUX_BLEND
+
+        provisional = base_anchor + ml_adjust + aux_adjust
+        guard_band = max(FALLBACK_GUARD_BAND_MIN_PCT, abs(base_anchor) * FALLBACK_GUARD_BAND_SHARE)
+        guarded = float(np.clip(provisional, base_anchor - guard_band, base_anchor + guard_band))
+        return guarded, {
+            "anchor": base_anchor,
+            "aux_anchor": auxiliary_anchor_change,
+            "ml_adjust": ml_adjust,
+            "aux_adjust": aux_adjust,
+            "guard_band": guard_band,
+        }
+
+    anchor = float(night_futures_change) * NIGHT_FUTURES_PRIMARY_SCALE
+
+    ml_gap = raw_ml_change - anchor
+    ml_cap = float(
+        np.clip(
+            max(ML_RESIDUAL_CAP_MIN_PCT, abs(anchor) * ML_RESIDUAL_CAP_SHARE),
+            ML_RESIDUAL_CAP_MIN_PCT,
+            ML_RESIDUAL_CAP_MAX_PCT,
+        )
+    )
+    ml_adjust = float(np.clip(ml_gap * ML_RESIDUAL_BLEND, -ml_cap, ml_cap))
+
+    aux_adjust = 0.0
+    if auxiliary_anchor_change is not None:
+        aux_gap = float(auxiliary_anchor_change - anchor)
+        aux_cap = float(
+            np.clip(
+                max(AUX_RESIDUAL_CAP_MIN_PCT, abs(anchor) * AUX_RESIDUAL_CAP_SHARE),
+                AUX_RESIDUAL_CAP_MIN_PCT,
+                AUX_RESIDUAL_CAP_MAX_PCT,
+            )
+        )
+        aux_adjust = float(np.clip(aux_gap * AUX_RESIDUAL_BLEND, -aux_cap, aux_cap))
+
+    provisional = anchor + ml_adjust + aux_adjust
+    guard_band = float(
+        np.clip(
+            abs(anchor) * ANCHOR_GUARD_BAND_SHARE + ANCHOR_GUARD_BAND_OFFSET_PCT,
+            ANCHOR_GUARD_BAND_MIN_PCT,
+            ANCHOR_GUARD_BAND_MAX_PCT,
+        )
+    )
+    guarded = float(np.clip(provisional, anchor - guard_band, anchor + guard_band))
+
+    return guarded, {
+        "anchor": anchor,
+        "aux_anchor": auxiliary_anchor_change,
+        "ml_adjust": ml_adjust,
+        "aux_adjust": aux_adjust,
+        "guard_band": guard_band,
+    }
 
 
-def apply_core_guardrail(predicted_change: float, core_anchor_change: float | None) -> float:
-    if core_anchor_change is None:
+def apply_anchor_guardrail(
+    predicted_change: float,
+    anchor_change: float | None,
+    guard_band: float | None,
+) -> float:
+    if anchor_change is None or guard_band is None:
         return predicted_change
-    guard_band = max(CORE_GUARD_BAND_MIN_PCT, abs(core_anchor_change) * CORE_GUARD_BAND_SHARE)
-    return float(np.clip(predicted_change, core_anchor_change - guard_band, core_anchor_change + guard_band))
+    return float(np.clip(predicted_change, anchor_change - guard_band, anchor_change + guard_band))
 
 
 def compute_adaptive_bounds(
     bounds: dict[str, float],
     prev_close_change: float,
-    core_anchor_change: float | None,
+    anchor_change: float | None,
 ) -> tuple[float | None, float | None]:
     lower = bounds.get("p01", bounds.get("p05", bounds.get("p02", bounds.get("min"))))
     upper = bounds.get("p99", bounds.get("p95", bounds.get("p98", bounds.get("max"))))
 
     regime_cap = max(REGIME_CLIP_MIN_PCT, abs(prev_close_change) * REGIME_CLIP_PREV_CLOSE_SHARE)
-    if core_anchor_change is not None:
-        regime_cap = max(regime_cap, abs(core_anchor_change) + REGIME_CLIP_CORE_BUFFER_PCT)
+    if anchor_change is not None:
+        regime_cap = max(regime_cap, abs(anchor_change) + REGIME_CLIP_CORE_BUFFER_PCT)
 
     if lower is None:
         lower = -regime_cap
@@ -864,21 +947,21 @@ def build_latest(
         dtype=np.float64,
     )
     raw_ml_change = float(result["model_c"].predict(feature_vector)[0])
+    auxiliary_anchor_change = compute_auxiliary_anchor_change(returns)
+    night_centered_change, blend_debug = compute_night_centered_change(
+        raw_ml_change=raw_ml_change,
+        night_futures_change=night_futures_change,
+        auxiliary_anchor_change=auxiliary_anchor_change,
+    )
 
-    core_inputs = {
-        "ewy": returns.get("ewy"),
-        "krw_strength": (-returns["krw"]) if "krw" in returns else None,
-    }
-    core_anchor_change = compute_core_anchor_change(core_inputs)
-
-    blended_change = raw_ml_change
-    if core_anchor_change is not None:
-        blended_change = apply_auxiliary_correction(core_anchor_change, raw_ml_change)
-
-    damped_change = apply_mean_reversion_damping(blended_change, prev_close_change)
-    guarded_change = apply_core_guardrail(damped_change, core_anchor_change)
+    damped_change = apply_mean_reversion_damping(night_centered_change, prev_close_change)
+    guarded_change = apply_anchor_guardrail(
+        predicted_change=damped_change,
+        anchor_change=blend_debug.get("anchor"),
+        guard_band=blend_debug.get("guard_band"),
+    )
     bounds = result.get("target_bounds", {})
-    lower, upper = compute_adaptive_bounds(bounds, prev_close_change, core_anchor_change)
+    lower, upper = compute_adaptive_bounds(bounds, prev_close_change, blend_debug.get("anchor"))
     if lower is not None and upper is not None:
         predicted_change = float(np.clip(guarded_change, lower, upper))
     else:
@@ -898,7 +981,13 @@ def build_latest(
         "night_futures_simple_point": night_futures_simple_point,
         "night_futures_change_c": night_futures_change,
         "raw_pred_c": raw_ml_change,
-        "core_anchor_c": core_anchor_change,
+        "core_anchor_c": auxiliary_anchor_change,
+        "night_anchor_c": blend_debug.get("anchor"),
+        "aux_anchor_c": blend_debug.get("aux_anchor"),
+        "ml_residual_adj_c": blend_debug.get("ml_adjust"),
+        "aux_residual_adj_c": blend_debug.get("aux_adjust"),
+        "night_guard_band_c": blend_debug.get("guard_band"),
+        "pre_damping_pred_c": night_centered_change,
         "prev_close_change_c": prev_close_change,
         "vix": vix,
         "returns": returns,
@@ -976,9 +1065,21 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "engine": "LightGBM",
             "vix": round(latest["vix"], 2),
             "lgbmRmse": round(result["rmse"], 2),
-            "calculationMode": "EWYFXCore+AuxCorrection",
+            "calculationMode": "NightFuturesCore+AuxSignals",
+            "nightFuturesAnchorPct": (
+                round(float(latest["night_anchor_c"]), 2) if latest.get("night_anchor_c") is not None else None
+            ),
+            "auxiliaryAnchorPct": (
+                round(float(latest["aux_anchor_c"]), 2) if latest.get("aux_anchor_c") is not None else None
+            ),
             "coreAnchorPct": round(float(latest["core_anchor_c"]), 2) if latest["core_anchor_c"] is not None else None,
             "rawModelPct": round(float(latest["raw_pred_c"]), 2),
+            "mlResidualAdjPct": (
+                round(float(latest["ml_residual_adj_c"]), 2) if latest.get("ml_residual_adj_c") is not None else None
+            ),
+            "auxResidualAdjPct": (
+                round(float(latest["aux_residual_adj_c"]), 2) if latest.get("aux_residual_adj_c") is not None else None
+            ),
             "prevCloseChangePct": round(float(latest["prev_close_change_c"]), 2),
         },
         "yesterday": {
