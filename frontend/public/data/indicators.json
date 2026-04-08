@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$139.79",
-      "changePct": 9.91,
-      "updatedAt": "2026-04-08T21:13:50+00:00",
+      "value": "$139.67",
+      "changePct": 9.81,
+      "updatedAt": "2026-04-08T21:14:32+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,478.48원",
+      "value": "1,478.42원",
       "changePct": -1.95,
-      "updatedAt": "2026-04-08T21:13:00+00:00",
+      "updatedAt": "2026-04-08T21:15:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -51,7 +51,7 @@
       "label": "NASDAQ 100",
       "value": "24,903.17",
       "changePct": 2.9,
-      "updatedAt": "2026-04-08T21:13:00+00:00",
+      "updatedAt": "2026-04-08T21:14:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$402.20",
-      "changePct": 29.29,
-      "updatedAt": "2026-04-08T21:14:01+00:00",
+      "value": "$401.60",
+      "changePct": 29.09,
+      "updatedAt": "2026-04-08T21:15:31+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -131,13 +131,13 @@
       "label": "PHLX Semiconductor",
       "value": "8,510.92",
       "changePct": 6.34,
-      "updatedAt": "2026-04-08T21:13:00+00:00",
+      "updatedAt": "2026-04-08T21:14:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ESOX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T21:14:10.762184+00:00",
+  "generatedAt": "2026-04-08T21:15:36.686827+00:00",
   "isUsPremarketNow": false
 }
