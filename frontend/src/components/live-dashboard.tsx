@@ -320,15 +320,16 @@ export function LiveDashboard({
         <ChartSection history={history} />
 
         <div className="sectionTitleRow">
-          <h2 className="sectionTitle">시장 지표</h2>
+          <h2 className="sectionTitle">시장 지표 (야후 파이낸스)</h2>
           <div className="liveMetaBadge">
             <span className="liveMetaDot" />
             1분 단위 자동 확인
           </div>
         </div>
         <div className="sectionSubtext">
-          시장지표 (1분 단위 갱신 · 최종시장시각 {marketTimestampLabel} KST · 사이트반영시각 {deployTimestampLabel} KST
+          시장지표 (1분 단위 확인 · 최종시장시각 {marketTimestampLabel} KST · 사이트반영시각 {deployTimestampLabel} KST
           {" · "}마지막확인 {checkedTimestampLabel} KST · 마지막변경 {changedTimestampLabel} KST)
+          {" · "}장전 시간(미국 ET 04:00~09:30)에 추적 불가 항목은 카드에 (장전)으로 표기됩니다.
         </div>
         <IndicatorList indicators={indicators} />
 

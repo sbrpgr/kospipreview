@@ -3,104 +3,138 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$127.27",
-      "changePct": 0.49,
-      "updatedAt": "2026-04-07T19:59:00+00:00",
+      "value": "$140.30",
+      "changePct": 11.0,
+      "updatedAt": "2026-04-08T13:02:38+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "",
+      "trackingNote": "",
+      "isPremarket": true
     },
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,473.51원",
-      "changePct": -0.32,
-      "updatedAt": "2026-04-08T12:52:00+00:00",
+      "value": "1,473.80원",
+      "changePct": -2.32,
+      "updatedAt": "2026-04-08T13:02:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "",
+      "trackingNote": "",
+      "isPremarket": true
     },
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$92.99",
-      "changePct": -3.44,
-      "updatedAt": "2026-04-08T12:42:00+00:00",
+      "value": "$92.70",
+      "changePct": -19.87,
+      "updatedAt": "2026-04-08T12:52:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "",
+      "trackingNote": "",
+      "isPremarket": true
     },
     {
       "key": "sp500",
       "label": "S&P 500",
-      "value": "6,617.92",
-      "changePct": 0.4,
-      "updatedAt": "2026-04-07T19:59:00+00:00",
+      "value": "6,616.85",
+      "changePct": 0.39,
+      "updatedAt": "2026-04-07T20:44:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EGSPC",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "(장전)",
+      "trackingNote": "장전 시세 추적 불가",
+      "isPremarket": false
     }
   ],
   "secondary": [
     {
       "key": "nasdaq",
       "label": "NASDAQ 100",
-      "value": "24,207.07",
-      "changePct": 0.49,
-      "updatedAt": "2026-04-07T19:59:00+00:00",
+      "value": "24,202.37",
+      "changePct": 0.47,
+      "updatedAt": "2026-04-07T21:16:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "(장전)",
+      "trackingNote": "장전 시세 추적 불가",
+      "isPremarket": false
     },
     {
       "key": "vix",
       "label": "VIX",
-      "value": "20.43",
-      "changePct": -2.44,
-      "updatedAt": "2026-04-08T12:37:00+00:00",
+      "value": "20.31",
+      "changePct": -19.15,
+      "updatedAt": "2026-04-08T12:47:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "",
+      "trackingNote": "",
+      "isPremarket": true
     },
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$314.00",
-      "changePct": 1.59,
-      "updatedAt": "2026-04-07T19:59:00+00:00",
+      "value": "$406.78",
+      "changePct": 33.67,
+      "updatedAt": "2026-04-08T13:02:42+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "",
+      "trackingNote": "",
+      "isPremarket": true
     },
     {
       "key": "dow",
       "label": "Dow Jones",
-      "value": "46,591.34",
-      "changePct": 0.07,
-      "updatedAt": "2026-04-07T19:59:00+00:00",
+      "value": "46,584.46",
+      "changePct": 0.05,
+      "updatedAt": "2026-04-07T20:44:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EDJI",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "(장전)",
+      "trackingNote": "장전 시세 추적 불가",
+      "isPremarket": false
     },
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,823.40",
-      "changePct": -0.09,
-      "updatedAt": "2026-04-08T12:42:00+00:00",
+      "value": "$4,824.50",
+      "changePct": 3.2,
+      "updatedAt": "2026-04-08T12:52:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "",
+      "trackingNote": "",
+      "isPremarket": true
     },
     {
       "key": "us10y",
       "label": "US 10Y",
       "value": "4.24%",
-      "changePct": -0.24,
-      "updatedAt": "2026-04-08T12:37:00+00:00",
+      "changePct": -2.46,
+      "updatedAt": "2026-04-08T12:47:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ETNX",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "",
+      "trackingNote": "",
+      "isPremarket": true
     },
     {
       "key": "sox",
       "label": "PHLX Semiconductor",
-      "value": "8,005.50",
-      "changePct": 1.24,
-      "updatedAt": "2026-04-07T19:59:00+00:00",
+      "value": "8,003.87",
+      "changePct": 1.22,
+      "updatedAt": "2026-04-07T21:16:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ESOX",
-      "dataSource": "Yahoo Finance"
+      "dataSource": "Yahoo Finance",
+      "displayTag": "(장전)",
+      "trackingNote": "장전 시세 추적 불가",
+      "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T12:52:11.703208+00:00"
+  "generatedAt": "2026-04-08T13:02:51.035317+00:00",
+  "isUsPremarketNow": true
 }

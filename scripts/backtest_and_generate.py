@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 import sys
 import warnings
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import lightgbm as lgb
 import numpy as np
@@ -23,6 +24,7 @@ DOCS_DIR = ROOT / "docs"
 CACHE_DIR = ROOT / ".cache" / "yfinance"
 
 KST = timezone(timedelta(hours=9))
+US_ET = ZoneInfo("America/New_York")
 KOREA_TICKERS = {"kospi": "^KS11"}
 FEATURE_TICKERS = {
     "ewy": "EWY",
@@ -46,6 +48,8 @@ INDICATOR_SOURCE_URLS = {
 LOOKBACK_DAYS = 3 * 365
 ALL_FEATURES = list(FEATURE_TICKERS.keys())
 HISTORY_RECORDS = 30
+PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
+PREMARKET_STALE_MINUTES = 45
 
 LGBM_BASE = dict(
     n_estimators=300,
@@ -110,7 +114,15 @@ def fetch_live_indicators() -> dict[str, pd.DataFrame]:
     frames: dict[str, pd.DataFrame] = {}
 
     for name, ticker in {**KOREA_TICKERS, **FEATURE_TICKERS}.items():
-        df = yf.download(ticker, period="1d", interval="1m", auto_adjust=False, progress=False, threads=False)
+        df = yf.download(
+            ticker,
+            period="2d",
+            interval="1m",
+            prepost=True,
+            auto_adjust=False,
+            progress=False,
+            threads=False,
+        )
         if df.empty:
             df = yf.download(ticker, period="5d", interval="1d", auto_adjust=False, progress=False, threads=False)
         if isinstance(df.columns, pd.MultiIndex):
@@ -336,28 +348,54 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
 def write_indicators_json(live_market: dict[str, pd.DataFrame]) -> None:
     primary_keys = ["ewy", "krw", "wti", "sp500"]
     secondary_keys = ["nasdaq", "vix", "koru", "dow", "gold", "us10y", "sox"]
+    now_utc = datetime.now(timezone.utc)
+    in_us_premarket_now = is_us_premarket_window(now_utc)
 
     def build_indicator(name: str) -> dict:
         series = live_market[name]["Close"].dropna()
         if series.empty:
-            return {"key": name, "label": indicator_label(name), "value": "N/A", "changePct": 0, "updatedAt": ""}
+            return {
+                "key": name,
+                "label": indicator_label(name),
+                "value": "N/A",
+                "changePct": 0,
+                "updatedAt": "",
+                "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
+                "dataSource": "Yahoo Finance",
+                "displayTag": "(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
+                "trackingNote": "장전 시세 추적 불가" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
+                "isPremarket": False,
+            }
 
         current_value = float(series.iloc[-1])
         start_value = float(series.iloc[0])
+        latest_ts = as_utc_datetime(pd.Timestamp(series.index[-1]))
+        age_minutes = (now_utc - latest_ts).total_seconds() / 60
+        is_premarket_quote = is_timestamp_in_us_premarket(latest_ts)
+        premarket_untracked = (
+            in_us_premarket_now
+            and name in PREMARKET_TRACK_KEYS
+            and (not is_premarket_quote or age_minutes > PREMARKET_STALE_MINUTES)
+        )
+
         return {
             "key": name,
             "label": indicator_label(name),
             "value": format_value(name, current_value),
             "changePct": round((current_value / start_value - 1) * 100, 2),
-            "updatedAt": pd.Timestamp(series.index[-1]).isoformat(),
+            "updatedAt": latest_ts.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
+            "displayTag": "(장전)" if premarket_untracked else "",
+            "trackingNote": "장전 시세 추적 불가" if premarket_untracked else "",
+            "isPremarket": is_premarket_quote,
         }
 
     payload = {
         "primary": [build_indicator(name) for name in primary_keys],
         "secondary": [build_indicator(name) for name in secondary_keys],
-        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "generatedAt": now_utc.isoformat(),
+        "isUsPremarketNow": in_us_premarket_now,
     }
     (DATA_DIR / "indicators.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
 
@@ -410,6 +448,29 @@ def choose_band_multiplier(vix: float) -> float:
     if vix < 30:
         return 1.5
     return 2.0
+
+
+def as_utc_datetime(value: pd.Timestamp) -> datetime:
+    ts = pd.Timestamp(value)
+    if ts.tzinfo is None:
+        ts = ts.tz_localize("UTC")
+    else:
+        ts = ts.tz_convert("UTC")
+    return ts.to_pydatetime()
+
+
+def is_us_premarket_window(now_utc: datetime) -> bool:
+    now_et = now_utc.astimezone(US_ET)
+    if now_et.weekday() >= 5:
+        return False
+    return time(4, 0) <= now_et.time() < time(9, 30)
+
+
+def is_timestamp_in_us_premarket(ts_utc: datetime) -> bool:
+    ts_et = ts_utc.astimezone(US_ET)
+    if ts_et.weekday() >= 5:
+        return False
+    return time(4, 0) <= ts_et.time() < time(9, 30)
 
 
 def indicator_label(name: str) -> str:

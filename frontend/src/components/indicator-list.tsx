@@ -40,6 +40,7 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
       {allIndicators.map((indicator) => {
         const isPositive = indicator.changePct >= 0;
         const displayValue = formatIndicatorValue(indicator.key, indicator.value);
+        const displayTag = indicator.displayTag?.trim() || "";
 
         return (
           <a
@@ -51,12 +52,18 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
             data-indicator-key={indicator.key}
             data-indicator-updated-at={indicator.updatedAt}
           >
-            <div className="indLabel">{indicator.label}</div>
+            <div className="indLabelRow">
+              <div className="indLabel">{indicator.label}</div>
+              {displayTag ? <span className="indPhase">{displayTag}</span> : null}
+            </div>
             <div className="indValue">{displayValue}</div>
             <div className={`indChange ${isPositive ? "isPos" : "isNeg"}`}>
               {changeLabel(indicator.changePct)} {Math.abs(indicator.changePct).toFixed(2)}%
             </div>
-            <div className="indSource">기준 시각 {formatUpdatedAt(indicator.updatedAt)} KST</div>
+            <div className="indSource">
+              기준 시각 {formatUpdatedAt(indicator.updatedAt)} KST · {indicator.dataSource ?? "Yahoo Finance"}
+            </div>
+            {indicator.trackingNote ? <div className="indSourceNote">{indicator.trackingNote}</div> : null}
           </a>
         );
       })}
