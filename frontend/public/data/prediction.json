@@ -1,18 +1,18 @@
 {
-  "generatedAt": "2026-04-08T15:23:15.108099+00:00",
+  "generatedAt": "2026-04-08T15:25:05.445675+00:00",
   "predictionDate": "2026년 04월 09일",
-  "pointPrediction": 5511.53,
-  "rangeLow": 5487.37,
-  "rangeHigh": 5535.7,
-  "predictedChangePct": 0.3,
+  "pointPrediction": 5509.67,
+  "rangeLow": 5485.5,
+  "rangeHigh": 5533.84,
+  "predictedChangePct": 0.27,
   "prevClose": 5494.78,
   "signalSummary": "EWY 보합 · S&P 500 보합 · VIX 보합 · NASDAQ 100 보합 · USD/KRW 보합",
-  "lastCalculatedAt": "2026-04-08T15:23:15.108099+00:00",
+  "lastCalculatedAt": "2026-04-08T15:25:05.445675+00:00",
   "latestRecordDate": "2026-04-08",
   "mae30d": 18.59,
   "model": {
     "engine": "LightGBM",
-    "vix": 21.59,
+    "vix": 21.8,
     "lgbmRmse": 36.5
   },
   "yesterday": {
