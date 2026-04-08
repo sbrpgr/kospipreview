@@ -41,8 +41,8 @@ FEATURE_TICKERS = {
     "krw": "KRW=X",
 }
 
-# Yahoo Finance does not reliably expose a direct KOSPI200 futures contract symbol.
-# We surface a proxy indicator card with the KOSPI 200 index symbol instead.
+# Yahoo Finance does not provide a reliable KOSPI200 night-futures symbol.
+# We temporarily use the KOSPI 200 daytime index as a proxy card only.
 INDICATOR_ONLY_TICKERS = {
     "k200f": "^KS200",
 }
@@ -64,11 +64,11 @@ PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
 PREMARKET_STALE_MINUTES = 45
 KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
 
-# Core prediction uses night-futures proxy + EWY + FX, while the ML model is a correction layer.
+# Core prediction currently relies on EWY + FX.
+# KOSPI200 proxy is excluded until a real night-futures feed is connected.
 CORE_PRIMARY_WEIGHTS = {
-    "k200f": 0.50,
-    "ewy": 0.35,
-    "krw_strength": 0.15,
+    "ewy": 0.70,
+    "krw_strength": 0.30,
 }
 CORE_PRIMARY_SCALE = 0.25
 SECONDARY_CORRECTION_RATIO = 0.25
@@ -403,7 +403,6 @@ def build_latest(live_market: dict[str, pd.DataFrame], result: dict, history_mar
     raw_ml_change = float(result["model_c"].predict(feature_vector)[0])
 
     core_inputs = {
-        "k200f": compute_live_return_pct("k200f", live_market, history_market),
         "ewy": returns.get("ewy"),
         "krw_strength": (-returns["krw"]) if "krw" in returns else None,
     }
@@ -525,7 +524,7 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
                 "updatedAt": "",
                 "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
                 "dataSource": "Yahoo Finance",
-                "displayTag": "(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
+                "displayTag": "(주간)" if name == "k200f" else ("(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else ""),
                 "isPremarket": False,
             }
 
@@ -552,7 +551,7 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
             "updatedAt": latest_ts.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
-            "displayTag": "(장전)" if premarket_untracked else "",
+            "displayTag": "(주간)" if name == "k200f" else ("(장전)" if premarket_untracked else ""),
             "isPremarket": is_premarket_quote,
         }
 
@@ -647,7 +646,7 @@ def indicator_label(name: str) -> str:
         "nasdaq": "NASDAQ 100",
         "vix": "VIX",
         "koru": "KORU 3x",
-        "k200f": "KOSPI 200 Futures",
+        "k200f": "KOSPI 200 (주간지수)",
         "dow": "Dow Jones",
         "gold": "Gold",
         "us10y": "US 10Y",
