@@ -3,6 +3,7 @@ type SiteHeaderProps = {
   dataUpdatedAt?: string;
   marketUpdatedAt?: string;
   deployUpdatedAt?: string;
+  currentAt?: string;
   checkedAt?: string;
   status: "fresh" | "aging" | "stale" | string;
   isSyncing?: boolean;
@@ -19,6 +20,7 @@ export function SiteHeader({
   dataUpdatedAt,
   marketUpdatedAt,
   deployUpdatedAt,
+  currentAt,
   checkedAt,
   status,
   isSyncing = false,
@@ -63,6 +65,7 @@ export function SiteHeader({
         <div className="statusTimeGroup">
           <div className="statusTime">시장 지표 갱신 시간: {dataUpdatedAt ?? lastUpdated ?? "-"}</div>
           {marketUpdatedAt ? <div className="statusMetaLine">시장 기준시각 {marketUpdatedAt} KST</div> : null}
+          {currentAt ? <div className="statusMetaLine">현재 시각 {currentAt} KST</div> : null}
           {deployUpdatedAt || checkedAt ? (
             <div className="statusMetaLine">
               {deployUpdatedAt ? `사이트 반영시각 ${deployUpdatedAt} KST` : ""}

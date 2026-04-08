@@ -160,11 +160,18 @@ export function LiveDashboard({
   const [indicators, setIndicators] = useState(initialIndicators);
   const [history, setHistory] = useState(initialHistory);
   const [freshness, setFreshness] = useState(initialFreshness);
-  const [lastCheckedAt, setLastCheckedAt] = useState(() => new Date().toISOString());
+  const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
+  const [currentAt, setCurrentAt] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+
+    const updateCurrentTime = () => {
+      if (!cancelled) {
+        setCurrentAt(new Date().toISOString());
+      }
+    };
 
     const refreshData = async () => {
       setIsSyncing(true);
@@ -190,13 +197,17 @@ export function LiveDashboard({
       }
     };
 
+    updateCurrentTime();
+    setLastCheckedAt(new Date().toISOString());
     const initialTimer = window.setTimeout(refreshData, 1000);
     const interval = window.setInterval(refreshData, 60000);
+    const clock = window.setInterval(updateCurrentTime, 1000);
 
     return () => {
       cancelled = true;
       window.clearTimeout(initialTimer);
       window.clearInterval(interval);
+      window.clearInterval(clock);
     };
   }, []);
 
@@ -206,7 +217,8 @@ export function LiveDashboard({
   const deployTimestampLabel = formatCompactTimestamp(
     indicators.generatedAt ?? prediction.generatedAt ?? freshness.newestModifiedAt,
   );
-  const checkedTimestampLabel = formatCompactTimestamp(lastCheckedAt);
+  const checkedTimestampLabel = lastCheckedAt ? formatCompactTimestamp(lastCheckedAt) : "-";
+  const currentTimestampLabel = currentAt ? formatCompactTimestamp(currentAt) : "-";
   const statusMessage = getStatusMeta(freshness.status, freshness.latestRecordDate);
 
   return (
@@ -215,6 +227,7 @@ export function LiveDashboard({
         dataUpdatedAt={formatKoreanDateTime(freshness.newestModifiedAt)}
         marketUpdatedAt={marketTimestampLabel}
         deployUpdatedAt={deployTimestampLabel}
+        currentAt={currentTimestampLabel}
         checkedAt={checkedTimestampLabel}
         status={freshness.status}
         isSyncing={isSyncing}
