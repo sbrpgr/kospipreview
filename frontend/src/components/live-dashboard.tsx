@@ -22,15 +22,6 @@ type LiveDashboardProps = {
 };
 
 const POLL_INTERVAL_MS = 60_000;
-const CLOCK_INTERVAL_MS = 1_000;
-
-function formatKoreanDateTime(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "short",
-    timeStyle: "short",
-    timeZone: "Asia/Seoul",
-  }).format(new Date(value));
-}
 
 function formatCompactTimestamp(value: string) {
   const date = new Date(value);
@@ -208,7 +199,6 @@ export function LiveDashboard({
   const [history, setHistory] = useState(initialHistory);
   const [freshness, setFreshness] = useState(initialFreshness);
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
-  const [currentAt, setCurrentAt] = useState<string | null>(null);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
   const [isSyncing, setIsSyncing] = useState(false);
   const versionRef = useRef(getDashboardVersion(initialPrediction, initialIndicators, initialHistory, initialFreshness));
@@ -216,12 +206,6 @@ export function LiveDashboard({
   useEffect(() => {
     let cancelled = false;
     let pollTimer: number | null = null;
-
-    const updateCurrentTime = () => {
-      if (!cancelled) {
-        setCurrentAt(new Date().toISOString());
-      }
-    };
 
     const syncDashboard = async () => {
       if (cancelled) {
@@ -272,11 +256,9 @@ export function LiveDashboard({
       }
     };
 
-    updateCurrentTime();
     void syncDashboard();
     scheduleNextPoll();
 
-    const clockTimer = window.setInterval(updateCurrentTime, CLOCK_INTERVAL_MS);
     window.addEventListener("focus", handleVisibilityChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
@@ -285,7 +267,6 @@ export function LiveDashboard({
       if (pollTimer !== null) {
         window.clearTimeout(pollTimer);
       }
-      window.clearInterval(clockTimer);
       window.removeEventListener("focus", handleVisibilityChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -297,22 +278,12 @@ export function LiveDashboard({
     indicators.generatedAt ?? prediction.generatedAt ?? freshness.newestModifiedAt,
   );
   const checkedTimestampLabel = lastCheckedAt ? formatCompactTimestamp(lastCheckedAt) : "-";
-  const currentTimestampLabel = currentAt ? formatCompactTimestamp(currentAt) : "-";
   const changedTimestampLabel = lastChangedAt ? formatCompactTimestamp(lastChangedAt) : "-";
   const statusMessage = getStatusMeta(freshness.status, freshness.latestRecordDate);
 
   return (
     <div className="pageContainer">
-      <SiteHeader
-        dataUpdatedAt={formatKoreanDateTime(freshness.newestModifiedAt)}
-        marketUpdatedAt={marketTimestampLabel}
-        deployUpdatedAt={deployTimestampLabel}
-        currentAt={currentTimestampLabel}
-        checkedAt={checkedTimestampLabel}
-        changedAt={changedTimestampLabel}
-        status={freshness.status}
-        isSyncing={isSyncing}
-      />
+      <SiteHeader status={freshness.status} isSyncing={isSyncing} />
 
       <main>
         <section className="card heroSection">

@@ -31,6 +31,14 @@ export function SiteHeader({
     label: "UNKNOWN",
     className: "isStale",
   };
+  const compactUpdatedAt = dataUpdatedAt ?? lastUpdated;
+  const showCompactUpdatedAt =
+    Boolean(compactUpdatedAt) &&
+    !marketUpdatedAt &&
+    !deployUpdatedAt &&
+    !currentAt &&
+    !checkedAt &&
+    !changedAt;
 
   return (
     <header className="siteHeader">
@@ -64,20 +72,11 @@ export function SiteHeader({
           <div className={`statusDot ${isSyncing ? "isSyncing" : ""}`} />
           {meta.label}
         </div>
-        <div className="statusTimeGroup">
-          <div className="statusTime">시장 지표 갱신 시간: {dataUpdatedAt ?? lastUpdated ?? "-"}</div>
-          {marketUpdatedAt ? <div className="statusMetaLine">최종 시장시각 {marketUpdatedAt} KST</div> : null}
-          {currentAt ? <div className="statusMetaLine">현재 시각 {currentAt} KST</div> : null}
-          {deployUpdatedAt || checkedAt || changedAt ? (
-            <div className="statusMetaLine">
-              {deployUpdatedAt ? `사이트 반영시각 ${deployUpdatedAt} KST` : ""}
-              {deployUpdatedAt && checkedAt ? " · " : ""}
-              {checkedAt ? `마지막 확인 ${checkedAt} KST` : ""}
-              {(deployUpdatedAt || checkedAt) && changedAt ? " · " : ""}
-              {changedAt ? `마지막 변경 ${changedAt} KST` : ""}
-            </div>
-          ) : null}
-        </div>
+        {showCompactUpdatedAt ? (
+          <div className="statusTimeGroup">
+            <div className="statusTime">마지막 반영: {compactUpdatedAt}</div>
+          </div>
+        ) : null}
       </div>
     </header>
   );
