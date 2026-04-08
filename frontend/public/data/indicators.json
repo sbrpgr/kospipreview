@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$397.73",
-      "changePct": 27.85,
-      "updatedAt": "2026-04-08T21:35:17+00:00",
+      "value": "$397.70",
+      "changePct": 27.84,
+      "updatedAt": "2026-04-08T21:36:41+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-08T21:35:29.056135+00:00",
+  "generatedAt": "2026-04-08T21:36:48.536952+00:00",
   "isUsPremarketNow": false
 }
