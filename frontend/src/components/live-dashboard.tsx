@@ -53,13 +53,6 @@ function formatCompactTimestamp(value: string) {
   return `${year}:${month}:${day}:${hour}:${minute}`;
 }
 
-function formatKoreanDate(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "medium",
-    timeZone: "Asia/Seoul",
-  }).format(new Date(`${value}T00:00:00+09:00`));
-}
-
 function getLatestIndicatorUpdate(indicators: IndicatorData) {
   return (
     [...indicators.primary, ...indicators.secondary]
@@ -298,7 +291,6 @@ export function LiveDashboard({
     };
   }, []);
 
-  const latestRecordDate = freshness.latestRecordDate ? formatKoreanDate(freshness.latestRecordDate) : "데이터 없음";
   const latestIndicatorUpdate = getLatestIndicatorUpdate(indicators);
   const marketTimestampLabel = formatCompactTimestamp(latestIndicatorUpdate);
   const deployTimestampLabel = formatCompactTimestamp(
@@ -327,7 +319,6 @@ export function LiveDashboard({
           <div className="heroTopLine">
             <div className="heroDate">{prediction.predictionDate} 코스피 시초가 전망</div>
             <div className="heroMeta">
-              <div className="heroMetaChip">최근 실측 반영: {latestRecordDate}</div>
               <div className="heroMetaChip">30일 평균 오차: {prediction.mae30d.toFixed(2)}pt</div>
             </div>
           </div>
