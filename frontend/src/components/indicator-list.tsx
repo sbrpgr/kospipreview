@@ -24,12 +24,21 @@ function changeLabel(value: number) {
 }
 
 function formatUpdatedAt(value: string) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
   return new Intl.DateTimeFormat("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
     timeZone: "Asia/Seoul",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 export function IndicatorList({ indicators }: { indicators: IndicatorData }) {

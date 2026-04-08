@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sys
+import urllib.error
+import urllib.request
 import warnings
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
@@ -41,11 +43,7 @@ FEATURE_TICKERS = {
     "krw": "KRW=X",
 }
 
-# Yahoo Finance does not provide a reliable KOSPI200 night-futures symbol.
-# We temporarily use the KOSPI 200 daytime index as a proxy card only.
-INDICATOR_ONLY_TICKERS = {
-    "k200f": "^KS200",
-}
+INDICATOR_ONLY_TICKERS: dict[str, str] = {}
 
 INDICATOR_TICKERS = {
     **FEATURE_TICKERS,
@@ -56,6 +54,7 @@ INDICATOR_SOURCE_URLS = {
     key: f"https://finance.yahoo.com/quote/{ticker.replace('=', '%3D').replace('^', '%5E')}"
     for key, ticker in INDICATOR_TICKERS.items()
 }
+INDICATOR_SOURCE_URLS["k200f"] = "https://www.tradingview.com/symbols/KRX-K2I1!/"
 
 LOOKBACK_DAYS = 3 * 365
 ALL_FEATURES = list(FEATURE_TICKERS.keys())
@@ -64,17 +63,20 @@ PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
 PREMARKET_STALE_MINUTES = 45
 KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
 
-# Core prediction currently relies on EWY + FX.
-# KOSPI200 proxy is excluded until a real night-futures feed is connected.
 CORE_PRIMARY_WEIGHTS = {
-    "ewy": 0.70,
-    "krw_strength": 0.30,
+    "k200f": 0.50,
+    "ewy": 0.35,
+    "krw_strength": 0.15,
 }
 CORE_PRIMARY_SCALE = 0.25
 SECONDARY_CORRECTION_RATIO = 0.25
 MEAN_REVERSION_THRESHOLD_PCT = 3.0
 MEAN_REVERSION_SLOPE = 0.09
 MEAN_REVERSION_FLOOR = 0.55
+
+TV_FUTURES_SCAN_URL = "https://scanner.tradingview.com/futures/scan"
+TV_KOSPI_NIGHT_SYMBOL = "KRX:K2I1!"
+NIGHT_FUTURES_STALE_MINUTES = 180
 
 LGBM_BASE = dict(
     n_estimators=300,
@@ -102,18 +104,18 @@ def main() -> None:
     print("Fetching daily market history...")
     market = fetch_market_data()
     print("Fetching intraday indicators...")
-    live_market = fetch_live_indicators()
+    live_market, live_overrides = fetch_live_indicators()
     print("Building training dataset...")
     dataset = build_dataset(market)
     print("Training LightGBM models...")
     result = train_lgbm(dataset)
     print("Writing output JSON files...")
     history_df = build_history_df(result)
-    latest = build_latest(live_market, result, market)
+    latest = build_latest(live_market, result, market, live_overrides)
 
     write_prediction_json(latest, result, history_df)
     write_history_json(result, history_df)
-    write_indicators_json(live_market, market)
+    write_indicators_json(live_market, market, live_overrides)
     write_diagnostics_json(result)
     print(f"Done. Output directory: {DATA_DIR}")
 
@@ -135,10 +137,73 @@ def fetch_market_data() -> dict[str, pd.DataFrame]:
     return frames
 
 
-def fetch_live_indicators() -> dict[str, pd.DataFrame]:
-    frames: dict[str, pd.DataFrame] = {}
+def fetch_tradingview_kospi_night_quote() -> dict | None:
+    payload = {
+        "symbols": {"tickers": [TV_KOSPI_NIGHT_SYMBOL], "query": {"types": []}},
+        "columns": ["close", "change", "change_abs", "update_time", "update_mode", "description", "exchange"],
+    }
+    req = urllib.request.Request(
+        TV_FUTURES_SCAN_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+        method="POST",
+    )
 
-    for name, ticker in {**KOREA_TICKERS, **INDICATOR_TICKERS}.items():
+    try:
+        with urllib.request.urlopen(req, timeout=12) as response:
+            body = response.read().decode("utf-8")
+    except (urllib.error.URLError, TimeoutError):
+        return None
+
+    try:
+        data = json.loads(body)
+        rows = data.get("data", [])
+        if not rows:
+            return None
+        close, change_pct, change_abs, update_time, update_mode, description, exchange = rows[0]["d"]
+    except (ValueError, KeyError, TypeError, IndexError):
+        return None
+
+    if close is None:
+        return None
+
+    price = float(close)
+    if change_abs is not None:
+        previous_close = price - float(change_abs)
+    elif change_pct is not None:
+        previous_close = price / (1 + float(change_pct) / 100)
+    else:
+        previous_close = price
+
+    if isinstance(update_time, (int, float)) and update_time > 0:
+        updated_at = datetime.fromtimestamp(float(update_time), tz=timezone.utc)
+    else:
+        updated_at = datetime.now(timezone.utc)
+
+    now_utc = datetime.now(timezone.utc)
+    age_minutes = (now_utc - updated_at).total_seconds() / 60
+    updated_kst = updated_at.astimezone(KST)
+    in_night_window = updated_kst.time() >= time(18, 0) or updated_kst.time() <= time(6, 0)
+    is_live_night = age_minutes <= NIGHT_FUTURES_STALE_MINUTES and in_night_window
+
+    return {
+        "price": price,
+        "previous_close": previous_close,
+        "change_pct": float(change_pct) if change_pct is not None else (price / previous_close - 1) * 100,
+        "updated_at": updated_at.isoformat(),
+        "age_minutes": round(age_minutes, 1),
+        "is_live_night": is_live_night,
+        "update_mode": update_mode or "",
+        "description": description or "KOSPI 200 Futures",
+        "exchange": exchange or "KRX",
+    }
+
+
+def fetch_live_indicators() -> tuple[dict[str, pd.DataFrame], dict[str, dict]]:
+    frames: dict[str, pd.DataFrame] = {}
+    overrides: dict[str, dict] = {}
+
+    for name, ticker in {**KOREA_TICKERS, **FEATURE_TICKERS}.items():
         df = yf.download(
             ticker,
             period="2d",
@@ -154,7 +219,25 @@ def fetch_live_indicators() -> dict[str, pd.DataFrame]:
             df.columns = df.columns.get_level_values(0)
         frames[name] = df.sort_index()
 
-    return frames
+    k200f_quote = fetch_tradingview_kospi_night_quote()
+    overrides["k200f"] = k200f_quote or {"is_live_night": False}
+
+    if k200f_quote and k200f_quote.get("is_live_night"):
+        updated_at = pd.Timestamp(k200f_quote["updated_at"])
+        if updated_at.tzinfo is None:
+            updated_at = updated_at.tz_localize("UTC")
+        else:
+            updated_at = updated_at.tz_convert("UTC")
+        prev_close = float(k200f_quote["previous_close"])
+        current = float(k200f_quote["price"])
+        frames["k200f"] = pd.DataFrame(
+            {"Close": [prev_close, current], "PrevClose": [prev_close, prev_close]},
+            index=pd.DatetimeIndex([updated_at - pd.Timedelta(minutes=1), updated_at]),
+        ).sort_index()
+    else:
+        frames["k200f"] = pd.DataFrame(columns=["Close", "PrevClose"])
+
+    return frames, overrides
 
 
 def _norm(ts: pd.Timestamp) -> pd.Timestamp:
@@ -322,11 +405,24 @@ def compute_live_return_pct(
     name: str,
     live_market: dict[str, pd.DataFrame],
     history_market: dict[str, pd.DataFrame],
+    live_overrides: dict[str, dict] | None = None,
 ) -> float | None:
     live_frame = live_market.get(name, pd.DataFrame())
     live_series = live_frame["Close"].dropna() if "Close" in live_frame else pd.Series(dtype=float)
     if live_series.empty:
         return None
+
+    if live_overrides and name in live_overrides:
+        override = live_overrides[name]
+        if override.get("is_live_night") and override.get("previous_close"):
+            prev_close = float(override["previous_close"])
+            if prev_close != 0:
+                return (float(override["price"]) / prev_close - 1) * 100
+
+    if "PrevClose" in live_frame and not live_frame["PrevClose"].dropna().empty:
+        prev_close = float(live_frame["PrevClose"].dropna().iloc[-1])
+        if prev_close != 0:
+            return (float(live_series.iloc[-1]) / prev_close - 1) * 100
 
     current_value = float(live_series.iloc[-1])
     latest_ts = as_utc_datetime(pd.Timestamp(live_series.index[-1]))
@@ -374,12 +470,17 @@ def apply_mean_reversion_damping(predicted_change: float, prev_close_change: flo
     return predicted_change * damping
 
 
-def build_latest(live_market: dict[str, pd.DataFrame], result: dict, history_market: dict[str, pd.DataFrame]) -> dict:
+def build_latest(
+    live_market: dict[str, pd.DataFrame],
+    result: dict,
+    history_market: dict[str, pd.DataFrame],
+    live_overrides: dict[str, dict],
+) -> dict:
     returns: dict[str, float] = {}
     vix = 20.0
 
     for name in ALL_FEATURES:
-        change_pct = compute_live_return_pct(name, live_market, history_market)
+        change_pct = compute_live_return_pct(name, live_market, history_market, live_overrides)
         if change_pct is None:
             continue
         returns[name] = change_pct
@@ -403,6 +504,7 @@ def build_latest(live_market: dict[str, pd.DataFrame], result: dict, history_mar
     raw_ml_change = float(result["model_c"].predict(feature_vector)[0])
 
     core_inputs = {
+        "k200f": compute_live_return_pct("k200f", live_market, history_market, live_overrides),
         "ewy": returns.get("ewy"),
         "krw_strength": (-returns["krw"]) if "krw" in returns else None,
     }
@@ -506,13 +608,48 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
     (DATA_DIR / "prediction.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf8")
 
 
-def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: dict[str, pd.DataFrame]) -> None:
+def write_indicators_json(
+    live_market: dict[str, pd.DataFrame],
+    history_market: dict[str, pd.DataFrame],
+    live_overrides: dict[str, dict],
+) -> None:
     primary_keys = ["ewy", "krw", "wti", "sp500"]
     secondary_keys = ["nasdaq", "vix", "koru", "k200f", "dow", "gold", "us10y", "sox"]
     now_utc = datetime.now(timezone.utc)
     in_us_premarket_now = is_us_premarket_window(now_utc)
 
     def build_indicator(name: str) -> dict:
+        if name == "k200f":
+            k200f_override = live_overrides.get("k200f", {})
+            if k200f_override.get("is_live_night"):
+                price = float(k200f_override["price"])
+                previous_close = float(k200f_override["previous_close"])
+                change_pct = (price / previous_close - 1) * 100 if previous_close else 0.0
+                updated_at = as_utc_datetime(pd.Timestamp(k200f_override["updated_at"]))
+                return {
+                    "key": name,
+                    "label": indicator_label(name),
+                    "value": format_value(name, price),
+                    "changePct": round(change_pct, 2),
+                    "updatedAt": updated_at.isoformat(),
+                    "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
+                    "dataSource": "TradingView",
+                    "displayTag": "(야간)",
+                    "isPremarket": False,
+                }
+
+            return {
+                "key": name,
+                "label": indicator_label(name),
+                "value": "N/A",
+                "changePct": 0,
+                "updatedAt": "",
+                "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
+                "dataSource": "TradingView",
+                "displayTag": "(미연결)",
+                "isPremarket": False,
+            }
+
         frame = live_market.get(name, pd.DataFrame())
         series = frame["Close"].dropna() if "Close" in frame else pd.Series(dtype=float)
         if series.empty:
@@ -524,7 +661,7 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
                 "updatedAt": "",
                 "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
                 "dataSource": "Yahoo Finance",
-                "displayTag": "(주간)" if name == "k200f" else ("(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else ""),
+                "displayTag": "(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
                 "isPremarket": False,
             }
 
@@ -551,7 +688,7 @@ def write_indicators_json(live_market: dict[str, pd.DataFrame], history_market: 
             "updatedAt": latest_ts.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
-            "displayTag": "(주간)" if name == "k200f" else ("(장전)" if premarket_untracked else ""),
+            "displayTag": "(장전)" if premarket_untracked else "",
             "isPremarket": is_premarket_quote,
         }
 
@@ -646,7 +783,7 @@ def indicator_label(name: str) -> str:
         "nasdaq": "NASDAQ 100",
         "vix": "VIX",
         "koru": "KORU 3x",
-        "k200f": "KOSPI 200 (주간지수)",
+        "k200f": "KOSPI 200 야간선물",
         "dow": "Dow Jones",
         "gold": "Gold",
         "us10y": "US 10Y",
