@@ -1,5 +1,32 @@
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { getDataFreshness } from "@/lib/data";
+import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
+
+const ABOUT_TITLE = "모델 설명";
+const ABOUT_DESCRIPTION =
+  "KOSPI Dawn의 LightGBM 예측 모델, 데이터 파이프라인, 주요 지표 반영 방식을 설명합니다.";
+
+export const metadata: Metadata = {
+  title: ABOUT_TITLE,
+  description: ABOUT_DESCRIPTION,
+  alternates: {
+    canonical: "/about",
+  },
+  openGraph: {
+    title: `${ABOUT_TITLE} | ${SITE_NAME}`,
+    description: ABOUT_DESCRIPTION,
+    url: toAbsoluteUrl("/about"),
+    type: "article",
+    locale: "ko_KR",
+    siteName: SITE_NAME,
+  },
+  twitter: {
+    card: "summary",
+    title: `${ABOUT_TITLE} | ${SITE_NAME}`,
+    description: ABOUT_DESCRIPTION,
+  },
+};
 
 export default async function AboutPage() {
   const freshness = await getDataFreshness();

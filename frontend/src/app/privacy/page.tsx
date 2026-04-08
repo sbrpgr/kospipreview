@@ -1,5 +1,31 @@
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { getDataFreshness } from "@/lib/data";
+import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
+
+const PRIVACY_TITLE = "개인정보처리방침";
+const PRIVACY_DESCRIPTION = "KOSPI Dawn 서비스의 개인정보 처리방침 및 로그 처리 기준 안내 페이지입니다.";
+
+export const metadata: Metadata = {
+  title: PRIVACY_TITLE,
+  description: PRIVACY_DESCRIPTION,
+  alternates: {
+    canonical: "/privacy",
+  },
+  openGraph: {
+    title: `${PRIVACY_TITLE} | ${SITE_NAME}`,
+    description: PRIVACY_DESCRIPTION,
+    url: toAbsoluteUrl("/privacy"),
+    type: "article",
+    locale: "ko_KR",
+    siteName: SITE_NAME,
+  },
+  twitter: {
+    card: "summary",
+    title: `${PRIVACY_TITLE} | ${SITE_NAME}`,
+    description: PRIVACY_DESCRIPTION,
+  },
+};
 
 export default async function PrivacyPage() {
   const freshness = await getDataFreshness();
