@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-04-07T18:30:46.586334+00:00",
+  "predictionDate": "2026년 04월 08일",
+  "pointPrediction": 5461.6,
+  "rangeLow": 5434.42,
+  "rangeHigh": 5488.78,
+  "predictedChangePct": 0.21,
+  "prevClose": 5450.0,
+  "signalSummary": "EWY 보합 · S&P 500 보합 · VIX 상승(불안) · 나스닥 보합 · 환율 보합",
+  "lastCalculatedAt": "2026-04-07T18:30:46.586334+00:00",
+  "mae30d": 18.12,
+  "model": {
+    "engine": "LightGBM",
+    "vix": 26.63,
+    "lgbmRmse": 34.73
+  },
+  "yesterday": {
+    "predictionLow": 5208.94,
+    "predictionHigh": 5255.48,
+    "actualOpen": 5375.5,
+    "hit": false
+  }
+}

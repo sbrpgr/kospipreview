@@ -1,150 +1,150 @@
 {
   "summary": {
-    "bandHitRate30d": 75.3,
-    "directionHitRate30d": 76.5,
-    "mae30d": 12.24
+    "bandHitRate30d": 51.6,
+    "directionHitRate30d": 72.7,
+    "mae30d": 17.79
   },
   "records": [
     {
       "date": "2026-04-06",
-      "low": 5319.14,
-      "high": 5476.92,
+      "low": 5348.22,
+      "high": 5400.06,
       "actualOpen": 5423.35,
-      "hit": true
+      "hit": false
     },
     {
       "date": "2026-04-03",
-      "low": 5177.82,
-      "high": 5328.64,
+      "low": 5206.09,
+      "high": 5258.57,
       "actualOpen": 5375.5,
       "hit": false
     },
     {
       "date": "2026-04-02",
-      "low": 5489.74,
-      "high": 5647.71,
+      "low": 5498.7,
+      "high": 5541.44,
       "actualOpen": 5551.69,
-      "hit": true
+      "hit": false
     },
     {
       "date": "2026-04-01",
-      "low": 5196.84,
-      "high": 5364.47,
+      "low": 5096.32,
+      "high": 5169.11,
       "actualOpen": 5330.04,
-      "hit": true
+      "hit": false
     },
     {
       "date": "2026-03-31",
-      "low": 5084.88,
-      "high": 5317.73,
+      "low": 5206.79,
+      "high": 5270.12,
       "actualOpen": 5143.75,
-      "hit": true
+      "hit": false
     },
     {
       "date": "2026-03-30",
-      "low": 5234.76,
-      "high": 5467.19,
+      "low": 5384.73,
+      "high": 5466.47,
       "actualOpen": 5181.8,
       "hit": false
     },
     {
       "date": "2026-03-27",
-      "low": 5228.22,
-      "high": 5403.22,
+      "low": 5351.11,
+      "high": 5412.82,
       "actualOpen": 5300.61,
-      "hit": true
+      "hit": false
     },
     {
       "date": "2026-03-26",
-      "low": 5606.43,
-      "high": 5786.88,
+      "low": 5644.15,
+      "high": 5694.93,
       "actualOpen": 5594.06,
       "hit": false
     },
     {
       "date": "2026-03-25",
-      "low": 5477.94,
-      "high": 5653.02,
+      "low": 5515.99,
+      "high": 5573.66,
       "actualOpen": 5680.33,
       "hit": false
     },
     {
       "date": "2026-03-24",
-      "low": 5398.91,
-      "high": 5564.23,
+      "low": 5388.4,
+      "high": 5437.05,
       "actualOpen": 5638.2,
       "hit": false
     },
     {
       "date": "2026-03-23",
-      "low": 5597.48,
-      "high": 5772.13,
+      "low": 5712.61,
+      "high": 5781.53,
       "actualOpen": 5580.15,
       "hit": false
     },
     {
       "date": "2026-03-20",
-      "low": 5699.95,
-      "high": 5850.61,
+      "low": 5737.65,
+      "high": 5782.6,
       "actualOpen": 5813.35,
-      "hit": true
+      "hit": false
     },
     {
       "date": "2026-03-19",
-      "low": 5785.21,
-      "high": 5961.41,
+      "low": 5861.77,
+      "high": 5915.6,
       "actualOpen": 5761.4,
       "hit": false
     },
     {
       "date": "2026-03-18",
-      "low": 5594.64,
-      "high": 5738.17,
+      "low": 5616.63,
+      "high": 5660.63,
       "actualOpen": 5767.1,
       "hit": false
     },
     {
       "date": "2026-03-17",
-      "low": 5555.6,
-      "high": 5695.35,
+      "low": 5558.28,
+      "high": 5601.57,
       "actualOpen": 5711.8,
       "hit": false
     },
     {
       "date": "2026-03-16",
-      "low": 5394.7,
-      "high": 5553.84,
+      "low": 5450.89,
+      "high": 5500.28,
       "actualOpen": 5510.82,
-      "hit": true
+      "hit": false
     },
     {
       "date": "2026-03-13",
-      "low": 5398.46,
-      "high": 5559.45,
+      "low": 5499.31,
+      "high": 5586.14,
       "actualOpen": 5412.39,
-      "hit": true
+      "hit": false
     },
     {
       "date": "2026-03-12",
-      "low": 5555.95,
-      "high": 5695.86,
+      "low": 5603.76,
+      "high": 5647.52,
       "actualOpen": 5567.65,
-      "hit": true
+      "hit": false
     },
     {
       "date": "2026-03-11",
-      "low": 5476.27,
-      "high": 5611.58,
+      "low": 5501.48,
+      "high": 5557.71,
       "actualOpen": 5658.72,
       "hit": false
     },
     {
       "date": "2026-03-10",
-      "low": 5272.7,
-      "high": 5413.16,
+      "low": 5266.29,
+      "high": 5313.56,
       "actualOpen": 5523.21,
       "hit": false
     }
   ],
-  "generatedAt": "2026-04-07T17:37:22.620484+00:00"
+  "generatedAt": "2026-04-07T18:02:53.794866+00:00"
 }

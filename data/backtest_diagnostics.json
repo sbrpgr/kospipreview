@@ -1,109 +1,33 @@
 {
   "selectedFeatures": [
+    "ewy_return",
+    "koru_return",
     "sp500_return",
-    "sox_return"
+    "nasdaq_return",
+    "dow_return",
+    "vix_return",
+    "wti_return",
+    "gold_return",
+    "us10y_return",
+    "sox_return",
+    "krw_return"
   ],
-  "rmse": 21.8231,
-  "mae": 12.2415,
-  "bandHitRate": 75.26,
-  "directionHitRate": 76.53,
-  "avgPValue": 0.0,
-  "avgVIF": 3.0137,
-  "topCandidates": [
-    {
-      "features": [
-        "sp500_return",
-        "sox_return"
-      ],
-      "rmse": 21.8231,
-      "bandHitRate": 75.26,
-      "directionHitRate": 76.53
-    },
-    {
-      "features": [
-        "sp500_return",
-        "sox_return",
-        "koru_return"
-      ],
-      "rmse": 22.173,
-      "bandHitRate": 74.81,
-      "directionHitRate": 76.3
-    },
-    {
-      "features": [
-        "ewy_return",
-        "sp500_return",
-        "sox_return"
-      ],
-      "rmse": 22.1807,
-      "bandHitRate": 74.81,
-      "directionHitRate": 76.23
-    },
-    {
-      "features": [
-        "nasdaq_return",
-        "sox_return"
-      ],
-      "rmse": 22.4551,
-      "bandHitRate": 76.15,
-      "directionHitRate": 75.11
-    },
-    {
-      "features": [
-        "sp500_return",
-        "koru_return"
-      ],
-      "rmse": 22.5972,
-      "bandHitRate": 77.2,
-      "directionHitRate": 76.45
-    },
-    {
-      "features": [
-        "ewy_return",
-        "sp500_return"
-      ],
-      "rmse": 22.6271,
-      "bandHitRate": 77.27,
-      "directionHitRate": 76.45
-    },
-    {
-      "features": [
-        "ewy_return",
-        "nasdaq_return",
-        "sox_return"
-      ],
-      "rmse": 22.8474,
-      "bandHitRate": 75.93,
-      "directionHitRate": 74.89
-    },
-    {
-      "features": [
-        "nasdaq_return",
-        "sox_return",
-        "koru_return"
-      ],
-      "rmse": 22.8491,
-      "bandHitRate": 75.56,
-      "directionHitRate": 74.89
-    },
-    {
-      "features": [
-        "nasdaq_return",
-        "koru_return"
-      ],
-      "rmse": 23.1055,
-      "bandHitRate": 76.68,
-      "directionHitRate": 75.11
-    },
-    {
-      "features": [
-        "ewy_return",
-        "nasdaq_return"
-      ],
-      "rmse": 23.1108,
-      "bandHitRate": 76.97,
-      "directionHitRate": 74.89
-    }
-  ],
-  "generatedAt": "2026-04-07T17:37:22.620484+00:00"
+  "rmse": 34.1059,
+  "mae": 17.7941,
+  "bandHitRate": 51.59,
+  "directionHitRate": 72.69,
+  "featureImportance": {
+    "ewy_return": 887,
+    "koru_return": 621,
+    "sp500_return": 641,
+    "nasdaq_return": 702,
+    "dow_return": 803,
+    "vix_return": 938,
+    "wti_return": 937,
+    "gold_return": 1054,
+    "us10y_return": 706,
+    "sox_return": 809,
+    "krw_return": 902
+  },
+  "generatedAt": "2026-04-07T18:02:53.797873+00:00"
 }

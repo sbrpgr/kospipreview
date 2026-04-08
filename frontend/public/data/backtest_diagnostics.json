@@ -1,0 +1,305 @@
+{
+  "selectedFeatures": [
+    "ewy_return",
+    "koru_return",
+    "sp500_return",
+    "nasdaq_return",
+    "dow_return",
+    "vix_return",
+    "wti_return",
+    "gold_return",
+    "us10y_return",
+    "sox_return",
+    "krw_return"
+  ],
+  "rmse": 34.7318,
+  "mae": 18.1205,
+  "bandHitRate": 52.66,
+  "directionHitRate": 74.1,
+  "featureImportance": {
+    "ewy_return": 765,
+    "koru_return": 650,
+    "sp500_return": 630,
+    "nasdaq_return": 674,
+    "dow_return": 822,
+    "vix_return": 987,
+    "wti_return": 981,
+    "gold_return": 968,
+    "us10y_return": 800,
+    "sox_return": 874,
+    "krw_return": 849
+  },
+  "recent30Diagnostics": [
+    {
+      "date": "2026-02-20",
+      "predOpen": 5688.62,
+      "actualOpen": 5696.89,
+      "error": -8.27,
+      "bandLow": 5640.82,
+      "bandHigh": 5703.76,
+      "hit": true
+    },
+    {
+      "date": "2026-02-23",
+      "predOpen": 5819.06,
+      "actualOpen": 5903.11,
+      "error": -84.05,
+      "bandLow": 5813.28,
+      "bandHigh": 5848.52,
+      "hit": false
+    },
+    {
+      "date": "2026-02-24",
+      "predOpen": 5821.0,
+      "actualOpen": 5853.48,
+      "error": -32.48,
+      "bandLow": 5798.2,
+      "bandHigh": 5843.8,
+      "hit": false
+    },
+    {
+      "date": "2026-02-25",
+      "predOpen": 6003.55,
+      "actualOpen": 6022.7,
+      "error": -19.15,
+      "bandLow": 5985.65,
+      "bandHigh": 6021.46,
+      "hit": false
+    },
+    {
+      "date": "2026-02-26",
+      "predOpen": 6123.12,
+      "actualOpen": 6121.03,
+      "error": 2.09,
+      "bandLow": 6104.87,
+      "bandHigh": 6141.37,
+      "hit": true
+    },
+    {
+      "date": "2026-02-27",
+      "predOpen": 6267.38,
+      "actualOpen": 6197.49,
+      "error": 69.89,
+      "bandLow": 6243.72,
+      "bandHigh": 6301.94,
+      "hit": false
+    },
+    {
+      "date": "2026-03-03",
+      "predOpen": 6244.21,
+      "actualOpen": 6165.15,
+      "error": 79.06,
+      "bandLow": 6219.86,
+      "bandHigh": 6268.57,
+      "hit": false
+    },
+    {
+      "date": "2026-03-04",
+      "predOpen": 5659.07,
+      "actualOpen": 5592.59,
+      "error": 66.48,
+      "bandLow": 5636.48,
+      "bandHigh": 5681.66,
+      "hit": false
+    },
+    {
+      "date": "2026-03-05",
+      "predOpen": 5120.51,
+      "actualOpen": 5250.92,
+      "error": -130.41,
+      "bandLow": 5100.65,
+      "bandHigh": 5140.38,
+      "hit": false
+    },
+    {
+      "date": "2026-03-06",
+      "predOpen": 5595.81,
+      "actualOpen": 5491.02,
+      "error": 104.79,
+      "bandLow": 5515.5,
+      "bandHigh": 5604.85,
+      "hit": false
+    },
+    {
+      "date": "2026-03-09",
+      "predOpen": 5572.24,
+      "actualOpen": 5265.37,
+      "error": 306.87,
+      "bandLow": 5544.72,
+      "bandHigh": 5617.38,
+      "hit": false
+    },
+    {
+      "date": "2026-03-10",
+      "predOpen": 5287.07,
+      "actualOpen": 5523.21,
+      "error": -236.14,
+      "bandLow": 5263.44,
+      "bandHigh": 5310.7,
+      "hit": false
+    },
+    {
+      "date": "2026-03-11",
+      "predOpen": 5549.56,
+      "actualOpen": 5658.72,
+      "error": -109.16,
+      "bandLow": 5505.73,
+      "bandHigh": 5570.68,
+      "hit": false
+    },
+    {
+      "date": "2026-03-12",
+      "predOpen": 5619.39,
+      "actualOpen": 5567.65,
+      "error": 51.74,
+      "bandLow": 5597.52,
+      "bandHigh": 5641.27,
+      "hit": false
+    },
+    {
+      "date": "2026-03-13",
+      "predOpen": 5540.59,
+      "actualOpen": 5412.39,
+      "error": 128.2,
+      "bandLow": 5495.86,
+      "bandHigh": 5579.39,
+      "hit": false
+    },
+    {
+      "date": "2026-03-16",
+      "predOpen": 5474.71,
+      "actualOpen": 5510.82,
+      "error": -36.11,
+      "bandLow": 5450.01,
+      "bandHigh": 5499.4,
+      "hit": false
+    },
+    {
+      "date": "2026-03-17",
+      "predOpen": 5586.06,
+      "actualOpen": 5711.8,
+      "error": -125.74,
+      "bandLow": 5564.42,
+      "bandHigh": 5607.71,
+      "hit": false
+    },
+    {
+      "date": "2026-03-18",
+      "predOpen": 5638.63,
+      "actualOpen": 5767.1,
+      "error": -128.47,
+      "bandLow": 5616.63,
+      "bandHigh": 5660.62,
+      "hit": false
+    },
+    {
+      "date": "2026-03-19",
+      "predOpen": 5891.83,
+      "actualOpen": 5761.4,
+      "error": 130.43,
+      "bandLow": 5859.26,
+      "bandHigh": 5918.13,
+      "hit": false
+    },
+    {
+      "date": "2026-03-20",
+      "predOpen": 5756.59,
+      "actualOpen": 5813.35,
+      "error": -56.76,
+      "bandLow": 5734.11,
+      "bandHigh": 5779.06,
+      "hit": false
+    },
+    {
+      "date": "2026-03-23",
+      "predOpen": 5758.84,
+      "actualOpen": 5580.15,
+      "error": 178.69,
+      "bandLow": 5713.81,
+      "bandHigh": 5776.91,
+      "hit": false
+    },
+    {
+      "date": "2026-03-24",
+      "predOpen": 5408.94,
+      "actualOpen": 5638.2,
+      "error": -229.26,
+      "bandLow": 5384.62,
+      "bandHigh": 5433.27,
+      "hit": false
+    },
+    {
+      "date": "2026-03-25",
+      "predOpen": 5580.02,
+      "actualOpen": 5680.33,
+      "error": -100.31,
+      "bandLow": 5555.03,
+      "bandHigh": 5605.01,
+      "hit": false
+    },
+    {
+      "date": "2026-03-26",
+      "predOpen": 5679.93,
+      "actualOpen": 5594.06,
+      "error": 85.87,
+      "bandLow": 5654.54,
+      "bandHigh": 5705.32,
+      "hit": false
+    },
+    {
+      "date": "2026-03-27",
+      "predOpen": 5323.77,
+      "actualOpen": 5300.61,
+      "error": 23.16,
+      "bandLow": 5344.83,
+      "bandHigh": 5411.56,
+      "hit": false
+    },
+    {
+      "date": "2026-03-30",
+      "predOpen": 5429.04,
+      "actualOpen": 5181.8,
+      "error": 247.24,
+      "bandLow": 5388.66,
+      "bandHigh": 5463.44,
+      "hit": false
+    },
+    {
+      "date": "2026-03-31",
+      "predOpen": 5245.09,
+      "actualOpen": 5143.75,
+      "error": 101.34,
+      "bandLow": 5213.43,
+      "bandHigh": 5276.76,
+      "hit": false
+    },
+    {
+      "date": "2026-04-01",
+      "predOpen": 5167.16,
+      "actualOpen": 5330.04,
+      "error": -162.88,
+      "bandLow": 5092.44,
+      "bandHigh": 5167.92,
+      "hit": false
+    },
+    {
+      "date": "2026-04-02",
+      "predOpen": 5520.56,
+      "actualOpen": 5551.69,
+      "error": -31.13,
+      "bandLow": 5499.19,
+      "bandHigh": 5541.92,
+      "hit": false
+    },
+    {
+      "date": "2026-04-03",
+      "predOpen": 5213.21,
+      "actualOpen": 5375.5,
+      "error": -162.29,
+      "bandLow": 5208.94,
+      "bandHigh": 5255.48,
+      "hit": false
+    }
+  ],
+  "generatedAt": "2026-04-07T18:30:46.591916+00:00"
+}

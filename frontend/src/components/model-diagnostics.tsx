@@ -5,65 +5,50 @@ type ModelDiagnosticsProps = {
 };
 
 export function ModelDiagnostics({ diagnostics }: ModelDiagnosticsProps) {
-  const coefficientEntries = Object.entries(diagnostics.selectedModel.coefficients);
+  const importanceEntries = Object.entries(diagnostics.featureImportance).sort((a, b) => b[1] - a[1]);
 
   return (
     <section className="sectionCard">
       <div className="sectionHeader">
         <div>
-          <p className="sectionEyebrow">검증</p>
-          <h2>선택 모델 진단</h2>
+          <p className="sectionEyebrow">모델</p>
+          <h2>LightGBM 변수 중요도</h2>
         </div>
         <div className="statsInline">
-          <span>RMSE {diagnostics.selectedModel.rmse}</span>
-          <span>MAE {diagnostics.selectedModel.mae}</span>
-          <span>방향 {diagnostics.selectedModel.directionHitRate}%</span>
+          <span>RMSE {diagnostics.rmse.toFixed(2)}</span>
+          <span>MAE {diagnostics.mae.toFixed(2)}</span>
         </div>
       </div>
 
       <div className="diagnosticsGrid">
         <article className="diagnosticPanel">
-          <h3>선택된 변수</h3>
+          <h3>학습 변수</h3>
           <div className="chipRow">
-            {diagnostics.selectedModel.features.map((feature) => (
+            {diagnostics.selectedFeatures.map((feature) => (
               <span className="dataChip" key={feature}>
                 {feature}
               </span>
             ))}
           </div>
-          <div className="coefficientList">
-            {coefficientEntries.map(([key, value]) => (
-              <div className="coefficientRow" key={key}>
-                <span>{key}</span>
-                <strong>{value.toFixed(6)}</strong>
-              </div>
-            ))}
-          </div>
         </article>
 
         <article className="diagnosticPanel">
-          <h3>후보 모델 순위</h3>
-          <div className="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>순위</th>
-                  <th>변수</th>
-                  <th>RMSE</th>
-                  <th>밴드</th>
-                </tr>
-              </thead>
-              <tbody>
-                {diagnostics.candidateRanking.map((candidate) => (
-                  <tr key={`${candidate.rank}-${candidate.features.join("-")}`}>
-                    <td>{candidate.rank}</td>
-                    <td>{candidate.features.join(", ")}</td>
-                    <td>{candidate.rmse}</td>
-                    <td>{candidate.bandHitRate}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <h3>변수 중요도 (Feature Importance)</h3>
+          <div className="coefficientList" style={{ maxHeight: "300px", overflowY: "auto" }}>
+            {importanceEntries.map(([key, value]) => (
+              <div className="coefficientRow" key={key}>
+                <span style={{ minWidth: 110, fontSize: "0.82rem" }}>{key}</span>
+                <div style={{ flex: 1, height: "6px", background: "rgba(255,255,255,0.05)", borderRadius: "4px" }}>
+                  <div style={{ 
+                    width: `${Math.min(100, (value / importanceEntries[0][1]) * 100)}%`, 
+                    height: "100%", 
+                    background: "var(--accent)",
+                    borderRadius: "4px"
+                  }} />
+                </div>
+                <strong style={{ minWidth: 40, textAlign: "right", fontSize: "0.82rem", fontFamily: "var(--font-mono)" }}>{value}</strong>
+              </div>
+            ))}
           </div>
         </article>
       </div>

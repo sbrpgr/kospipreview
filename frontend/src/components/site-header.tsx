@@ -6,9 +6,8 @@ type SiteHeaderProps = {
 
 const navItems = [
   { href: "/", label: "대시보드" },
-  { href: "/history", label: "검증 이력" },
+  { href: "/history", label: "예측 기록" },
   { href: "/about", label: "모델 설명" },
-  { href: "/privacy", label: "정책" },
 ];
 
 export function SiteHeader({ title, eyebrow, description }: SiteHeaderProps) {
@@ -17,7 +16,7 @@ export function SiteHeader({ title, eyebrow, description }: SiteHeaderProps) {
       <div className="siteHeaderTop">
         <a className="brandLockup" href="/">
           <span className="brandKicker">KOSPI DAWN</span>
-          <strong>코스피 시초가 예측 플랫폼</strong>
+          <strong>코스피 시초가 예측</strong>
         </a>
         <nav className="topNav" aria-label="주요 메뉴">
           {navItems.map((item) => (

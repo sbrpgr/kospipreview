@@ -1,0 +1,95 @@
+{
+  "primary": [
+    {
+      "key": "ewy",
+      "label": "EWY (한국 ETF)",
+      "value": "$125.55",
+      "changePct": -0.87,
+      "updatedAt": "2026-04-07T18:30:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    },
+    {
+      "key": "krw",
+      "label": "원/달러 환율",
+      "value": "1,500.86원",
+      "changePct": -0.52,
+      "updatedAt": "2026-04-07T18:30:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    },
+    {
+      "key": "wti",
+      "label": "WTI 원유",
+      "value": "$113.08",
+      "changePct": -2.25,
+      "updatedAt": "2026-04-07T18:20:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    },
+    {
+      "key": "sp500",
+      "label": "S&P 500",
+      "value": "6,585.45",
+      "changePct": -0.09,
+      "updatedAt": "2026-04-07T18:30:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    }
+  ],
+  "secondary": [
+    {
+      "key": "nasdaq",
+      "label": "나스닥 100",
+      "value": "24,027.61",
+      "changePct": -0.26,
+      "updatedAt": "2026-04-07T18:30:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    },
+    {
+      "key": "vix",
+      "label": "VIX 변동성",
+      "value": "26.63",
+      "changePct": 6.01,
+      "updatedAt": "2026-04-07T18:15:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    },
+    {
+      "key": "koru",
+      "label": "KORU (코리아 3x)",
+      "value": "$300.63",
+      "changePct": -2.73,
+      "updatedAt": "2026-04-07T18:23:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    },
+    {
+      "key": "dow",
+      "label": "다우존스",
+      "value": "46,472.14",
+      "changePct": -0.19,
+      "updatedAt": "2026-04-07T18:30:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    },
+    {
+      "key": "gold",
+      "label": "금 시세",
+      "value": "$4,710.70",
+      "changePct": 0.77,
+      "updatedAt": "2026-04-07T18:20:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    },
+    {
+      "key": "us10y",
+      "label": "미 10년 국채금리",
+      "value": "4.35%",
+      "changePct": 0.0,
+      "updatedAt": "2026-04-07T18:15:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    },
+    {
+      "key": "sox",
+      "label": "필라델피아 반도체",
+      "value": "7,913.86",
+      "changePct": 0.08,
+      "updatedAt": "2026-04-07T18:30:00+00:00",
+      "dataSource": "Yahoo Finance (1분 단위)"
+    }
+  ],
+  "generatedAt": "2026-04-07T18:30:46.589881+00:00"
+}

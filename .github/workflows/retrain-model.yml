@@ -3,8 +3,9 @@ name: retrain-model
 on:
   workflow_dispatch:
   schedule:
-    # 1분마다 갱신되도록 변경 (GitHub Actions 최소 동작 주기)
-    - cron: "* * * * *"
+    # 매일 KST 06:00 (UTC 21:00 전날), KST 18:00 (UTC 09:00) — 하루 2회
+    - cron: "0 21 * * *"
+    - cron: "0 9 * * *"
 
 permissions:
   contents: write   # git push 허용
@@ -32,31 +33,7 @@ jobs:
       - name: Rebuild model artifacts
         run: python ./scripts/backtest_and_generate.py
 
-      # ─── 갱신된 JSON/MD를 레포에 커밋 후 푸시 ───────────────────────
-      - name: Commit updated data files
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/*.json model/coefficients.json docs/BACKTEST_RESULTS.md
-          # 변경이 없으면 커밋 건너뜀 (--allow-empty 미사용)
-          git diff --cached --quiet || git commit -m "chore: auto-update data $(date -u +'%Y-%m-%d %H:%M UTC')"
-
-      - name: Push changes
-        uses: ad-m/github-push-action@v0.8.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
-
-      # ─── Firebase 호스팅 자동 배포 ──────────────────────────────────
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: kospipreview
-          channelId: live
-
-      # ─── 프론트엔드 빌드 검증 ────────────────────────────────────────
+      # ─── 프론트엔드 빌드 ──────────────────────────────────────────
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -68,9 +45,30 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build frontend (smoke test)
+      - name: Build frontend
         working-directory: frontend
-        env:
-          # GitHub Raw URL로 데이터를 읽을 수 있도록 설정
-          DATA_BASE_URL: "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/data"
         run: npm run build
+
+      # ─── 갱신된 JSON을 레포에 커밋 후 푸시 ────────────────────────
+      - name: Commit updated data files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/data/*.json
+          # 변경이 없으면 커밋 건너뜀
+          git diff --cached --quiet || git commit -m "chore: auto-update data $(date -u +'%Y-%m-%d %H:%M UTC')"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref_name }}
+
+      # ─── Firebase 호스팅 배포 (빌드 완료 후) ─────────────────────
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: kospipreview
+          channelId: live

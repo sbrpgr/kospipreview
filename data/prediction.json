@@ -1,33 +1,55 @@
 {
-  "marketStatus": "한국장 개장 전",
-  "currentTimeKst": "2026-04-08T02:27:13.649733+09:00",
-  "predictionDate": "2026-04-09",
-  "rangeLow": 5406,
-  "rangeHigh": 5472,
-  "pointPrediction": 5439,
-  "predictedChangePct": -0.21,
+  "generatedAt": "2026-04-07T18:02:53.793865+00:00",
+  "predictionDate": "2026년 04월 08일",
+  "modelEngine": "LightGBM (Quantile Regression)",
+  "pointPrediction": 5457.0,
+  "rangeLow": 5432.48,
+  "rangeHigh": 5481.53,
+  "predictedChangePct": 0.12,
   "confidence": 4,
   "confidenceLabel": "높음",
-  "signalSummary": "S&P500 약세, 필라델피아반도체 강세",
-  "lastCalculatedAt": "2026-04-08T02:27:13.649733+09:00",
-  "bandHitRate30d": 40.0,
-  "directionHitRate30d": 83.3,
-  "mae30d": 83.76,
-  "yesterday": {
-    "predictionLow": 5319.14,
-    "predictionHigh": 5476.92,
-    "actualOpen": 5423.35,
-    "hit": true
-  },
+  "bandHitRate30d": 6.7,
+  "directionHitRate30d": 66.7,
+  "mae30d": 109.62,
+  "signalSummary": "EWY (한국 ETF) 보합, KORU (코리아 3x) 보합, S&P 500 강세, 나스닥 100 보합, 다우존스 보합, VIX 변동성 보합, WTI 원유 강세, 금 시세 약세, 미 10년 국채금리 보합, 필라델피아 반도체 강세, 원/달러 환율 보합",
+  "marketStatus": "장 마감 후",
+  "lastCalculatedAt": "2026-04-07T18:02:53.793865+00:00",
   "model": {
-    "modelA": 5439.04,
-    "modelB": 5438.06,
-    "divergencePct": 0.02,
-    "bandMultiplier": 1.5,
-    "vix": 26.47,
+    "engine": "LightGBM",
     "selectedFeatures": [
+      "ewy_return",
+      "koru_return",
       "sp500_return",
-      "sox_return"
-    ]
+      "nasdaq_return",
+      "dow_return",
+      "vix_return",
+      "wti_return",
+      "gold_return",
+      "us10y_return",
+      "sox_return",
+      "krw_return"
+    ],
+    "featureImportance": {
+      "ewy_return": 887,
+      "koru_return": 621,
+      "sp500_return": 641,
+      "nasdaq_return": 702,
+      "dow_return": 803,
+      "vix_return": 938,
+      "wti_return": 937,
+      "gold_return": 1054,
+      "us10y_return": 706,
+      "sox_return": 809,
+      "krw_return": 902
+    },
+    "vix": 26.65,
+    "bandMultiplier": 1.5,
+    "lgbmRmse": 34.11
+  },
+  "yesterday": {
+    "predictionLow": 5348.22,
+    "predictionHigh": 5400.06,
+    "actualOpen": 5423.35,
+    "hit": false
   }
 }
