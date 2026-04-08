@@ -206,6 +206,24 @@ p {
   font-weight: 600;
 }
 
+.statusTimeGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.statusMetaLine {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.statusDot.isSyncing {
+  animation: pulseLive 1.2s infinite;
+}
+
 .heroSection {
   position: relative;
   overflow: hidden;
@@ -308,6 +326,13 @@ p {
   color: var(--text-secondary);
   line-height: 1.7;
   max-width: 720px;
+}
+
+.heroFootnote {
+  margin-top: 16px;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
 .sectionTitle {
@@ -563,6 +588,10 @@ p {
   .sectionSubtext {
     margin-left: 6px;
     font-size: 0.82rem;
+  }
+
+  .statusTimeGroup {
+    align-items: flex-start;
   }
 
   .cleanTable th,

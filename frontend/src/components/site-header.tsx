@@ -1,6 +1,11 @@
 type SiteHeaderProps = {
-  lastUpdated: string;
+  lastUpdated?: string;
+  dataUpdatedAt?: string;
+  marketUpdatedAt?: string;
+  deployUpdatedAt?: string;
+  checkedAt?: string;
   status: "fresh" | "aging" | "stale" | string;
+  isSyncing?: boolean;
 };
 
 const STATUS_META = {
@@ -9,7 +14,15 @@ const STATUS_META = {
   stale: { label: "STALE", className: "isStale" },
 } as const;
 
-export function SiteHeader({ lastUpdated, status }: SiteHeaderProps) {
+export function SiteHeader({
+  lastUpdated,
+  dataUpdatedAt,
+  marketUpdatedAt,
+  deployUpdatedAt,
+  checkedAt,
+  status,
+  isSyncing = false,
+}: SiteHeaderProps) {
   const meta = STATUS_META[status as keyof typeof STATUS_META] ?? {
     label: "UNKNOWN",
     className: "isStale",
@@ -44,10 +57,20 @@ export function SiteHeader({ lastUpdated, status }: SiteHeaderProps) {
 
       <div className="statusRow">
         <div className={`statusLabel ${meta.className}`}>
-          <div className="statusDot" />
+          <div className={`statusDot ${isSyncing ? "isSyncing" : ""}`} />
           {meta.label}
         </div>
-        <div className="statusTime">시장 지표 갱신 시간: {lastUpdated}</div>
+        <div className="statusTimeGroup">
+          <div className="statusTime">시장 지표 갱신 시간: {dataUpdatedAt ?? lastUpdated ?? "-"}</div>
+          {marketUpdatedAt ? <div className="statusMetaLine">시장 기준시각 {marketUpdatedAt} KST</div> : null}
+          {deployUpdatedAt || checkedAt ? (
+            <div className="statusMetaLine">
+              {deployUpdatedAt ? `사이트 반영시각 ${deployUpdatedAt} KST` : ""}
+              {deployUpdatedAt && checkedAt ? " · " : ""}
+              {checkedAt ? `마지막 확인 ${checkedAt} KST` : ""}
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   );

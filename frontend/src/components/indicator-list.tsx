@@ -9,6 +9,16 @@ function normalizeIndicatorValue(key: string, value: string) {
   return value;
 }
 
+function changeLabel(value: number) {
+  if (value > 0) {
+    return "상승";
+  }
+  if (value < 0) {
+    return "하락";
+  }
+  return "보합";
+}
+
 export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
   const allIndicators = [...indicators.primary, ...indicators.secondary];
 
@@ -29,7 +39,7 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
             <div className="indLabel">{indicator.label}</div>
             <div className="indValue">{displayValue}</div>
             <div className={`indChange ${isPositive ? "isPos" : "isNeg"}`}>
-              {isPositive ? "▲" : "▼"} {Math.abs(indicator.changePct).toFixed(2)}%
+              {changeLabel(indicator.changePct)} {Math.abs(indicator.changePct).toFixed(2)}%
             </div>
           </a>
         );
