@@ -2,20 +2,20 @@
   "summary": {
     "mae30d": 18.49
   },
-  "generatedAt": "2026-04-09T04:02:05.470304+00:00",
+  "generatedAt": "2026-04-09T04:03:17.663453+00:00",
   "records": [
     {
       "date": "2026-04-09",
-      "low": 5473.5,
-      "high": 5516.36,
+      "low": 5929.25,
+      "high": 5976.69,
       "actualOpen": 5826.45,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-04-08",
-      "low": 5805.52,
-      "high": 5834.62,
+      "low": 5799.12,
+      "high": 5841.02,
       "actualOpen": 5820.07,
       "hit": true,
       "isSynthetic": true
@@ -30,8 +30,8 @@
     },
     {
       "date": "2026-04-06",
-      "low": 5409.79,
-      "high": 5436.91,
+      "low": 5384.6,
+      "high": 5425.26,
       "actualOpen": 5423.35,
       "hit": true,
       "isSynthetic": true
