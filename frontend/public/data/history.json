@@ -1,8 +1,8 @@
 {
   "summary": {
-    "mae30d": 18.05
+    "mae30d": 18.8
   },
-  "generatedAt": "2026-04-09T08:00:49.367672+00:00",
+  "generatedAt": "2026-04-09T08:02:18.066283+00:00",
   "records": [
     {
       "date": "2026-04-09",
@@ -14,232 +14,232 @@
     },
     {
       "date": "2026-04-08",
-      "low": 5799.12,
-      "high": 5841.02,
-      "actualOpen": 5820.07,
-      "hit": true,
-      "isSynthetic": true
+      "low": 5471.28,
+      "high": 5520.74,
+      "actualOpen": 5804.7,
+      "hit": false,
+      "isSynthetic": false
     },
     {
       "date": "2026-04-07",
-      "low": 5441.39,
-      "high": 5483.91,
+      "low": 5440.7,
+      "high": 5483.21,
       "actualOpen": 5552.19,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-04-06",
-      "low": 5385.08,
-      "high": 5424.78,
+      "low": 5384.25,
+      "high": 5425.61,
       "actualOpen": 5423.35,
       "hit": true,
       "isSynthetic": true
     },
     {
       "date": "2026-04-03",
-      "low": 5205.51,
-      "high": 5254.25,
+      "low": 5211.7,
+      "high": 5253.54,
       "actualOpen": 5375.5,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-04-02",
-      "low": 5499.14,
-      "high": 5541.87,
+      "low": 5505.24,
+      "high": 5547.97,
       "actualOpen": 5551.69,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-04-01",
-      "low": 5098.17,
-      "high": 5169.65,
+      "low": 5090.54,
+      "high": 5171.69,
       "actualOpen": 5330.04,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-31",
-      "low": 5196.06,
-      "high": 5259.38,
+      "low": 5214.05,
+      "high": 5277.38,
       "actualOpen": 5143.75,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-30",
-      "low": 5388.06,
-      "high": 5466.92,
+      "low": 5384.5,
+      "high": 5464.45,
       "actualOpen": 5181.8,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-27",
-      "low": 5367.53,
-      "high": 5424.68,
+      "low": 5343.54,
+      "high": 5409.38,
       "actualOpen": 5300.61,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-26",
-      "low": 5645.62,
-      "high": 5696.4,
+      "low": 5648.69,
+      "high": 5699.47,
       "actualOpen": 5594.06,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-25",
-      "low": 5512.48,
-      "high": 5575.85,
+      "low": 5515.3,
+      "high": 5572.13,
       "actualOpen": 5680.33,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-24",
-      "low": 5388.79,
-      "high": 5437.44,
+      "low": 5392.16,
+      "high": 5440.81,
       "actualOpen": 5638.2,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-23",
-      "low": 5709.94,
-      "high": 5776.77,
+      "low": 5716.21,
+      "high": 5778.92,
       "actualOpen": 5580.15,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-20",
-      "low": 5746.19,
-      "high": 5791.14,
+      "low": 5740.53,
+      "high": 5785.48,
       "actualOpen": 5813.35,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-19",
-      "low": 5845.83,
-      "high": 5903.34,
+      "low": 5855.27,
+      "high": 5914.4,
       "actualOpen": 5761.4,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-18",
-      "low": 5620.36,
-      "high": 5664.36,
+      "low": 5623.66,
+      "high": 5667.65,
       "actualOpen": 5767.1,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-17",
-      "low": 5561.32,
-      "high": 5604.61,
+      "low": 5567.76,
+      "high": 5611.38,
       "actualOpen": 5711.8,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-16",
-      "low": 5451.09,
-      "high": 5500.47,
+      "low": 5451.88,
+      "high": 5501.27,
       "actualOpen": 5510.82,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-13",
-      "low": 5494.02,
-      "high": 5570.8,
+      "low": 5497.67,
+      "high": 5578.3,
       "actualOpen": 5412.39,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-12",
-      "low": 5595.93,
-      "high": 5639.69,
+      "low": 5602.95,
+      "high": 5646.71,
       "actualOpen": 5567.65,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-11",
-      "low": 5507.62,
-      "high": 5571.77,
+      "low": 5509.7,
+      "high": 5563.97,
       "actualOpen": 5658.72,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-10",
-      "low": 5262.88,
-      "high": 5310.14,
+      "low": 5260.69,
+      "high": 5307.96,
       "actualOpen": 5523.21,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-09",
-      "low": 5540.82,
-      "high": 5608.2,
+      "low": 5544.36,
+      "high": 5611.57,
       "actualOpen": 5265.37,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-06",
-      "low": 5503.07,
-      "high": 5608.91,
+      "low": 5528.01,
+      "high": 5605.6,
       "actualOpen": 5491.02,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-05",
-      "low": 5099.93,
-      "high": 5139.66,
+      "low": 5095.1,
+      "high": 5134.83,
       "actualOpen": 5250.92,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-04",
-      "low": 5719.48,
-      "high": 5787.94,
+      "low": 5720.03,
+      "high": 5773.73,
       "actualOpen": 5592.59,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-03-03",
-      "low": 6226.17,
-      "high": 6274.87,
+      "low": 6212.87,
+      "high": 6267.32,
       "actualOpen": 6165.15,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-02-27",
-      "low": 6234.11,
-      "high": 6308.85,
+      "low": 6239.08,
+      "high": 6309.41,
       "actualOpen": 6197.49,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-02-26",
-      "low": 6100.46,
-      "high": 6136.96,
+      "low": 6107.04,
+      "high": 6143.54,
       "actualOpen": 6121.03,
       "hit": true,
       "isSynthetic": false
