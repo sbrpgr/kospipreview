@@ -58,7 +58,7 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
         const isClickable = hasSourceUrl && !isSourceHidden;
         const sourceText =
           indicator.key === "k200f"
-            ? `기준 시각 ${formatUpdatedAt(indicator.updatedAt)} KST`
+            ? "지연 데이터 표시 (실시간 아님 · 투자 참고용)"
             : `기준 시각 ${formatUpdatedAt(indicator.updatedAt)} KST · ${indicator.dataSource ?? "Yahoo Finance"}`;
         const cardClassName = `indCard${isClickable ? "" : " isStatic"}`;
         const cardContent = (
