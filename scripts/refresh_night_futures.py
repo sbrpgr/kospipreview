@@ -44,6 +44,18 @@ AUXILIARY_SIGNAL_WEIGHTS = {
 EWY_FX_CORE_EWY_WEIGHT = 1.0
 EWY_FX_CORE_KRW_WEIGHT = 1.0
 AUXILIARY_SIGNAL_BLEND = 0.18
+EWY_FX_CORRECTION_EWY_COEF_MIN = 0.20
+EWY_FX_CORRECTION_EWY_COEF_MAX = 1.80
+EWY_FX_CORRECTION_KRW_COEF_MIN = 0.20
+EWY_FX_CORRECTION_KRW_COEF_MAX = 1.80
+EWY_FX_CORRECTION_INTERCEPT_MIN = -1.50
+EWY_FX_CORRECTION_INTERCEPT_MAX = 1.50
+EWY_FX_STRUCTURAL_EWY_WEIGHT = 1.0
+EWY_FX_STRUCTURAL_KRW_WEIGHT = 1.0
+EWY_FX_STRUCTURAL_BLEND = 0.65
+EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE = 0.78
+EWY_FX_HIGH_MOVE_TRIGGER_PCT = 2.0
+EWY_FX_LOW_CONFIDENCE_R2 = 0.20
 FALLBACK_ML_BLEND = 0.18
 FALLBACK_AUX_BLEND = 0.72
 FALLBACK_GUARD_BAND_MIN_PCT = 0.55
@@ -213,29 +225,84 @@ def fetch_yahoo_intraday_return_pct(symbol: str, baseline_session_date: str | No
     return (latest_close / baseline_close - 1) * 100
 
 
-def compute_ewy_fx_core_change(returns: dict[str, float]) -> float | None:
-    core_sum = 0.0
+def resolve_ewy_fx_correction_params(model_payload: dict | None) -> dict[str, float]:
+    if not isinstance(model_payload, dict):
+        return {
+            "intercept": 0.0,
+            "ewy_coef": EWY_FX_CORE_EWY_WEIGHT,
+            "krw_coef": EWY_FX_CORE_KRW_WEIGHT,
+            "sample_size": 0.0,
+            "r2": 0.0,
+        }
+
+    intercept = to_float(model_payload.get("ewyFxIntercept"))
+    ewy_coef = to_float(model_payload.get("ewyFxEwyCoef"))
+    krw_coef = to_float(model_payload.get("ewyFxKrwCoef"))
+    sample_size = to_float(model_payload.get("ewyFxSampleSize"))
+    fit_r2 = to_float(model_payload.get("ewyFxFitR2"))
+
+    if intercept is None:
+        intercept = 0.0
+    if ewy_coef is None:
+        ewy_coef = EWY_FX_CORE_EWY_WEIGHT
+    if krw_coef is None:
+        krw_coef = EWY_FX_CORE_KRW_WEIGHT
+
+    return {
+        "intercept": clamp(intercept, EWY_FX_CORRECTION_INTERCEPT_MIN, EWY_FX_CORRECTION_INTERCEPT_MAX),
+        "ewy_coef": clamp(ewy_coef, EWY_FX_CORRECTION_EWY_COEF_MIN, EWY_FX_CORRECTION_EWY_COEF_MAX),
+        "krw_coef": clamp(krw_coef, EWY_FX_CORRECTION_KRW_COEF_MIN, EWY_FX_CORRECTION_KRW_COEF_MAX),
+        "sample_size": sample_size if sample_size is not None else 0.0,
+        "r2": fit_r2 if fit_r2 is not None else 0.0,
+    }
+
+
+def compute_ewy_fx_core_change(
+    returns: dict[str, float],
+    correction_params: dict[str, float] | None = None,
+) -> float | None:
+    params = correction_params or {}
+    intercept = float(params.get("intercept", 0.0))
+    ewy_coef = float(params.get("ewy_coef", EWY_FX_CORE_EWY_WEIGHT))
+    krw_coef = float(params.get("krw_coef", EWY_FX_CORE_KRW_WEIGHT))
+    fit_r2 = float(params.get("r2", 0.0))
+    sample_size = int(float(params.get("sample_size", 0.0)))
+
+    learned_sum = 0.0
+    structural_sum = 0.0
     has_signal = False
 
     ewy_change = returns.get("ewy")
     if ewy_change is not None:
-        core_sum += float(ewy_change) * EWY_FX_CORE_EWY_WEIGHT
+        ewy_value = float(ewy_change)
+        learned_sum += ewy_value * ewy_coef
+        structural_sum += ewy_value * EWY_FX_STRUCTURAL_EWY_WEIGHT
         has_signal = True
 
     # USD/KRW 하락(음수)은 환율 측면에서 코스피 환산 상방을 깎아야 하므로 같은 부호로 반영한다.
     krw_change = returns.get("krw")
     if krw_change is not None:
-        core_sum += float(krw_change) * EWY_FX_CORE_KRW_WEIGHT
+        krw_value = float(krw_change)
+        learned_sum += krw_value * krw_coef
+        structural_sum += krw_value * EWY_FX_STRUCTURAL_KRW_WEIGHT
         has_signal = True
 
     if not has_signal:
         return None
 
-    return core_sum
+    learned_core = intercept + learned_sum
+    blend = EWY_FX_STRUCTURAL_BLEND
+    if abs(structural_sum) >= EWY_FX_HIGH_MOVE_TRIGGER_PCT:
+        blend = max(blend, EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
+    if fit_r2 < EWY_FX_LOW_CONFIDENCE_R2 or sample_size < 40:
+        blend = max(blend, EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
+
+    return learned_core * (1 - blend) + structural_sum * blend
 
 
 def fetch_live_auxiliary_anchor_change(
     baseline_session_date: str | None,
+    correction_params: dict[str, float] | None = None,
 ) -> tuple[float | None, float | None, float | None, dict[str, float]]:
     ticker_map = {
         "ewy": "EWY",
@@ -249,7 +316,7 @@ def fetch_live_auxiliary_anchor_change(
         if value is not None:
             returns[key] = value
 
-    core_change = compute_ewy_fx_core_change(returns)
+    core_change = compute_ewy_fx_core_change(returns, correction_params)
     ewy_change = returns.get("ewy")
     aux_sum = 0.0
     aux_weight = 0.0
@@ -854,6 +921,7 @@ def update_prediction_night_fields(
         if not isinstance(model_payload, dict):
             model_payload = {}
             payload["model"] = model_payload
+        correction_params = resolve_ewy_fx_correction_params(model_payload)
 
         raw_ml_change = to_float(model_payload.get("rawModelPct"))
         if raw_ml_change is None:
@@ -873,8 +941,8 @@ def update_prediction_night_fields(
             if isinstance(day_close_date, str) and day_close_date:
                 baseline_session_date = day_close_date
 
-        live_aux_anchor, live_core_anchor, live_ewy_change, _live_returns = fetch_live_auxiliary_anchor_change(
-            baseline_session_date
+        live_aux_anchor, live_core_anchor, live_ewy_change, live_returns = fetch_live_auxiliary_anchor_change(
+            baseline_session_date, correction_params
         )
         if live_aux_anchor is not None:
             auxiliary_anchor_change = live_aux_anchor
@@ -931,6 +999,14 @@ def update_prediction_night_fields(
         model_payload["liveRefreshGuardBandPct"] = round(guard_band, 2)
         if live_ewy_change is not None:
             model_payload["liveEwyChangePct"] = round(live_ewy_change, 2)
+        live_krw_change = live_returns.get("krw")
+        if live_krw_change is not None:
+            model_payload["liveKrwChangePct"] = round(float(live_krw_change), 2)
+        model_payload["ewyFxIntercept"] = round(float(correction_params["intercept"]), 4)
+        model_payload["ewyFxEwyCoef"] = round(float(correction_params["ewy_coef"]), 4)
+        model_payload["ewyFxKrwCoef"] = round(float(correction_params["krw_coef"]), 4)
+        model_payload["ewyFxSampleSize"] = int(float(correction_params.get("sample_size", 0.0)))
+        model_payload["ewyFxFitR2"] = round(float(correction_params.get("r2", 0.0)), 4)
         if baseline_session_date:
             model_payload["krxBaselineDate"] = baseline_session_date
         model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()

@@ -12,6 +12,7 @@
   - Anchor metadata bug fixed: `auxiliaryAnchorPct` now maps to auxiliary anchor instead of main anchor.
   - EWY/FX core anchor revised to `EWY + USD/KRW 변화율` (환율 하락분 차감), while U.S. index signals are blended only as auxiliary correction.
   - KRX sync baseline selection now prioritizes the first same-day quote at/after `15:30 KST` (e.g., EWY premarket 17:00 KST), then falls back to pre-15:30 quote if needed.
+  - EWY/FX correction now uses a hybrid of recent calibrated coefficients and structural `EWY + KRW` correction to avoid under-reacting on large overnight moves.
 
 ## 2026-04-09 (Security hardening)
 

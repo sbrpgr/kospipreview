@@ -87,6 +87,21 @@ AUXILIARY_SIGNAL_WEIGHTS = {
 EWY_FX_CORE_EWY_WEIGHT = 1.0
 EWY_FX_CORE_KRW_WEIGHT = 1.0
 AUXILIARY_SIGNAL_BLEND = 0.18
+EWY_FX_CORRECTION_LOOKBACK_DAYS = 160
+EWY_FX_CORRECTION_MIN_SAMPLES = 40
+EWY_FX_CORRECTION_RECENCY_DECAY = 0.985
+EWY_FX_CORRECTION_EWY_COEF_MIN = 0.20
+EWY_FX_CORRECTION_EWY_COEF_MAX = 1.80
+EWY_FX_CORRECTION_KRW_COEF_MIN = 0.20
+EWY_FX_CORRECTION_KRW_COEF_MAX = 1.80
+EWY_FX_CORRECTION_INTERCEPT_MIN = -1.50
+EWY_FX_CORRECTION_INTERCEPT_MAX = 1.50
+EWY_FX_STRUCTURAL_EWY_WEIGHT = 1.0
+EWY_FX_STRUCTURAL_KRW_WEIGHT = 1.0
+EWY_FX_STRUCTURAL_BLEND = 0.65
+EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE = 0.78
+EWY_FX_HIGH_MOVE_TRIGGER_PCT = 2.0
+EWY_FX_LOW_CONFIDENCE_R2 = 0.20
 ML_RESIDUAL_BLEND = 0.12
 ML_RESIDUAL_CAP_MIN_PCT = 0.18
 ML_RESIDUAL_CAP_MAX_PCT = 0.75
@@ -975,6 +990,71 @@ def build_dataset(market: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return dataset.ffill().dropna()
 
 
+def fit_ewy_fx_correction(dataset: pd.DataFrame) -> dict[str, float | int]:
+    default_payload = {
+        "intercept": 0.0,
+        "ewy_coef": EWY_FX_CORE_EWY_WEIGHT,
+        "krw_coef": EWY_FX_CORE_KRW_WEIGHT,
+        "sample_size": 0,
+        "r2": 0.0,
+        "mae": 0.0,
+    }
+
+    required_columns = {"target_return", "ewy_return", "krw_return"}
+    if not required_columns.issubset(dataset.columns):
+        return default_payload
+
+    sample = dataset[["target_return", "ewy_return", "krw_return"]].dropna()
+    if sample.empty:
+        return default_payload
+
+    sample = sample.tail(EWY_FX_CORRECTION_LOOKBACK_DAYS)
+    sample_size = int(len(sample))
+    if sample_size < EWY_FX_CORRECTION_MIN_SAMPLES:
+        default_payload["sample_size"] = sample_size
+        return default_payload
+
+    y = sample["target_return"].to_numpy(dtype=np.float64)
+    ewy = sample["ewy_return"].to_numpy(dtype=np.float64)
+    krw = sample["krw_return"].to_numpy(dtype=np.float64)
+    X = np.column_stack([np.ones(sample_size, dtype=np.float64), ewy, krw])
+
+    decay_exponents = np.arange(sample_size - 1, -1, -1, dtype=np.float64)
+    weights = np.power(EWY_FX_CORRECTION_RECENCY_DECAY, decay_exponents)
+    sqrt_weights = np.sqrt(weights)
+    weighted_X = X * sqrt_weights[:, None]
+    weighted_y = y * sqrt_weights
+
+    try:
+        beta, *_ = np.linalg.lstsq(weighted_X, weighted_y, rcond=None)
+        intercept_raw = float(beta[0])
+        ewy_coef_raw = float(beta[1])
+        krw_coef_raw = float(beta[2])
+    except (np.linalg.LinAlgError, ValueError):
+        return default_payload
+
+    intercept = float(
+        np.clip(intercept_raw, EWY_FX_CORRECTION_INTERCEPT_MIN, EWY_FX_CORRECTION_INTERCEPT_MAX)
+    )
+    ewy_coef = float(np.clip(ewy_coef_raw, EWY_FX_CORRECTION_EWY_COEF_MIN, EWY_FX_CORRECTION_EWY_COEF_MAX))
+    krw_coef = float(np.clip(krw_coef_raw, EWY_FX_CORRECTION_KRW_COEF_MIN, EWY_FX_CORRECTION_KRW_COEF_MAX))
+
+    fitted = intercept + ewy_coef * ewy + krw_coef * krw
+    residual = y - fitted
+    mae = float(np.mean(np.abs(residual)))
+    var_y = float(np.var(y))
+    r2 = 0.0 if var_y <= 0 else float(1 - np.var(residual) / var_y)
+
+    return {
+        "intercept": intercept,
+        "ewy_coef": ewy_coef,
+        "krw_coef": krw_coef,
+        "sample_size": sample_size,
+        "r2": r2,
+        "mae": mae,
+    }
+
+
 def train_lgbm(dataset: pd.DataFrame) -> dict:
     feat_cols = [f"{name}_return" for name in ALL_FEATURES if f"{name}_return" in dataset.columns]
     X_df = dataset[feat_cols]
@@ -1043,6 +1123,7 @@ def train_lgbm(dataset: pd.DataFrame) -> dict:
         "min": float(np.min(y)),
         "max": float(np.max(y)),
     }
+    ewy_fx_correction = fit_ewy_fx_correction(dataset)
 
     return {
         "rmse": rmse,
@@ -1054,6 +1135,7 @@ def train_lgbm(dataset: pd.DataFrame) -> dict:
         "feat_cols": feat_cols,
         "model_c": final_center,
         "target_bounds": target_bounds,
+        "ewy_fx_correction": ewy_fx_correction,
     }
 
 
@@ -1211,29 +1293,54 @@ def compute_live_return_pct(
     return (current_value / previous_close - 1) * 100
 
 
-def compute_ewy_fx_core_change(returns: dict[str, float]) -> float | None:
-    core_sum = 0.0
+def compute_ewy_fx_core_change(
+    returns: dict[str, float],
+    correction_params: dict[str, float | int] | None = None,
+) -> float | None:
+    params = correction_params or {}
+    intercept = float(params.get("intercept", 0.0))
+    ewy_coef = float(params.get("ewy_coef", EWY_FX_CORE_EWY_WEIGHT))
+    krw_coef = float(params.get("krw_coef", EWY_FX_CORE_KRW_WEIGHT))
+    fit_r2 = float(params.get("r2", 0.0))
+    sample_size = int(params.get("sample_size", 0) or 0)
+
+    learned_sum = 0.0
+    structural_sum = 0.0
     has_signal = False
 
     ewy_change = returns.get("ewy")
     if ewy_change is not None:
-        core_sum += float(ewy_change) * EWY_FX_CORE_EWY_WEIGHT
+        ewy_value = float(ewy_change)
+        learned_sum += ewy_value * ewy_coef
+        structural_sum += ewy_value * EWY_FX_STRUCTURAL_EWY_WEIGHT
         has_signal = True
 
     # USD/KRW 하락(음수)은 환율 측면에서 코스피 환산 상방을 깎아야 하므로 같은 부호로 반영한다.
     krw_change = returns.get("krw")
     if krw_change is not None:
-        core_sum += float(krw_change) * EWY_FX_CORE_KRW_WEIGHT
+        krw_value = float(krw_change)
+        learned_sum += krw_value * krw_coef
+        structural_sum += krw_value * EWY_FX_STRUCTURAL_KRW_WEIGHT
         has_signal = True
 
     if not has_signal:
         return None
 
-    return core_sum
+    learned_core = intercept + learned_sum
+    blend = EWY_FX_STRUCTURAL_BLEND
+    if abs(structural_sum) >= EWY_FX_HIGH_MOVE_TRIGGER_PCT:
+        blend = max(blend, EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
+    if fit_r2 < EWY_FX_LOW_CONFIDENCE_R2 or sample_size < EWY_FX_CORRECTION_MIN_SAMPLES:
+        blend = max(blend, EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
+
+    return learned_core * (1 - blend) + structural_sum * blend
 
 
-def compute_auxiliary_anchor_change(returns: dict[str, float]) -> float | None:
-    core_change = compute_ewy_fx_core_change(returns)
+def compute_auxiliary_anchor_change(
+    returns: dict[str, float],
+    correction_params: dict[str, float | int] | None = None,
+) -> float | None:
+    core_change = compute_ewy_fx_core_change(returns, correction_params)
 
     aux_sum = 0.0
     aux_weight = 0.0
@@ -1448,8 +1555,9 @@ def build_latest(
         dtype=np.float64,
     )
     raw_ml_change = float(result["model_c"].predict(feature_vector)[0])
-    ewy_fx_core_change = compute_ewy_fx_core_change(returns)
-    auxiliary_anchor_change = compute_auxiliary_anchor_change(returns)
+    ewy_fx_correction = result.get("ewy_fx_correction", {})
+    ewy_fx_core_change = compute_ewy_fx_core_change(returns, ewy_fx_correction)
+    auxiliary_anchor_change = compute_auxiliary_anchor_change(returns, ewy_fx_correction)
     night_centered_change, blend_debug = compute_night_centered_change(
         raw_ml_change=raw_ml_change,
         night_futures_change=None,
@@ -1498,6 +1606,7 @@ def build_latest(
         "latest_record_date": latest_record_date,
         "futures_day_close": futures_day_close,
         "futures_day_close_date": futures_day_close_date,
+        "ewy_fx_correction": ewy_fx_correction,
     }
 
 
@@ -1587,6 +1696,12 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             ),
             "coreAnchorPct": round(float(latest["core_anchor_c"]), 2) if latest["core_anchor_c"] is not None else None,
             "rawModelPct": round(float(latest["raw_pred_c"]), 2),
+            "ewyFxIntercept": round(float(latest.get("ewy_fx_correction", {}).get("intercept", 0.0)), 4),
+            "ewyFxEwyCoef": round(float(latest.get("ewy_fx_correction", {}).get("ewy_coef", 1.0)), 4),
+            "ewyFxKrwCoef": round(float(latest.get("ewy_fx_correction", {}).get("krw_coef", 1.0)), 4),
+            "ewyFxSampleSize": int(latest.get("ewy_fx_correction", {}).get("sample_size", 0) or 0),
+            "ewyFxFitR2": round(float(latest.get("ewy_fx_correction", {}).get("r2", 0.0)), 4),
+            "ewyFxFitMae": round(float(latest.get("ewy_fx_correction", {}).get("mae", 0.0)), 4),
             "mlResidualAdjPct": (
                 round(float(latest["ml_residual_adj_c"]), 2) if latest.get("ml_residual_adj_c") is not None else None
             ),
@@ -1731,6 +1846,7 @@ def write_diagnostics_json(result: dict) -> None:
         "rmse": round(result["rmse"], 4),
         "mae": round(result["mae"], 4),
         "featureImportance": result["fi"],
+        "ewyFxCorrection": result.get("ewy_fx_correction", {}),
         "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
     write_output_json("backtest_diagnostics.json", payload)
