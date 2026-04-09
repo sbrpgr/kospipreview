@@ -14,7 +14,7 @@ export function AccuracyTable({ history }: { history: HistoryData }) {
             <th>모델 예측치</th>
             <th>야간선물 오차</th>
             <th>모델 오차</th>
-            <th style={{ textAlign: "center" }}>Result</th>
+            <th style={{ textAlign: "center" }}>결과</th>
           </tr>
         </thead>
         <tbody>
@@ -48,7 +48,7 @@ export function AccuracyTable({ history }: { history: HistoryData }) {
                 </td>
                 <td style={{ textAlign: "center" }}>
                   <span className={`badge ${record.hit ? "hit" : "miss"}`}>
-                    {nightError === null ? (record.hit ? "HIT" : "MISS") : modelWins ? "모델 우세" : "비교 필요"}
+                    {nightError === null ? (record.hit ? "적중" : "미적중") : modelWins ? "모델 우세" : "비교 필요"}
                   </span>
                 </td>
               </tr>
