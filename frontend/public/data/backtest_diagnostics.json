@@ -12,8 +12,8 @@
     "sox_return",
     "krw_return"
   ],
-  "rmse": 35.72,
-  "mae": 18.4847,
+  "rmse": 35.723,
+  "mae": 18.4852,
   "featureImportance": {
     "ewy_return": 816,
     "koru_return": 708,
@@ -27,5 +27,5 @@
     "sox_return": 784,
     "krw_return": 857
   },
-  "generatedAt": "2026-04-09T00:56:38.597560+00:00"
+  "generatedAt": "2026-04-09T00:57:58.007552+00:00"
 }
