@@ -22,6 +22,45 @@ type LiveDashboardProps = {
 };
 
 const POLL_INTERVAL_MS = 60_000;
+const OPERATION_STATUS_INTERVAL_MS = 30_000;
+const NIGHT_OPERATION_HOURS_LABEL = "18:00~09:00";
+const NIGHT_OPERATION_START_MINUTES = 18 * 60;
+const NIGHT_OPERATION_END_MINUTES = 9 * 60;
+
+type MarketOperationInfo = {
+  hoursLabel: string;
+  statusLabel: string;
+};
+
+function getMarketOperationInfo(now: Date = new Date()): MarketOperationInfo {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Seoul",
+  }).formatToParts(now);
+
+  const weekday = parts.find((part) => part.type === "weekday")?.value ?? "";
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? "0");
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? "0");
+  const minutesSinceMidnight = hour * 60 + minute;
+
+  if (weekday === "Sat" || weekday === "Sun") {
+    return {
+      hoursLabel: NIGHT_OPERATION_HOURS_LABEL,
+      statusLabel: "\uD734\uC7A5",
+    };
+  }
+
+  const isNightOperationWindow =
+    minutesSinceMidnight >= NIGHT_OPERATION_START_MINUTES || minutesSinceMidnight < NIGHT_OPERATION_END_MINUTES;
+
+  return {
+    hoursLabel: NIGHT_OPERATION_HOURS_LABEL,
+    statusLabel: isNightOperationWindow ? "\uC6B4\uC601 \uC911" : "\uC6B4\uC601 \uB300\uAE30",
+  };
+}
 
 function formatCompactTimestamp(value: string) {
   const date = new Date(value);
@@ -228,6 +267,7 @@ export function LiveDashboard({
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [marketOperation, setMarketOperation] = useState<MarketOperationInfo>(() => getMarketOperationInfo());
   const versionRef = useRef(getDashboardVersion(initialPrediction, initialIndicators, initialHistory, initialFreshness));
   const indicatorsVersionRef = useRef(getIndicatorsVersion(initialIndicators));
 
@@ -310,6 +350,19 @@ export function LiveDashboard({
     };
   }, []);
 
+  useEffect(() => {
+    const updateOperationStatus = () => {
+      setMarketOperation(getMarketOperationInfo());
+    };
+
+    updateOperationStatus();
+    const timer = window.setInterval(updateOperationStatus, OPERATION_STATUS_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
+
   const latestIndicatorUpdate = getLatestIndicatorUpdate(indicators);
   const marketTimestampLabel = formatCompactTimestamp(latestIndicatorUpdate);
   const deployTimestampLabel = formatCompactTimestamp(
@@ -334,6 +387,9 @@ export function LiveDashboard({
             <div className="heroDate">{prediction.predictionDate} 코스피 시초가 전망</div>
             <div className="heroMeta">
               <div className="heroMetaChip">30일 평균 오차: {prediction.mae30d.toFixed(2)}pt</div>
+              <div className="heroMetaChip">
+                운영시간 {marketOperation.hoursLabel} · 운영상태 {marketOperation.statusLabel}
+              </div>
             </div>
           </div>
 
