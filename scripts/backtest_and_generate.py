@@ -1167,9 +1167,11 @@ def build_latest(
     )
     raw_ml_change = float(result["model_c"].predict(feature_vector)[0])
     auxiliary_anchor_change = compute_auxiliary_anchor_change(returns)
+    # Exclude night-futures from model prediction path.
+    # Night futures are kept only as a benchmark (simple conversion point).
     night_centered_change, blend_debug = compute_night_centered_change(
         raw_ml_change=raw_ml_change,
-        night_futures_change=night_futures_change,
+        night_futures_change=None,
         auxiliary_anchor_change=auxiliary_anchor_change,
     )
 
@@ -1201,8 +1203,8 @@ def build_latest(
         "night_futures_change_c": night_futures_change,
         "raw_pred_c": raw_ml_change,
         "core_anchor_c": auxiliary_anchor_change,
-        "night_anchor_c": blend_debug.get("anchor"),
-        "aux_anchor_c": blend_debug.get("aux_anchor"),
+        "night_anchor_c": None,
+        "aux_anchor_c": blend_debug.get("anchor"),
         "ml_residual_adj_c": blend_debug.get("ml_adjust"),
         "aux_residual_adj_c": blend_debug.get("aux_adjust"),
         "night_guard_band_c": blend_debug.get("guard_band"),
@@ -1293,7 +1295,8 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "engine": "LightGBM",
             "vix": round(latest["vix"], 2),
             "lgbmRmse": round(result["rmse"], 2),
-            "calculationMode": "NightFuturesCore+AuxSignals",
+            "calculationMode": "AuxSignalsCore+NoNightFutures",
+            "nightFuturesExcluded": True,
             "nightFuturesAnchorPct": (
                 round(float(latest["night_anchor_c"]), 2) if latest.get("night_anchor_c") is not None else None
             ),
