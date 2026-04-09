@@ -119,6 +119,19 @@ const NOTICE_ITEMS: NoticeItem[] = [
   },
 ];
 
+const NOTICE_DISPLAY_TITLES = [
+  "KOSPI Dawn 시작 가이드 · 플랫폼 소개",
+  "KOSPI Dawn 모델 가이드 · 인공지능 예측 방식",
+  "KOSPI Dawn 기능 가이드 · 화면 활용법",
+  "해외주식 기초 가이드 · 미국장 지표 읽는 법",
+  "해외주식 기초 가이드 · 환율/변동성/원자재 해석",
+  "데이터 운영 가이드 · 갱신 지연 이해하기",
+  "실전 활용 가이드 · 예측값 사용하는 방법",
+  "리스크 관리 가이드 · 손실 관리 우선 원칙",
+  "운영 신뢰 가이드 · 서비스 운영 원칙",
+  "최종 안내 · 면책 및 책임 범위",
+] as const;
+
 export function NoticeContent() {
   return (
     <section className="noticeSection" aria-label="공지 및 안내">
@@ -129,9 +142,9 @@ export function NoticeContent() {
         지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주시기 바랍니다.
       </p>
       <div className="noticeList">
-        {NOTICE_ITEMS.map((item) => (
+        {NOTICE_ITEMS.map((item, index) => (
           <details key={item.title} className="noticeItem">
-            <summary>{item.title}</summary>
+            <summary>{NOTICE_DISPLAY_TITLES[index] ?? item.title}</summary>
             <div className="noticeBody">
               {item.paragraphs.map((paragraph) => (
                 <p key={paragraph.slice(0, 40)}>{paragraph}</p>
