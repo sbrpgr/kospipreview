@@ -62,27 +62,6 @@ function getMarketOperationInfo(now: Date = new Date()): MarketOperationInfo {
   };
 }
 
-function formatCompactTimestamp(value: string) {
-  const date = new Date(value);
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "Asia/Seoul",
-  }).formatToParts(date);
-
-  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
-  const month = parts.find((part) => part.type === "month")?.value ?? "00";
-  const day = parts.find((part) => part.type === "day")?.value ?? "00";
-  const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
-  const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
-
-  return `${year}:${month}:${day}:${hour}:${minute}`;
-}
-
 function getLatestIndicatorUpdate(indicators: IndicatorData) {
   return (
     [...indicators.primary, ...indicators.secondary]
@@ -363,13 +342,6 @@ export function LiveDashboard({
     };
   }, []);
 
-  const latestIndicatorUpdate = getLatestIndicatorUpdate(indicators);
-  const marketTimestampLabel = formatCompactTimestamp(latestIndicatorUpdate);
-  const deployTimestampLabel = formatCompactTimestamp(
-    indicators.generatedAt ?? prediction.generatedAt ?? freshness.newestModifiedAt,
-  );
-  const checkedTimestampLabel = lastCheckedAt ? formatCompactTimestamp(lastCheckedAt) : "-";
-  const changedTimestampLabel = lastChangedAt ? formatCompactTimestamp(lastChangedAt) : "-";
   const statusMessage = getStatusMeta(freshness.status, freshness.latestRecordDate);
   const nightSimplePoint = typeof prediction.nightFuturesSimplePoint === "number" ? prediction.nightFuturesSimplePoint : null;
   const nightSimpleChangePct =
@@ -437,10 +409,7 @@ export function LiveDashboard({
           </div>
         </div>
         <div className="sectionSubtext">
-          시장지표 (최종시장시각 {marketTimestampLabel} KST · 사이트반영시각 {deployTimestampLabel} KST
-          {" · "}마지막확인 {checkedTimestampLabel} KST · 마지막변경 {changedTimestampLabel} KST)
-          {" · "}지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주세요.
-          {" · "}장전 시간(미국 ET 04:00~09:30)에 추적 불가 항목은 카드에 (장 시작전)으로 표기됩니다.
+          지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주시기 바랍니다.
         </div>
         <IndicatorList indicators={indicators} />
 

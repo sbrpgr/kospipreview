@@ -1,32 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap');
 
 :root {
-  --bg-app: #eef3f8;
+  --bg-app: #f4f6fb;
   --bg: #ffffff;
-  --surface: rgba(255, 255, 255, 0.88);
-  --surface-strong: #f7f9fc;
-  --surface-tint: #edf4ff;
-  --border: rgba(30, 41, 59, 0.08);
-  --border-hover: rgba(37, 99, 235, 0.25);
-  --text: #0f172a;
-  --text-secondary: #475569;
-  --text-dim: #64748b;
-  --brand: #0f3d91;
-  --brand-strong: #2563eb;
-  --brand-bg: rgba(37, 99, 235, 0.1);
-  --positive: #d92d20;
-  --positive-bg: rgba(217, 45, 32, 0.1);
-  --negative: #155eef;
-  --negative-bg: rgba(21, 94, 239, 0.1);
-  --accent: #1d4ed8;
-  --gold: #b7791f;
-  --gold-bg: rgba(183, 121, 31, 0.12);
-  --radius-sm: 12px;
-  --radius-md: 20px;
-  --radius-lg: 28px;
-  --shadow-sm: 0 12px 32px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 18px 44px rgba(15, 23, 42, 0.09);
-  --font-sans: 'IBM Plex Sans KR', 'Segoe UI', sans-serif;
+  --surface: #ffffff;
+  --surface-strong: #f8fafc;
+  --surface-tint: #eef5ff;
+  --border: #e6ebf2;
+  --border-hover: #d7e3f5;
+  --text: #191f28;
+  --text-secondary: #4e5968;
+  --text-dim: #8b95a1;
+  --brand: #3182f6;
+  --brand-strong: #2b76e5;
+  --brand-bg: rgba(49, 130, 246, 0.1);
+  --positive: #e2485b;
+  --positive-bg: rgba(226, 72, 91, 0.11);
+  --negative: #2f6ff3;
+  --negative-bg: rgba(47, 111, 243, 0.11);
+  --accent: #2f6ff3;
+  --gold: #8f6b2e;
+  --gold-bg: rgba(143, 107, 46, 0.12);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 6px 18px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 10px 26px rgba(15, 23, 42, 0.08);
+  --font-sans: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   --transition: 0.2s ease-in-out;
 }
@@ -42,26 +43,11 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 32%),
-    radial-gradient(circle at top right, rgba(15, 61, 145, 0.14), transparent 28%),
-    linear-gradient(180deg, #f8fbff 0%, var(--bg-app) 35%, #e9f0f8 100%);
+  background: linear-gradient(180deg, #f8fafc 0%, var(--bg-app) 100%);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.6;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent 85%);
 }
 
 a {
@@ -92,16 +78,15 @@ p {
 .pageContainer {
   width: min(980px, 100% - 32px);
   margin: 0 auto;
-  padding: 28px 0 88px;
+  padding: 24px 0 88px;
 }
 
 .card {
   background: var(--surface);
-  backdrop-filter: blur(18px);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
-  padding: 30px;
+  padding: 28px;
   margin-bottom: 24px;
 }
 
@@ -112,12 +97,11 @@ p {
   margin-bottom: 28px;
   flex-wrap: wrap;
   gap: 14px;
-  padding: 16px 18px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 24px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(18px);
 }
 
 .brandLockup {
@@ -135,14 +119,14 @@ p {
 }
 
 .brandMark {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, rgba(15, 61, 145, 0.14), rgba(37, 99, 235, 0.22));
+  background: linear-gradient(165deg, rgba(49, 130, 246, 0.16), rgba(49, 130, 246, 0.07));
   color: var(--brand-strong);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
 .brandText {
@@ -157,11 +141,11 @@ p {
 }
 
 .brandSubtitle {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   color: var(--text-dim);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .statusRow {
@@ -175,12 +159,13 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  padding: 7px 12px;
+  padding: 6px 11px;
   background: var(--brand-bg);
   color: var(--brand-strong);
   border-radius: 999px;
+  border: 1px solid rgba(49, 130, 246, 0.22);
 }
 
 .statusLabel.isAging {
@@ -201,9 +186,9 @@ p {
 }
 
 .statusTime {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: var(--text-dim);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .statusTimeGroup {
@@ -228,21 +213,19 @@ p {
   position: relative;
   overflow: hidden;
   text-align: left;
-  padding: 38px 34px;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(238, 244, 255, 0.9)),
-    var(--surface);
+  padding: 34px 32px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
 }
 
 .heroSection::after {
   content: "";
   position: absolute;
   right: -70px;
-  top: -60px;
-  width: 230px;
-  height: 230px;
+  top: -70px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.18) 0%, rgba(37, 99, 235, 0) 70%);
+  background: radial-gradient(circle, rgba(49, 130, 246, 0.13) 0%, rgba(49, 130, 246, 0) 72%);
   pointer-events: none;
 }
 
@@ -259,12 +242,13 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--brand);
   background: var(--brand-bg);
-  padding: 8px 14px;
+  padding: 7px 12px;
   border-radius: 999px;
+  border: 1px solid rgba(49, 130, 246, 0.2);
 }
 
 .heroMeta {
@@ -278,11 +262,11 @@ p {
   align-items: center;
   gap: 6px;
   border-radius: 999px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  padding: 7px 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
@@ -297,19 +281,19 @@ p {
 .heroDualForecast {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .heroForecastCard {
   padding: 16px 18px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: #ffffff;
+  border: 1px solid var(--border);
 }
 
 .heroForecastCard.isModel {
-  border-color: rgba(37, 99, 235, 0.25);
-  background: linear-gradient(180deg, rgba(239, 246, 255, 0.92), rgba(255, 255, 255, 0.86));
+  border-color: rgba(49, 130, 246, 0.28);
+  background: linear-gradient(180deg, #f3f8ff 0%, #ffffff 100%);
 }
 
 .heroForecastLabel {
@@ -321,7 +305,7 @@ p {
 
 .heroForecastValue {
   font-size: clamp(1.8rem, 4vw, 2.35rem);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text);
   line-height: 1.05;
@@ -357,37 +341,37 @@ p {
 }
 
 .heroBand {
-  margin-top: 22px;
+  margin-top: 18px;
   display: inline-block;
-  padding: 14px 20px;
-  background: linear-gradient(180deg, #f7faff, #eef4ff);
-  border: 1px solid rgba(37, 99, 235, 0.12);
-  border-radius: 18px;
-  font-size: 1rem;
+  padding: 12px 16px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-secondary);
 }
 
 .heroMessage {
-  margin-top: 20px;
-  font-size: 1rem;
+  margin-top: 18px;
+  font-size: 0.96rem;
   color: var(--text-secondary);
-  line-height: 1.7;
+  line-height: 1.66;
   max-width: 720px;
 }
 
 .heroFootnote {
-  margin-top: 16px;
+  margin-top: 14px;
   color: var(--text-dim);
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: 0.84rem;
+  font-weight: 500;
 }
 
 .sectionTitle {
-  font-size: 1.18rem;
-  font-weight: 700;
+  font-size: 1.12rem;
+  font-weight: 800;
   color: var(--text);
-  margin: 40px 0 18px 6px;
+  margin: 38px 0 16px 4px;
 }
 
 .sectionTitleRow {
@@ -404,23 +388,23 @@ p {
 }
 
 .sectionSubtext {
-  margin: 0 0 18px 8px;
+  margin: 0 0 16px 4px;
   color: var(--text-dim);
-  font-size: 0.9rem;
-  font-weight: 600;
-  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
 }
 
 .liveMetaBadge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 7px 11px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(37, 99, 235, 0.14);
+  background: #ffffff;
+  border: 1px solid var(--border);
   color: var(--brand-strong);
-  font-size: 0.82rem;
+  font-size: 0.79rem;
   font-weight: 700;
 }
 
@@ -441,14 +425,14 @@ p {
 .indicatorGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .indCard {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 250, 255, 0.9));
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 18px;
+  padding: 16px;
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
   cursor: pointer;
@@ -458,7 +442,7 @@ p {
 }
 
 .indCard:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: var(--border-hover);
 }
@@ -474,10 +458,10 @@ p {
 }
 
 .indLabel {
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .indLabelRow {
@@ -494,7 +478,7 @@ p {
 
 .indPhase {
   flex: 0 0 auto;
-  font-size: 0.72rem;
+  font-size: 0.69rem;
   font-weight: 700;
   color: #92400e;
   background: rgba(245, 158, 11, 0.16);
@@ -504,31 +488,31 @@ p {
 }
 
 .indValue {
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.28rem;
+  font-weight: 800;
   color: var(--text);
   font-family: var(--font-mono);
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .indChange {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 700;
   font-family: var(--font-mono);
 }
 
 .indSource {
-  margin-top: 8px;
-  font-size: 0.76rem;
+  margin-top: 7px;
+  font-size: 0.72rem;
   color: var(--text-dim);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
 }
 
 .indReference {
   margin-top: 4px;
-  font-size: 0.74rem;
+  font-size: 0.71rem;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
 }
 
 .indSourceNote {
@@ -565,11 +549,11 @@ p {
 }
 
 .cleanTable th {
-  background: linear-gradient(180deg, #f8fbff, #f2f6fd);
+  background: #f8fafc;
   color: var(--text-secondary);
   font-weight: 700;
-  font-size: 0.82rem;
-  padding: 18px 20px;
+  font-size: 0.8rem;
+  padding: 16px 18px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -579,14 +563,14 @@ p {
 }
 
 .cleanTable td {
-  padding: 16px 20px;
-  font-size: 0.94rem;
+  padding: 15px 18px;
+  font-size: 0.9rem;
   border-bottom: 1px solid var(--border);
   font-weight: 500;
 }
 
 .cleanTable tbody tr:hover {
-  background: rgba(248, 250, 252, 0.86);
+  background: #fbfdff;
 }
 
 .cleanTable tbody tr:last-child td {
@@ -595,9 +579,9 @@ p {
 
 .badge {
   display: inline-block;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 800;
 }
 
@@ -612,12 +596,12 @@ p {
 }
 
 .footer {
-  margin-top: 60px;
-  padding-top: 28px;
-  border-top: 1px dashed rgba(100, 116, 139, 0.25);
+  margin-top: 54px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
   text-align: center;
   color: var(--text-dim);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
 }
 
@@ -662,16 +646,16 @@ p {
 @media (max-width: 720px) {
   .pageContainer {
     width: min(100% - 20px, 980px);
-    padding-top: 20px;
+    padding-top: 18px;
   }
 
   .card {
-    padding: 22px;
-    border-radius: 22px;
+    padding: 20px;
+    border-radius: 18px;
   }
 
   .heroSection {
-    padding: 24px;
+    padding: 22px;
   }
 
   .heroPrice {
@@ -690,8 +674,8 @@ p {
   }
 
   .sectionSubtext {
-    margin-left: 6px;
-    font-size: 0.82rem;
+    margin-left: 4px;
+    font-size: 0.79rem;
   }
 
   .statusTimeGroup {

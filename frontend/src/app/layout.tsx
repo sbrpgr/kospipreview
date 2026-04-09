@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Noto_Sans_KR } from "next/font/google";
 import { ThirdPartyScripts } from "@/components/third-party-scripts";
 import {
   SITE_DESCRIPTION,
@@ -11,11 +10,6 @@ import {
   toAbsoluteUrl,
 } from "@/lib/seo";
 import "./globals.css";
-
-const notoSansKR = Noto_Sans_KR({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-});
 
 const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 const canonicalRedirectTarget = SITE_URL;
@@ -128,7 +122,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </>
         ) : null}
       </head>
-      <body className={notoSansKR.className}>
+      <body>
         {children}
         <ThirdPartyScripts />
       </body>
