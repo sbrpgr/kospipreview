@@ -28,16 +28,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Restore static export cache
+        id: static-export-cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/out
+          key: next-export-${{ runner.os }}-${{ hashFiles('frontend/src/**', 'frontend/package-lock.json', 'frontend/next.config.ts', 'frontend/tsconfig.json') }}-${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+
+      - name: Setup Node
+        if: steps.static-export-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        if: steps.static-export-cache.outputs.cache-hit != 'true'
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        if: steps.static-export-cache.outputs.cache-hit != 'true'
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+        run: npm run build
+
       - name: Refresh night futures payload
         run: python ./scripts/refresh_night_futures.py
-
-      - name: Validate static export
-        shell: bash
-        run: |
-          if [ ! -f frontend/out/index.html ]; then
-            echo "frontend/out/index.html is missing. Build/export must exist before data-only deploy." >&2
-            exit 1
-          fi
 
       - name: Prepare Firebase credentials
         shell: bash
