@@ -78,6 +78,8 @@ KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
 KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 KRX_SYNC_MAX_FORWARD_HOURS = 12
+US_SESSION_OPEN_TIME = time(9, 30)
+US_SESSION_CLOSE_TIME = time(16, 0)
 
 NIGHT_FUTURES_PRIMARY_SCALE = 1.0
 AUXILIARY_SIGNAL_WEIGHTS = {
@@ -1251,6 +1253,47 @@ def resolve_value_at_krx_sync_baseline(
     return baseline_value, baseline_ts_utc
 
 
+def previous_us_business_day(base: date) -> date:
+    candidate = base - timedelta(days=1)
+    while candidate.weekday() >= 5:
+        candidate -= timedelta(days=1)
+    return candidate
+
+
+def resolve_value_at_us_session_open(live_series: pd.Series) -> tuple[float | None, datetime | None]:
+    series = live_series.dropna()
+    if series.empty:
+        return None, None
+
+    index = pd.DatetimeIndex(series.index)
+    if index.tz is None:
+        index_utc = index.tz_localize("UTC")
+    else:
+        index_utc = index.tz_convert("UTC")
+    index_et = index_utc.tz_convert(US_ET)
+
+    frame = pd.DataFrame({"value": series.values}, index=index_et).dropna()
+    if frame.empty:
+        return None, None
+
+    latest_et = frame.index[-1]
+    if latest_et.weekday() < 5 and latest_et.time() >= US_SESSION_OPEN_TIME:
+        session_date = latest_et.date()
+    else:
+        session_date = previous_us_business_day(latest_et.date())
+
+    session_open_et = datetime.combine(session_date, US_SESSION_OPEN_TIME, tzinfo=US_ET)
+    session_close_et = datetime.combine(session_date, US_SESSION_CLOSE_TIME, tzinfo=US_ET)
+    session_rows = frame[(frame.index >= session_open_et) & (frame.index <= session_close_et)]
+    if session_rows.empty:
+        return None, None
+
+    baseline_ts_et = session_rows.index[0]
+    baseline_value = float(session_rows.iloc[0]["value"])
+    baseline_ts_utc = baseline_ts_et.tz_convert("UTC").to_pydatetime()
+    return baseline_value, baseline_ts_utc
+
+
 def compute_live_return_pct(
     name: str,
     live_market: dict[str, pd.DataFrame],
@@ -1731,11 +1774,6 @@ def write_indicators_json(
     secondary_keys = ["nasdaq", "vix", "koru", "k200f", "dow", "gold", "us10y", "sox"]
     now_utc = datetime.now(timezone.utc)
     in_us_premarket_now = is_us_premarket_window(now_utc)
-    kospi_live = live_market.get("kospi", pd.DataFrame())
-    kospi_live_series = kospi_live["Close"] if "Close" in kospi_live else pd.Series(dtype=float)
-    kospi_history = history_market.get("kospi", pd.DataFrame())
-    kospi_history_series = kospi_history["Close"] if "Close" in kospi_history else pd.Series(dtype=float)
-    _, baseline_session_date = resolve_latest_completed_krx_session(kospi_live_series, kospi_history_series)
 
     def build_indicator(name: str) -> dict:
         if name == "k200f":
@@ -1801,7 +1839,7 @@ def write_indicators_json(
 
         current_value = float(series.iloc[-1])
         latest_ts = as_utc_datetime(pd.Timestamp(series.index[-1]))
-        baseline_value, _ = resolve_value_at_krx_sync_baseline(series, baseline_session_date)
+        baseline_value, _ = resolve_value_at_us_session_open(series)
         if baseline_value is not None and baseline_value != 0:
             change_pct = (current_value / baseline_value - 1) * 100
         else:
