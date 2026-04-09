@@ -473,6 +473,8 @@ export function LiveDashboard({
         <div className="footerLinks">
           <a href="/about">모델 설명</a>
           <a href="/privacy">개인정보처리방침</a>
+          <a href="/contact">문의</a>
+          <a href="/operations-policy">운영정책</a>
         </div>
       </footer>
     </div>

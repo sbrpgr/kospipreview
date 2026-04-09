@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { toAbsoluteUrl } from "@/lib/seo";
 
-const routes = ["/", "/about", "/history", "/privacy"] as const;
+const routes = ["/", "/about", "/history", "/privacy", "/contact", "/operations-policy"] as const;
 export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
