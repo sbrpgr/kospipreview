@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -27,6 +28,7 @@ DOCS_DIR = ROOT / "docs"
 # Keep yfinance timezone cache outside the repository so CI git state stays clean.
 CACHE_DIR = Path.home() / ".cache" / "kospipreview-yfinance"
 DAY_FUTURES_CLOSE_CACHE_FILE = DATA_DIR / "day_futures_close_cache.json"
+PREDICTION_ARCHIVE_FILE = DATA_DIR / "prediction_archive.json"
 
 KST = timezone(timedelta(hours=9))
 US_ET = ZoneInfo("America/New_York")
@@ -62,8 +64,11 @@ LOOKBACK_DAYS = 3 * 365
 ALL_FEATURES = list(FEATURE_TICKERS.keys())
 HISTORY_RECORDS = 30
 RECENT_HISTORY_FILL_DAYS = 5
-SYNTHETIC_BAND_MAE_FACTOR = 0.55
-SYNTHETIC_BAND_MIN_PCT = 0.0025
+PREDICTION_ARCHIVE_MAX_RECORDS = 200
+ESTIMATED_BAND_MAE_FACTOR = 0.9
+ESTIMATED_BAND_MIN_PCT = 0.003
+FALLBACK_ESTIMATE_CHANGE_WEIGHT = 0.6
+FALLBACK_ESTIMATE_BAND_MAE_FACTOR = 1.1
 PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
 PREMARKET_STALE_MINUTES = 45
 KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
@@ -145,11 +150,15 @@ def main() -> None:
     dataset = build_dataset(market)
     print("Training LightGBM models...")
     result = train_lgbm(dataset)
+    prior_prediction_payload = load_prediction_payload()
+    prediction_archive = load_prediction_archive()
+    prediction_archive = merge_prediction_into_archive(prediction_archive, prior_prediction_payload)
     print("Writing output JSON files...")
-    history_df = build_history_df(result, market, live_market)
+    history_df = build_history_df(result, market, live_market, dataset, prediction_archive)
     latest = build_latest(live_market, result, market, live_overrides)
-
-    write_prediction_json(latest, result, history_df)
+    prediction_payload = write_prediction_json(latest, result, history_df)
+    prediction_archive = merge_prediction_into_archive(prediction_archive, prediction_payload)
+    write_prediction_archive_json(prediction_archive)
     write_history_json(result, history_df)
     write_indicators_json(live_market, market, live_overrides)
     write_diagnostics_json(result)
@@ -162,6 +171,130 @@ def write_output_json(file_name: str, payload: dict) -> None:
     OUT_DATA_DIR.mkdir(parents=True, exist_ok=True)
     (DATA_DIR / file_name).write_text(encoded, encoding="utf8")
     (OUT_DATA_DIR / file_name).write_text(encoded, encoding="utf8")
+
+
+def parse_prediction_target_date(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+
+    iso_match = re.search(r"\d{4}-\d{2}-\d{2}", value)
+    if iso_match:
+        return iso_match.group(0)
+
+    num_parts = re.findall(r"\d+", value)
+    if len(num_parts) < 3:
+        return None
+
+    year, month, day = (int(num_parts[0]), int(num_parts[1]), int(num_parts[2]))
+    try:
+        return date(year, month, day).isoformat()
+    except ValueError:
+        return None
+
+
+def load_prediction_payload() -> dict | None:
+    path = DATA_DIR / "prediction.json"
+    if not path.exists():
+        return None
+
+    try:
+        payload = json.loads(path.read_text(encoding="utf8"))
+    except (OSError, ValueError, TypeError):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def load_prediction_archive() -> list[dict]:
+    if not PREDICTION_ARCHIVE_FILE.exists():
+        return []
+
+    try:
+        payload = json.loads(PREDICTION_ARCHIVE_FILE.read_text(encoding="utf8"))
+    except (OSError, ValueError, TypeError):
+        return []
+
+    if not isinstance(payload, dict):
+        return []
+
+    records = payload.get("records")
+    if not isinstance(records, list):
+        return []
+
+    normalized: list[dict] = []
+    for record in records:
+        if isinstance(record, dict):
+            normalized.append(record)
+    return normalized
+
+
+def normalize_prediction_archive_entry(payload: dict) -> dict | None:
+    prediction_date_iso = parse_prediction_target_date(
+        payload.get("predictionDateIso") or payload.get("predictionDate")
+    )
+    generated_at = payload.get("generatedAt")
+    if not prediction_date_iso or not isinstance(generated_at, str):
+        return None
+
+    try:
+        low = float(payload.get("rangeLow"))
+        high = float(payload.get("rangeHigh"))
+        point = float(payload.get("pointPrediction"))
+    except (TypeError, ValueError):
+        return None
+
+    if low > high:
+        low, high = high, low
+
+    return {
+        "predictionDateIso": prediction_date_iso,
+        "predictionDate": payload.get("predictionDate"),
+        "generatedAt": generated_at,
+        "rangeLow": round(low, 2),
+        "rangeHigh": round(high, 2),
+        "pointPrediction": round(point, 2),
+    }
+
+
+def merge_prediction_into_archive(archive: list[dict], payload: dict | None) -> list[dict]:
+    if payload is None:
+        return archive
+
+    entry = normalize_prediction_archive_entry(payload)
+    if entry is None:
+        return archive
+
+    by_date: dict[str, dict] = {}
+    for row in archive:
+        normalized = normalize_prediction_archive_entry(row)
+        if normalized is None:
+            continue
+        date_key = normalized["predictionDateIso"]
+        existing = by_date.get(date_key)
+        if existing is None or str(normalized["generatedAt"]) >= str(existing["generatedAt"]):
+            by_date[date_key] = normalized
+
+    date_key = entry["predictionDateIso"]
+    existing = by_date.get(date_key)
+    if existing is None or str(entry["generatedAt"]) >= str(existing["generatedAt"]):
+        by_date[date_key] = entry
+
+    merged = sorted(
+        by_date.values(),
+        key=lambda row: str(row.get("predictionDateIso", "")),
+        reverse=True,
+    )[:PREDICTION_ARCHIVE_MAX_RECORDS]
+    return merged
+
+
+def write_prediction_archive_json(archive: list[dict]) -> None:
+    payload = {
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "records": archive,
+    }
+    write_output_json("prediction_archive.json", payload)
 
 
 def fetch_market_data() -> dict[str, pd.DataFrame]:
@@ -1032,7 +1165,15 @@ def next_prediction_date_label(now_kst: datetime) -> str:
     return pd.Timestamp(target_date).strftime("%Y년 %m월 %d일")
 
 
-def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) -> None:
+def next_prediction_date_iso(now_kst: datetime) -> str:
+    if now_kst.hour < 9:
+        target_date = pd.Timestamp(now_kst.date())
+    else:
+        target_date = pd.Timestamp(now_kst.date()) + pd.offsets.BDay(1)
+    return pd.Timestamp(target_date).date().isoformat()
+
+
+def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) -> dict:
     now_utc = datetime.now(timezone.utc)
     now_kst = now_utc.astimezone(KST)
     latest_record_date = latest.get("latest_record_date")
@@ -1043,6 +1184,7 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
     payload = {
         "generatedAt": now_utc.isoformat(),
         "predictionDate": next_prediction_date_label(now_kst),
+        "predictionDateIso": next_prediction_date_iso(now_kst),
         "pointPrediction": round(latest["point"], 2),
         "nightFuturesSimplePoint": (
             round(float(latest["night_futures_simple_point"]), 2)
@@ -1093,6 +1235,7 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
         },
     }
     write_output_json("prediction.json", payload)
+    return payload
 
 
 def write_indicators_json(
@@ -1246,53 +1389,225 @@ def _extract_kospi_open_by_date(
     return open_by_date
 
 
+def _extract_kospi_prev_close_by_date(history_market: dict[str, pd.DataFrame]) -> dict[date, float]:
+    prev_close_by_date: dict[date, float] = {}
+    daily_kospi = history_market.get("kospi", pd.DataFrame())
+    close_series = daily_kospi["Close"].dropna() if "Close" in daily_kospi else pd.Series(dtype=float)
+    if close_series.empty:
+        return prev_close_by_date
+
+    close_series = close_series.sort_index()
+    previous_close: float | None = None
+    for ts, value in close_series.items():
+        target_date = pd.Timestamp(ts).date()
+        if previous_close is not None:
+            prev_close_by_date[target_date] = previous_close
+        previous_close = float(value)
+    return prev_close_by_date
+
+
+def _build_prediction_archive_lookup(prediction_archive: list[dict]) -> dict[date, dict]:
+    lookup: dict[date, dict] = {}
+    for raw in prediction_archive:
+        normalized = normalize_prediction_archive_entry(raw)
+        if normalized is None:
+            continue
+        try:
+            date_key = date.fromisoformat(str(normalized["predictionDateIso"]))
+        except ValueError:
+            continue
+
+        existing = lookup.get(date_key)
+        if existing is None or str(normalized["generatedAt"]) >= str(existing["generatedAt"]):
+            lookup[date_key] = normalized
+    return lookup
+
+
+def _build_archive_history_row(
+    target_date: date,
+    archive_entry: dict,
+    actual_open: float,
+    prev_close: float | None,
+) -> dict:
+    low = float(archive_entry["rangeLow"])
+    high = float(archive_entry["rangeHigh"])
+    point = float(archive_entry["pointPrediction"])
+    if low > high:
+        low, high = high, low
+
+    direction_hit = False
+    if prev_close and prev_close != 0:
+        predicted_change = point - prev_close
+        actual_change = actual_open - prev_close
+        direction_hit = np.sign(predicted_change) == np.sign(actual_change)
+
+    return {
+        "date": target_date.isoformat(),
+        "pred_open": point,
+        "actual_open": actual_open,
+        "low": low,
+        "high": high,
+        "error": point - actual_open,
+        "hit": low <= actual_open <= high,
+        "direction_hit": bool(direction_hit),
+        "is_synthetic": False,
+    }
+
+
+def _estimate_history_row_from_dataset(
+    target_date: date,
+    actual_open: float,
+    dataset: pd.DataFrame,
+    result: dict,
+    prev_close: float | None,
+) -> dict | None:
+    def build_fallback_row() -> dict:
+        prev_close_value = actual_open if prev_close is None or prev_close == 0 else float(prev_close)
+        realized_change = ((actual_open / prev_close_value) - 1) * 100 if prev_close_value else 0.0
+        damped_change = realized_change * FALLBACK_ESTIMATE_CHANGE_WEIGHT
+        point_open = prev_close_value * (1 + damped_change / 100)
+        half_band = max(
+            float(result.get("mae", 0.0)) * FALLBACK_ESTIMATE_BAND_MAE_FACTOR,
+            prev_close_value * ESTIMATED_BAND_MIN_PCT * 1.2,
+        )
+        low = point_open - half_band
+        high = point_open + half_band
+        return {
+            "date": target_date.isoformat(),
+            "pred_open": point_open,
+            "actual_open": actual_open,
+            "low": low,
+            "high": high,
+            "error": point_open - actual_open,
+            "hit": low <= actual_open <= high,
+            "direction_hit": np.sign(point_open - prev_close_value) == np.sign(actual_open - prev_close_value),
+            "is_synthetic": True,
+        }
+
+    if dataset.empty:
+        return build_fallback_row()
+
+    target_ts = pd.Timestamp(target_date)
+    if target_ts not in dataset.index:
+        return build_fallback_row()
+
+    row = dataset.loc[target_ts]
+    if isinstance(row, pd.DataFrame):
+        row = row.iloc[-1]
+
+    row_prev_close = row.get("prev_close")
+    if row_prev_close is None or pd.isna(row_prev_close) or float(row_prev_close) == 0:
+        prev_close_value = actual_open if prev_close is None or prev_close == 0 else float(prev_close)
+    else:
+        prev_close_value = float(row_prev_close)
+
+    feature_values: list[float] = []
+    for feature_name in result["feat_cols"]:
+        value = row.get(feature_name, 0.0)
+        feature_values.append(0.0 if pd.isna(value) else float(value))
+
+    feature_vector = np.array([feature_values], dtype=np.float64)
+    predicted_change = float(result["model_c"].predict(feature_vector)[0])
+    point_open = prev_close_value * (1 + predicted_change / 100)
+
+    vix_level = row.get("vix_level", 20.0)
+    vix_float = 20.0 if pd.isna(vix_level) else float(vix_level)
+    band_multiplier = choose_band_multiplier(vix_float)
+    half_band = max(
+        float(result.get("mae", 0.0)) * ESTIMATED_BAND_MAE_FACTOR * band_multiplier,
+        prev_close_value * ESTIMATED_BAND_MIN_PCT * band_multiplier,
+    )
+    low = point_open - half_band
+    high = point_open + half_band
+
+    return {
+        "date": target_date.isoformat(),
+        "pred_open": point_open,
+        "actual_open": actual_open,
+        "low": low,
+        "high": high,
+        "error": point_open - actual_open,
+        "hit": low <= actual_open <= high,
+        "direction_hit": np.sign(point_open - prev_close_value) == np.sign(actual_open - prev_close_value),
+        "is_synthetic": True,
+    }
+
+
 def _fill_recent_history_gaps(
     history_df: pd.DataFrame,
     result: dict,
     history_market: dict[str, pd.DataFrame],
     live_market: dict[str, pd.DataFrame],
+    dataset: pd.DataFrame,
+    prediction_archive: list[dict],
 ) -> pd.DataFrame:
     open_by_date = _extract_kospi_open_by_date(history_market, live_market)
     if not open_by_date:
         return history_df
 
+    prev_close_by_date = _extract_kospi_prev_close_by_date(history_market)
+    archive_lookup = _build_prediction_archive_lookup(prediction_archive)
     now_kst_date = datetime.now(timezone.utc).astimezone(KST).date()
     recent_dates = [
         d for d in sorted(open_by_date.keys(), reverse=True) if d <= now_kst_date
     ][:RECENT_HISTORY_FILL_DAYS]
 
-    existing_dates: set[str] = set()
-    if not history_df.empty and "date" in history_df:
-        existing_dates = {str(value) for value in history_df["date"].astype(str).tolist()}
+    if history_df.empty:
+        base_df = pd.DataFrame(columns=["date", "pred_open", "actual_open", "low", "high", "error", "hit"])
+    else:
+        base_df = history_df.copy()
+    base_df["date"] = base_df["date"].astype(str)
+    base_df["__priority"] = 2
+    if "is_synthetic" not in base_df.columns:
+        base_df["is_synthetic"] = False
 
-    synthetic_rows: list[dict] = []
-    mae = float(result.get("mae", 0.0) or 0.0)
+    archive_rows: list[dict] = []
+    estimated_rows: list[dict] = []
+    protected_dates: set[str] = set(base_df["date"].tolist())
     for target_date in recent_dates:
         date_key = target_date.isoformat()
-        if date_key in existing_dates:
+        actual_open = float(open_by_date[target_date])
+        archive_entry = archive_lookup.get(target_date)
+        if archive_entry is not None:
+            archive_rows.append(
+                _build_archive_history_row(
+                    target_date=target_date,
+                    archive_entry=archive_entry,
+                    actual_open=actual_open,
+                    prev_close=prev_close_by_date.get(target_date),
+                )
+            )
+            protected_dates.add(date_key)
             continue
 
-        actual_open = float(open_by_date[target_date])
-        half_band = max(mae * SYNTHETIC_BAND_MAE_FACTOR, actual_open * SYNTHETIC_BAND_MIN_PCT)
-        synthetic_rows.append(
-            {
-                "date": date_key,
-                "pred_open": actual_open,
-                "actual_open": actual_open,
-                "low": actual_open - half_band,
-                "high": actual_open + half_band,
-                "error": 0.0,
-                "hit": True,
-                "direction_hit": True,
-                "is_synthetic": True,
-            }
+        if date_key in protected_dates:
+            continue
+
+        estimated_row = _estimate_history_row_from_dataset(
+            target_date=target_date,
+            actual_open=actual_open,
+            dataset=dataset,
+            result=result,
+            prev_close=prev_close_by_date.get(target_date),
         )
+        if estimated_row is not None:
+            estimated_rows.append(estimated_row)
 
-    if not synthetic_rows:
-        return history_df
+    frames: list[pd.DataFrame] = [base_df]
+    if estimated_rows:
+        estimated_df = pd.DataFrame(estimated_rows)
+        estimated_df["__priority"] = 1
+        frames.append(estimated_df)
+    if archive_rows:
+        archive_df = pd.DataFrame(archive_rows)
+        archive_df["__priority"] = 3
+        frames.append(archive_df)
 
-    synthetic_df = pd.DataFrame(synthetic_rows)
-    combined = pd.concat([history_df, synthetic_df], ignore_index=True, sort=False)
+    combined = pd.concat(frames, ignore_index=True, sort=False)
+    combined["date"] = combined["date"].astype(str)
+    combined = combined.sort_values(["date", "__priority"], ascending=[False, False])
+    combined = combined.drop_duplicates(subset=["date"], keep="first")
+    combined = combined.drop(columns=["__priority"], errors="ignore")
     return combined
 
 
@@ -1300,6 +1615,8 @@ def build_history_df(
     result: dict,
     history_market: dict[str, pd.DataFrame],
     live_market: dict[str, pd.DataFrame],
+    dataset: pd.DataFrame,
+    prediction_archive: list[dict],
 ) -> pd.DataFrame:
     df = result["preds"].copy()
     if df.empty:
@@ -1309,7 +1626,14 @@ def build_history_df(
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    df = _fill_recent_history_gaps(df, result, history_market, live_market)
+    df = _fill_recent_history_gaps(
+        history_df=df,
+        result=result,
+        history_market=history_market,
+        live_market=live_market,
+        dataset=dataset,
+        prediction_archive=prediction_archive,
+    )
     if {"low", "high", "actual_open"}.issubset(df.columns):
         df[["low", "high", "actual_open"]] = df[["low", "high", "actual_open"]].round(2)
     return df.sort_values("date", ascending=False).head(HISTORY_RECORDS).reset_index(drop=True)
