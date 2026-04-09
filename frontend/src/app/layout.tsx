@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
-import Script from "next/script";
 import { ThirdPartyScripts } from "@/components/third-party-scripts";
 import {
   SITE_DESCRIPTION,
@@ -20,6 +19,7 @@ const notoSansKR = Noto_Sans_KR({
 
 const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 const canonicalRedirectTarget = SITE_URL;
+const ADSENSE_CLIENT = "ca-pub-5869520985295558";
 
 const canonicalHostRedirectScript = `
   (function () {
@@ -42,6 +42,33 @@ const canonicalHostRedirectScript = `
       window.location.search +
       window.location.hash;
     window.location.replace(targetUrl);
+  })();
+`;
+
+const adsenseHeadScript = `
+  (function () {
+    var client = ${JSON.stringify(ADSENSE_CLIENT)};
+    var canonicalHost = ${JSON.stringify(SITE_HOSTNAME)};
+    if (!client || !canonicalHost) return;
+
+    var currentHost = window.location.hostname.toLowerCase();
+    var isAllowedHost =
+      currentHost === canonicalHost ||
+      currentHost === ("www." + canonicalHost) ||
+      currentHost === "localhost" ||
+      currentHost === "127.0.0.1";
+    if (!isAllowedHost) return;
+
+    if (document.querySelector('script[data-adsense-client="' + client + '"]')) return;
+
+    var script = document.createElement("script");
+    script.async = true;
+    script.src =
+      "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" +
+      encodeURIComponent(client);
+    script.crossOrigin = "anonymous";
+    script.setAttribute("data-adsense-client", client);
+    document.head.appendChild(script);
   })();
 `;
 
@@ -95,10 +122,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: canonicalHostRedirectScript }} />
+        <script dangerouslySetInnerHTML={{ __html: adsenseHeadScript }} />
+      </head>
       <body className={notoSansKR.className}>
-        <Script id="canonical-host-redirect" strategy="beforeInteractive">
-          {canonicalHostRedirectScript}
-        </Script>
         {children}
         <ThirdPartyScripts />
       </body>

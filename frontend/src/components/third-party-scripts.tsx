@@ -11,14 +11,6 @@ function normalizeGaMeasurementId(raw: string | undefined) {
   return raw.trim().toUpperCase();
 }
 
-function normalizeAdsenseClient(raw: string | undefined) {
-  if (!raw) {
-    return "";
-  }
-  const value = raw.trim();
-  return value.startsWith("ca-pub-") ? value : "";
-}
-
 function isAllowedScriptHost(hostname: string) {
   const current = hostname.trim().toLowerCase();
   if (!current) {
@@ -38,7 +30,6 @@ function isAllowedScriptHost(hostname: string) {
 
 export function ThirdPartyScripts() {
   const gaMeasurementId = normalizeGaMeasurementId(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID);
-  const adsenseClient = normalizeAdsenseClient(process.env.NEXT_PUBLIC_ADSENSE_CLIENT);
   const [isAllowedHost, setIsAllowedHost] = useState(false);
 
   useEffect(() => {
@@ -46,7 +37,6 @@ export function ThirdPartyScripts() {
   }, []);
 
   const shouldLoadGa = isAllowedHost && gaMeasurementId.startsWith("G-");
-  const shouldLoadAdsense = isAllowedHost && adsenseClient.length > 0;
 
   return (
     <>
@@ -67,16 +57,6 @@ export function ThirdPartyScripts() {
             `}
           </Script>
         </>
-      ) : null}
-
-      {shouldLoadAdsense ? (
-        <Script
-          id="adsense-auto-ads"
-          async
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
-        />
       ) : null}
     </>
   );
