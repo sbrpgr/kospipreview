@@ -370,7 +370,6 @@ export function LiveDashboard({
           <div className="heroTopLine">
             <div className="heroDate">{prediction.predictionDate} 코스피 시초가 전망</div>
             <div className="heroMeta">
-              <div className="heroMetaChip">30일 평균 오차: {prediction.mae30d.toFixed(2)}pt</div>
               <div className="heroMetaChip">
                 운영시간 {marketOperation.hoursLabel} · 운영상태 {marketOperation.statusLabel}
               </div>
