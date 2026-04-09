@@ -49,7 +49,7 @@ function getMarketOperationInfo(now: Date = new Date()): MarketOperationInfo {
   if (weekday === "Sat" || weekday === "Sun") {
     return {
       hoursLabel: NIGHT_OPERATION_HOURS_LABEL,
-      statusLabel: "\uD734\uC7A5",
+      statusLabel: "휴장",
     };
   }
 
@@ -58,7 +58,7 @@ function getMarketOperationInfo(now: Date = new Date()): MarketOperationInfo {
 
   return {
     hoursLabel: NIGHT_OPERATION_HOURS_LABEL,
-    statusLabel: isNightOperationWindow ? "\uC6B4\uC601 \uC911" : "\uC6B4\uC601 \uB300\uAE30",
+    statusLabel: isNightOperationWindow ? "운영 중" : "운영 대기",
   };
 }
 
@@ -81,10 +81,7 @@ function toKstDateTimestamp(dateText: string | null | undefined) {
   return Number.isNaN(ts) ? Number.NaN : ts;
 }
 
-function pickLatestRecordDate(
-  historyDate: string | null | undefined,
-  predictionDate: string | null | undefined,
-) {
+function pickLatestRecordDate(historyDate: string | null | undefined, predictionDate: string | null | undefined) {
   const historyTs = toKstDateTimestamp(historyDate);
   const predictionTs = toKstDateTimestamp(predictionDate);
 
@@ -106,15 +103,15 @@ function pickLatestRecordDate(
 function getStatusMeta(status: FreshnessData["status"], latestRecordDate: string | null) {
   if (status === "stale") {
     return latestRecordDate
-      ? `최근 반영 일자는 ${latestRecordDate} 기준입니다. 지표별 갱신 주기가 다르므로 최신 값은 각 데이터 출처에서 확인해 주세요.`
-      : "최근 반영 일자를 확인하지 못했습니다. 지표별 갱신 주기가 다르므로 최신 값은 각 데이터 출처에서 확인해 주세요.";
+      ? `최근 반영 일자는 ${latestRecordDate} 기준입니다. 지표마다 갱신 주기가 다르므로 최신 값은 출처에서 확인해 주세요.`
+      : "최근 반영 일자를 확인하지 못했습니다. 지표마다 갱신 주기가 다르므로 최신 값은 출처에서 확인해 주세요.";
   }
 
   if (status === "aging") {
-    return "해외 지표 마감 시각과 배포 주기에 따라 반영 시차가 발생할 수 있습니다. 최신 값은 각 데이터 출처에서 확인해 주세요.";
+    return "해외 지표 마감 시각과 배포 주기에 따라 반영 지연이 있을 수 있습니다. 최신 값은 출처에서 확인해 주세요.";
   }
 
-  return "지표마다 갱신 주기가 다릅니다. 화면 값은 참고용이며 최신 값은 각 데이터 출처에서 확인해 주세요.";
+  return "지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주세요.";
 }
 
 function getDashboardVersion(
@@ -254,12 +251,12 @@ export function LiveDashboard({
   const [indicators, setIndicators] = useState(initialIndicators);
   const [history, setHistory] = useState(initialHistory);
   const [freshness, setFreshness] = useState(initialFreshness);
+  const [hasSyncedOnce, setHasSyncedOnce] = useState(false);
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
   const [isSyncing, setIsSyncing] = useState(false);
   const [marketOperation, setMarketOperation] = useState<MarketOperationInfo>(() => getMarketOperationInfo());
   const versionRef = useRef(getDashboardVersion(initialPrediction, initialIndicators, initialHistory, initialFreshness));
-  const indicatorsVersionRef = useRef(getIndicatorsVersion(initialIndicators));
 
   useEffect(() => {
     let cancelled = false;
@@ -278,25 +275,21 @@ export function LiveDashboard({
           return;
         }
 
-        const indicatorsChanged = indicatorSnapshot.indicatorsVersion !== indicatorsVersionRef.current;
-
-        if (indicatorsChanged) {
-          indicatorsVersionRef.current = indicatorSnapshot.indicatorsVersion;
-          const next = await fetchDashboardPayload(indicatorSnapshot.indicators);
-          if (cancelled) {
-            return;
-          }
-
-          if (next.version !== versionRef.current) {
-            versionRef.current = next.version;
-            setPrediction(next.prediction);
-            setIndicators(next.indicators);
-            setHistory(next.history);
-            setFreshness(next.freshness);
-            setLastChangedAt(next.freshness.newestModifiedAt);
-          }
+        const next = await fetchDashboardPayload(indicatorSnapshot.indicators);
+        if (cancelled) {
+          return;
         }
 
+        if (next.version !== versionRef.current) {
+          versionRef.current = next.version;
+          setPrediction(next.prediction);
+          setIndicators(next.indicators);
+          setHistory(next.history);
+          setFreshness(next.freshness);
+          setLastChangedAt(next.freshness.newestModifiedAt);
+        }
+
+        setHasSyncedOnce(true);
         setLastCheckedAt(new Date().toISOString());
       } catch {
         if (!cancelled) {
@@ -354,12 +347,17 @@ export function LiveDashboard({
   }, []);
 
   const statusMessage = getStatusMeta(freshness.status, freshness.latestRecordDate);
-  const nightSimplePoint = typeof prediction.nightFuturesSimplePoint === "number" ? prediction.nightFuturesSimplePoint : null;
+  const hasLiveSnapshot = hasSyncedOnce;
+  const nightSimplePoint =
+    hasLiveSnapshot && typeof prediction.nightFuturesSimplePoint === "number" ? prediction.nightFuturesSimplePoint : null;
   const nightSimpleChangePct =
-    typeof prediction.nightFuturesSimpleChangePct === "number" ? prediction.nightFuturesSimpleChangePct : null;
-  const futuresDayClose = typeof prediction.futuresDayClose === "number" ? prediction.futuresDayClose : null;
+    hasLiveSnapshot && typeof prediction.nightFuturesSimpleChangePct === "number"
+      ? prediction.nightFuturesSimpleChangePct
+      : null;
+  const futuresDayClose =
+    hasLiveSnapshot && typeof prediction.futuresDayClose === "number" ? prediction.futuresDayClose : null;
   const futuresDayCloseDate = prediction.futuresDayCloseDate ?? "";
-  const isModelForecastReady = nightSimplePoint !== null;
+  const isModelForecastReady = hasLiveSnapshot && nightSimplePoint !== null;
 
   return (
     <div className="pageContainer">
@@ -419,9 +417,11 @@ export function LiveDashboard({
           </div>
 
           <div className="heroMessage">
-            {isModelForecastReady
-              ? prediction.signalSummary
-              : "모델 예측값은 야간선물 데이터가 수집되기 시작하면 표시됩니다."}
+            {!hasLiveSnapshot
+              ? "최신 데이터 확인 중입니다."
+              : isModelForecastReady
+                ? prediction.signalSummary
+                : "모델 예측값은 야간선물 데이터가 수집되기 시작하면 표시됩니다."}
           </div>
           <div className="heroFootnote">{statusMessage}</div>
         </section>
@@ -434,8 +434,8 @@ export function LiveDashboard({
           </div>
         </div>
         <div className="sectionSubtext">
-          지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주시기 바랍니다. 야간선물 데이터는
-          지연될 수 있으며 실시간 정보가 아닐 수 있으므로 투자 참고용으로만 활용해 주시기 바랍니다.
+          지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주시기 바랍니다. 야간선물 데이터는 지연될 수
+          있으며 실시간 정보가 아닐 수 있으므로 투자 참고용으로만 활용해 주시기 바랍니다.
         </div>
         <IndicatorList indicators={indicators} />
 
@@ -444,7 +444,7 @@ export function LiveDashboard({
         <h2 className="sectionTitle" style={{ marginTop: "60px" }}>
           최근 실측 기록
         </h2>
-        <AccuracyTable history={history} prediction={prediction} />
+        <AccuracyTable history={history} prediction={hasLiveSnapshot ? prediction : undefined} />
       </main>
 
       <footer className="footer">
