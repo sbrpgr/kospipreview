@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,481.58원",
-      "changePct": -1.17,
-      "updatedAt": "2026-04-09T00:15:00+00:00",
+      "value": "1,481.08원",
+      "changePct": -1.2,
+      "updatedAt": "2026-04-09T00:17:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$97.08",
-      "changePct": 0.01,
-      "updatedAt": "2026-04-09T00:05:00+00:00",
+      "value": "$97.22",
+      "changePct": 0.03,
+      "updatedAt": "2026-04-09T00:07:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,726.90",
+      "value": "$4,725.10",
       "changePct": 0.0,
-      "updatedAt": "2026-04-09T00:05:00+00:00",
+      "updatedAt": "2026-04-09T00:07:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -131,13 +131,13 @@
       "label": "PHLX Semiconductor",
       "value": "8,510.92",
       "changePct": 6.34,
-      "updatedAt": "2026-04-08T21:14:00+00:00",
+      "updatedAt": "2026-04-08T21:15:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ESOX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T00:16:02.623239+00:00",
+  "generatedAt": "2026-04-09T00:17:22.443264+00:00",
   "isUsPremarketNow": false
 }
