@@ -348,6 +348,7 @@ export function LiveDashboard({
     typeof prediction.nightFuturesSimpleChangePct === "number" ? prediction.nightFuturesSimpleChangePct : null;
   const futuresDayClose = typeof prediction.futuresDayClose === "number" ? prediction.futuresDayClose : null;
   const futuresDayCloseDate = prediction.futuresDayCloseDate ?? "";
+  const isModelForecastReady = nightSimplePoint !== null;
 
   return (
     <div className="pageContainer">
@@ -386,18 +387,32 @@ export function LiveDashboard({
             </div>
             <div className="heroForecastCard isModel">
               <div className="heroForecastLabel">모델 예측</div>
-              <div className="heroForecastValue">{prediction.pointPrediction.toLocaleString("ko-KR")}</div>
-              <div className={`heroForecastChange ${prediction.predictedChangePct >= 0 ? "isPos" : "isNeg"}`}>
-                {prediction.predictedChangePct >= 0 ? "상방" : "하방"} {Math.abs(prediction.predictedChangePct).toFixed(2)}%
+              <div className="heroForecastValue">
+                {isModelForecastReady ? prediction.pointPrediction.toLocaleString("ko-KR") : "-"}
+              </div>
+              <div
+                className={`heroForecastChange ${
+                  !isModelForecastReady ? "isNeu" : prediction.predictedChangePct >= 0 ? "isPos" : "isNeg"
+                }`}
+              >
+                {isModelForecastReady
+                  ? `${prediction.predictedChangePct >= 0 ? "상방" : "하방"} ${Math.abs(prediction.predictedChangePct).toFixed(2)}%`
+                  : "-"}
               </div>
             </div>
           </div>
 
           <div className="heroBand">
-            모델 예상 밴드 {prediction.rangeLow.toLocaleString("ko-KR")} ~ {prediction.rangeHigh.toLocaleString("ko-KR")}
+            {isModelForecastReady
+              ? `모델 예상 밴드 ${prediction.rangeLow.toLocaleString("ko-KR")} ~ ${prediction.rangeHigh.toLocaleString("ko-KR")}`
+              : "모델 예상 밴드 -"}
           </div>
 
-          <div className="heroMessage">{prediction.signalSummary}</div>
+          <div className="heroMessage">
+            {isModelForecastReady
+              ? prediction.signalSummary
+              : "모델 예측값은 야간선물 데이터가 수집되기 시작하면 표시됩니다."}
+          </div>
           <div className="heroFootnote">{statusMessage}</div>
         </section>
 
