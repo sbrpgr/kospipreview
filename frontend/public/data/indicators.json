@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,479.48원",
-      "changePct": -1.31,
-      "updatedAt": "2026-04-09T00:48:00+00:00",
+      "value": "1,479.28원",
+      "changePct": -1.32,
+      "updatedAt": "2026-04-09T00:49:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$97.08",
-      "changePct": -0.04,
-      "updatedAt": "2026-04-09T00:38:00+00:00",
+      "value": "$97.04",
+      "changePct": 0.01,
+      "updatedAt": "2026-04-09T00:39:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,736.80",
+      "value": "$4,736.50",
       "changePct": 0.0,
-      "updatedAt": "2026-04-09T00:38:00+00:00",
+      "updatedAt": "2026-04-09T00:39:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T00:48:39.857684+00:00",
+  "generatedAt": "2026-04-09T00:50:03.680760+00:00",
   "isUsPremarketNow": false
 }
