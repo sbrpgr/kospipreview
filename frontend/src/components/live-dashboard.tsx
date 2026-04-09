@@ -437,14 +437,32 @@ export function LiveDashboard({
           지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주시기 바랍니다. 야간선물 데이터는 지연될 수
           있으며 실시간 정보가 아닐 수 있으므로 투자 참고용으로만 활용해 주시기 바랍니다.
         </div>
-        <IndicatorList indicators={indicators} />
+        {hasLiveSnapshot ? (
+          <IndicatorList indicators={indicators} />
+        ) : (
+          <div className="card sectionLoadingCard">
+            <div className="sectionLoadingText">시장 지표를 동기화하는 중입니다.</div>
+          </div>
+        )}
 
-        <ChartSection history={history} />
+        {hasLiveSnapshot ? (
+          <ChartSection history={history} />
+        ) : (
+          <div className="card sectionLoadingCard chartLoadingCard">
+            <div className="sectionLoadingText">최근 예측 차트를 준비하는 중입니다.</div>
+          </div>
+        )}
 
         <h2 className="sectionTitle" style={{ marginTop: "60px" }}>
           최근 실측 기록
         </h2>
-        <AccuracyTable history={history} prediction={hasLiveSnapshot ? prediction : undefined} />
+        {hasLiveSnapshot ? (
+          <AccuracyTable history={history} prediction={prediction} />
+        ) : (
+          <div className="card sectionLoadingCard">
+            <div className="sectionLoadingText">최근 실측 기록을 동기화하는 중입니다.</div>
+          </div>
+        )}
       </main>
 
       <footer className="footer">

@@ -395,6 +395,25 @@ p {
   font-family: var(--font-sans);
 }
 
+.sectionLoadingCard {
+  margin-bottom: 24px;
+  padding: 20px 22px;
+}
+
+.chartLoadingCard {
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sectionLoadingText {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 .liveMetaBadge {
   display: inline-flex;
   align-items: center;
