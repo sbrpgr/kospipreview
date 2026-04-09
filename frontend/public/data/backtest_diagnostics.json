@@ -12,20 +12,20 @@
     "sox_return",
     "krw_return"
   ],
-  "rmse": 35.7109,
-  "mae": 18.4833,
+  "rmse": 35.72,
+  "mae": 18.4847,
   "featureImportance": {
     "ewy_return": 800,
-    "koru_return": 666,
-    "sp500_return": 610,
-    "nasdaq_return": 712,
-    "dow_return": 778,
-    "vix_return": 975,
-    "wti_return": 1007,
-    "gold_return": 987,
-    "us10y_return": 751,
-    "sox_return": 832,
-    "krw_return": 882
+    "koru_return": 662,
+    "sp500_return": 594,
+    "nasdaq_return": 710,
+    "dow_return": 793,
+    "vix_return": 983,
+    "wti_return": 1037,
+    "gold_return": 1005,
+    "us10y_return": 753,
+    "sox_return": 804,
+    "krw_return": 859
   },
-  "generatedAt": "2026-04-09T03:05:49.731439+00:00"
+  "generatedAt": "2026-04-09T03:07:04.268481+00:00"
 }
