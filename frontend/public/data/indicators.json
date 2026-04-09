@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$135.90",
-      "changePct": -2.98,
-      "updatedAt": "2026-04-09T10:01:52+00:00",
+      "value": "$135.86",
+      "changePct": -3.01,
+      "updatedAt": "2026-04-09T10:04:12+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,478.57원",
+      "value": "1,478.58원",
       "changePct": -1.37,
-      "updatedAt": "2026-04-09T10:03:00+00:00",
+      "updatedAt": "2026-04-09T10:04:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$97.54",
-      "changePct": 3.32,
-      "updatedAt": "2026-04-09T09:53:00+00:00",
+      "value": "$97.45",
+      "changePct": 3.22,
+      "updatedAt": "2026-04-09T09:54:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -60,9 +60,9 @@
     {
       "key": "vix",
       "label": "VIX",
-      "value": "21.41",
-      "changePct": 1.76,
-      "updatedAt": "2026-04-09T09:48:00+00:00",
+      "value": "21.44",
+      "changePct": 1.9,
+      "updatedAt": "2026-04-09T09:49:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$368.35",
-      "changePct": -9.05,
-      "updatedAt": "2026-04-09T10:03:06+00:00",
+      "value": "$369.26",
+      "changePct": -8.83,
+      "updatedAt": "2026-04-09T10:04:23+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -82,9 +82,9 @@
     {
       "key": "k200f",
       "label": "KOSPI 200 야간선물",
-      "value": "867.15",
-      "changePct": -0.16,
-      "updatedAt": "2026-04-09T10:02:50+00:00",
+      "value": "867.30",
+      "changePct": -0.14,
+      "updatedAt": "2026-04-09T10:04:21+00:00",
       "sourceUrl": "",
       "dataSource": "실시간 수집",
       "displayTag": "(야간)",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,754.90",
-      "changePct": 0.11,
-      "updatedAt": "2026-04-09T09:53:00+00:00",
+      "value": "$4,752.10",
+      "changePct": 0.05,
+      "updatedAt": "2026-04-09T09:54:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T10:03:13.893389+00:00",
+  "generatedAt": "2026-04-09T10:04:28.277612+00:00",
   "isUsPremarketNow": true
 }
