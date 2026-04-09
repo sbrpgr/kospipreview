@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$97.17",
-      "changePct": -0.01,
-      "updatedAt": "2026-04-09T03:03:00+00:00",
+      "value": "$97.15",
+      "changePct": 0.0,
+      "updatedAt": "2026-04-09T03:04:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,741.80",
+      "value": "$4,741.00",
       "changePct": -0.01,
-      "updatedAt": "2026-04-09T03:03:00+00:00",
+      "updatedAt": "2026-04-09T03:04:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T03:13:20.515856+00:00",
+  "generatedAt": "2026-04-09T03:14:32.564586+00:00",
   "isUsPremarketNow": false
 }
