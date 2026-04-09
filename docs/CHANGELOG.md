@@ -7,6 +7,7 @@
   - `scripts/refresh_night_futures.py` now updates `pointPrediction` / `predictedChangePct` every refresh cycle using EWY-core auxiliary signals (night futures excluded from model path).
   - Live EWY/aux returns are calculated from the KRX sync baseline (`15:30 KST`) instead of Yahoo U.S. session previous close.
   - Indicator card `changePct` display is now computed from the U.S. regular session open (`09:30 ET`) baseline.
+  - `refresh_night_futures.py` also re-syncs dashboard indicator `changePct` to the same U.S. open baseline each cycle so display values do not fall back to internal KRX-sync correction metrics.
 - Model logic realignment
   - `scripts/backtest_and_generate.py` keeps model prediction on no-night-futures path (`night_futures_change=None` in core blending).
   - Metadata now reports `EWYCore+AuxSignals+NoNightFutures(KRXCloseSync)` and `nightFuturesExcluded=true`.

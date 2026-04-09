@@ -6,6 +6,7 @@ import urllib.parse
 import urllib.request
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "frontend" / "public" / "data"
@@ -16,6 +17,7 @@ DAY_FUTURES_CLOSE_CACHE_FILE = DATA_DIR / "day_futures_close_cache.json"
 NIGHT_FUTURES_SOURCE_CACHE_FILE = DATA_DIR / "night_futures_source_cache.json"
 
 KST = timezone(timedelta(hours=9))
+US_ET = ZoneInfo("America/New_York")
 
 ESIGNAL_KOSPI_NIGHT_PAGE_URL = "https://esignal.co.kr/kospi200-futures-night/"
 ESIGNAL_KOSPI_NIGHT_CACHE_URL = "https://esignal.co.kr/data/cache/kospif_ngt.js"
@@ -32,10 +34,26 @@ ESIGNAL_USER_AGENT = (
 
 KOSPI_DAY_FUTURES_SESSION_OPEN = time(8, 45)
 KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 45)
+US_SESSION_OPEN_TIME = time(9, 30)
+US_SESSION_CLOSE_TIME = time(16, 0)
 NIGHT_OPERATION_START = time(18, 0)
 NIGHT_OPERATION_END = time(6, 30)
 NIGHT_FUTURES_STALE_MINUTES = 180
 NIGHT_FUTURES_SOURCE_MIN_REFRESH_SECONDS = 30
+
+DISPLAY_TICKER_BY_KEY = {
+    "ewy": "EWY",
+    "krw": "KRW=X",
+    "wti": "CL=F",
+    "sp500": "^GSPC",
+    "nasdaq": "^NDX",
+    "vix": "^VIX",
+    "koru": "KORU",
+    "dow": "^DJI",
+    "gold": "GC=F",
+    "us10y": "^TNX",
+    "sox": "^SOX",
+}
 
 AUXILIARY_SIGNAL_WEIGHTS = {
     "sp500": 0.55,
@@ -178,6 +196,56 @@ def fetch_yahoo_chart_points(symbol: str) -> list[tuple[datetime, float]]:
             continue
         points.append((ts_utc, close_value))
     return points
+
+
+def resolve_value_at_us_session_open(points: list[tuple[datetime, float]]) -> tuple[float | None, datetime | None]:
+    if not points:
+        return None, None
+
+    latest_ts_utc, _latest_value = points[-1]
+    latest_et = latest_ts_utc.astimezone(US_ET)
+    if latest_et.weekday() < 5 and latest_et.time() >= US_SESSION_OPEN_TIME:
+        session_date = latest_et.date()
+    else:
+        session_date = previous_business_day(latest_et.date())
+
+    session_open_et = datetime.combine(session_date, US_SESSION_OPEN_TIME, tzinfo=US_ET)
+    session_close_et = datetime.combine(session_date, US_SESSION_CLOSE_TIME, tzinfo=US_ET)
+
+    for ts_utc, value in points:
+        ts_et = ts_utc.astimezone(US_ET)
+        if session_open_et <= ts_et <= session_close_et:
+            return value, ts_utc
+
+    return None, None
+
+
+def fetch_yahoo_us_open_display_snapshot(symbol: str) -> dict | None:
+    points = fetch_yahoo_chart_points(symbol)
+    if not points:
+        return None
+
+    latest_ts_utc, latest_value = points[-1]
+    baseline_value, _baseline_ts_utc = resolve_value_at_us_session_open(points)
+    if baseline_value is None or baseline_value == 0:
+        return None
+
+    change_pct = (latest_value / baseline_value - 1) * 100
+    return {
+        "value": latest_value,
+        "change_pct": change_pct,
+        "updated_at": latest_ts_utc.isoformat(),
+    }
+
+
+def format_indicator_value(key: str, value: float) -> str:
+    if key in {"ewy", "koru", "wti", "gold"}:
+        return f"${value:,.2f}"
+    if key == "krw":
+        return f"{value:,.2f}원"
+    if key == "us10y":
+        return f"{value:,.2f}%"
+    return f"{value:,.2f}"
 
 
 def fetch_yahoo_intraday_return_pct(symbol: str, baseline_session_date: str | None) -> float | None:
@@ -900,6 +968,54 @@ def update_k200f_in_indicators(payload: dict, k200f_indicator: dict, now_utc: da
     return payload
 
 
+def update_display_changes_from_us_open(payload: dict, now_utc: datetime) -> dict:
+    primary = payload.get("primary")
+    if not isinstance(primary, list):
+        primary = []
+    secondary = payload.get("secondary")
+    if not isinstance(secondary, list):
+        secondary = []
+
+    snapshots: dict[str, dict | None] = {}
+
+    def apply_rows(rows: list) -> None:
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            key = str(row.get("key") or "")
+            if key == "k200f":
+                continue
+
+            ticker = DISPLAY_TICKER_BY_KEY.get(key)
+            if not ticker:
+                continue
+
+            if key not in snapshots:
+                snapshots[key] = fetch_yahoo_us_open_display_snapshot(ticker)
+            snapshot = snapshots[key]
+            if not snapshot:
+                continue
+
+            value = to_float(snapshot.get("value"))
+            change_pct = to_float(snapshot.get("change_pct"))
+            updated_at = snapshot.get("updated_at")
+            if value is None or change_pct is None or not isinstance(updated_at, str):
+                continue
+
+            row["value"] = format_indicator_value(key, value)
+            row["changePct"] = round(change_pct, 2)
+            row["updatedAt"] = updated_at
+            row["dataSource"] = "Yahoo Finance"
+
+    apply_rows(primary)
+    apply_rows(secondary)
+
+    payload["primary"] = primary
+    payload["secondary"] = secondary
+    payload["generatedAt"] = now_utc.isoformat()
+    return payload
+
+
 def update_prediction_night_fields(
     payload: dict,
     quote: dict | None,
@@ -1032,6 +1148,7 @@ def main() -> None:
     day_close_quote = resolve_day_futures_close_quote()
     night_quote = fetch_esignal_kospi_night_quote(day_close_quote)
 
+    indicators_payload = update_display_changes_from_us_open(indicators_payload, now_utc)
     k200f_indicator = build_k200f_indicator(night_quote, day_close_quote)
     indicators_payload = update_k200f_in_indicators(indicators_payload, k200f_indicator, now_utc)
     write_output_json("indicators.json", indicators_payload)
