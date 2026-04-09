@@ -682,6 +682,79 @@ p {
   color: #1d4ed8;
 }
 
+.noticeSection {
+  margin-top: 42px;
+}
+
+.noticeLead {
+  margin-bottom: 14px;
+}
+
+.noticeList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.noticeItem {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.noticeItem[open] {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.noticeItem summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.noticeItem summary::-webkit-details-marker {
+  display: none;
+}
+
+.noticeItem summary::after {
+  content: "열기";
+  flex: 0 0 auto;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+  border: 1px solid rgba(49, 130, 246, 0.22);
+  background: var(--brand-bg);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.noticeItem[open] summary::after {
+  content: "접기";
+}
+
+.noticeBody {
+  border-top: 1px solid var(--border);
+  padding: 0 16px 14px;
+}
+
+.noticeBody p {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.72;
+}
+
 .footer {
   margin-top: 54px;
   padding-top: 24px;
@@ -778,6 +851,15 @@ p {
   .tablePagination {
     justify-content: center;
     padding: 12px;
+  }
+
+  .noticeItem summary {
+    padding: 13px 14px;
+    font-size: 0.88rem;
+  }
+
+  .noticeBody {
+    padding: 0 14px 13px;
   }
 }
 

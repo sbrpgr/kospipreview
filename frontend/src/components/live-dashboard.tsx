@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AccuracyTable } from "@/components/accuracy-table";
 import { ChartSection } from "@/components/chart-section";
 import { IndicatorList } from "@/components/indicator-list";
+import { NoticeContent } from "@/components/notice-content";
 import { SiteHeader } from "@/components/site-header";
 import type { HistoryData, IndicatorData, PredictionData } from "@/lib/data";
 
@@ -463,6 +464,8 @@ export function LiveDashboard({
             <div className="sectionLoadingText">최근 실측 기록을 동기화하는 중입니다.</div>
           </div>
         )}
+
+        <NoticeContent />
       </main>
 
       <footer className="footer">
