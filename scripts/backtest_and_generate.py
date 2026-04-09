@@ -77,15 +77,16 @@ PREMARKET_STALE_MINUTES = 45
 KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
 KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
+KRX_SYNC_MAX_FORWARD_HOURS = 12
 
 NIGHT_FUTURES_PRIMARY_SCALE = 1.0
 AUXILIARY_SIGNAL_WEIGHTS = {
-    "ewy": 0.72,
-    "krw_strength": 0.16,
-    "sp500": 0.06,
-    "nasdaq": 0.06,
+    "sp500": 0.55,
+    "nasdaq": 0.45,
 }
-AUXILIARY_SIGNAL_SCALE = 0.68
+EWY_FX_CORE_EWY_WEIGHT = 1.0
+EWY_FX_CORE_KRW_WEIGHT = 1.0
+AUXILIARY_SIGNAL_BLEND = 0.18
 ML_RESIDUAL_BLEND = 0.12
 ML_RESIDUAL_CAP_MIN_PCT = 0.18
 ML_RESIDUAL_CAP_MAX_PCT = 0.75
@@ -109,7 +110,7 @@ REGIME_CLIP_MIN_PCT = 2.5
 REGIME_CLIP_PREV_CLOSE_SHARE = 0.9
 REGIME_CLIP_CORE_BUFFER_PCT = 1.25
 EWY_ALIGNMENT_TRIGGER_PCT = 1.0
-EWY_ALIGNMENT_MIN_SHARE = 0.45
+EWY_ALIGNMENT_MIN_SHARE = 0.80
 
 TV_FUTURES_SCAN_URL = "https://scanner.tradingview.com/futures/scan"
 TV_KOSPI_NIGHT_SYMBOL = "KRX:K2I1!"
@@ -1141,13 +1142,26 @@ def resolve_value_at_krx_sync_baseline(
     if frame.empty:
         return None, None
 
+    same_day = frame[frame.index.date == baseline_date]
+    if not same_day.empty:
+        forward = same_day[same_day.index >= baseline_kst]
+        if not forward.empty:
+            baseline_ts_kst = forward.index[0]
+            delay_hours = (baseline_ts_kst - baseline_kst).total_seconds() / 3600
+            if delay_hours > KRX_SYNC_MAX_FORWARD_HOURS:
+                return None, None
+
+            baseline_value = float(forward.iloc[0]["value"])
+            baseline_ts_utc = baseline_ts_kst.tz_convert("UTC").to_pydatetime()
+            return baseline_value, baseline_ts_utc
+
     matched = frame[frame.index <= baseline_kst]
     if matched.empty:
         return None, None
 
     baseline_ts_kst = matched.index[-1]
-    age_hours = (baseline_kst - baseline_ts_kst).total_seconds() / 3600
-    if age_hours > KRX_SYNC_MAX_LOOKBACK_HOURS:
+    lookback_hours = (baseline_kst - baseline_ts_kst).total_seconds() / 3600
+    if lookback_hours > KRX_SYNC_MAX_LOOKBACK_HOURS:
         return None, None
 
     baseline_value = float(matched.iloc[-1]["value"])
@@ -1197,28 +1211,47 @@ def compute_live_return_pct(
     return (current_value / previous_close - 1) * 100
 
 
-def compute_auxiliary_anchor_change(returns: dict[str, float]) -> float | None:
-    aux_inputs = {
-        "ewy": returns.get("ewy"),
-        "krw_strength": (-returns["krw"]) if "krw" in returns else None,
-        "sp500": returns.get("sp500"),
-        "nasdaq": returns.get("nasdaq"),
-    }
+def compute_ewy_fx_core_change(returns: dict[str, float]) -> float | None:
+    core_sum = 0.0
+    has_signal = False
 
-    weighted_sum = 0.0
-    total_weight = 0.0
-    for key, weight in AUXILIARY_SIGNAL_WEIGHTS.items():
-        value = aux_inputs.get(key)
-        if value is None:
-            continue
-        weighted_sum += float(value) * weight
-        total_weight += weight
+    ewy_change = returns.get("ewy")
+    if ewy_change is not None:
+        core_sum += float(ewy_change) * EWY_FX_CORE_EWY_WEIGHT
+        has_signal = True
 
-    if total_weight == 0:
+    # USD/KRW 하락(음수)은 환율 측면에서 코스피 환산 상방을 깎아야 하므로 같은 부호로 반영한다.
+    krw_change = returns.get("krw")
+    if krw_change is not None:
+        core_sum += float(krw_change) * EWY_FX_CORE_KRW_WEIGHT
+        has_signal = True
+
+    if not has_signal:
         return None
 
-    auxiliary_mean = weighted_sum / total_weight
-    return auxiliary_mean * AUXILIARY_SIGNAL_SCALE
+    return core_sum
+
+
+def compute_auxiliary_anchor_change(returns: dict[str, float]) -> float | None:
+    core_change = compute_ewy_fx_core_change(returns)
+
+    aux_sum = 0.0
+    aux_weight = 0.0
+    for key, weight in AUXILIARY_SIGNAL_WEIGHTS.items():
+        value = returns.get(key)
+        if value is None:
+            continue
+        aux_sum += float(value) * weight
+        aux_weight += weight
+
+    aux_change = (aux_sum / aux_weight) if aux_weight > 0 else None
+
+    if core_change is None:
+        return aux_change
+    if aux_change is None:
+        return core_change
+
+    return core_change * (1 - AUXILIARY_SIGNAL_BLEND) + aux_change * AUXILIARY_SIGNAL_BLEND
 
 
 def compute_night_centered_change(
@@ -1415,6 +1448,7 @@ def build_latest(
         dtype=np.float64,
     )
     raw_ml_change = float(result["model_c"].predict(feature_vector)[0])
+    ewy_fx_core_change = compute_ewy_fx_core_change(returns)
     auxiliary_anchor_change = compute_auxiliary_anchor_change(returns)
     night_centered_change, blend_debug = compute_night_centered_change(
         raw_ml_change=raw_ml_change,
@@ -1434,7 +1468,7 @@ def build_latest(
         predicted_change = float(np.clip(guarded_change, lower, upper))
     else:
         predicted_change = guarded_change
-    predicted_change = apply_ewy_alignment_guard(predicted_change, returns.get("ewy"))
+    predicted_change = apply_ewy_alignment_guard(predicted_change, ewy_fx_core_change)
 
     point_prediction = prev_close * (1 + predicted_change / 100)
     night_futures_simple_point = (
@@ -1450,7 +1484,7 @@ def build_latest(
         "night_futures_simple_point": night_futures_simple_point,
         "night_futures_change_c": night_futures_change,
         "raw_pred_c": raw_ml_change,
-        "core_anchor_c": auxiliary_anchor_change,
+        "core_anchor_c": ewy_fx_core_change,
         "night_anchor_c": None,
         "aux_anchor_c": blend_debug.get("aux_anchor"),
         "ml_residual_adj_c": blend_debug.get("ml_adjust"),

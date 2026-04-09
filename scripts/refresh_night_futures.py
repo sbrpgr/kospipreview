@@ -38,25 +38,26 @@ NIGHT_FUTURES_STALE_MINUTES = 180
 NIGHT_FUTURES_SOURCE_MIN_REFRESH_SECONDS = 30
 
 AUXILIARY_SIGNAL_WEIGHTS = {
-    "ewy": 0.72,
-    "krw_strength": 0.16,
-    "sp500": 0.06,
-    "nasdaq": 0.06,
+    "sp500": 0.55,
+    "nasdaq": 0.45,
 }
-AUXILIARY_SIGNAL_SCALE = 0.68
+EWY_FX_CORE_EWY_WEIGHT = 1.0
+EWY_FX_CORE_KRW_WEIGHT = 1.0
+AUXILIARY_SIGNAL_BLEND = 0.18
 FALLBACK_ML_BLEND = 0.18
 FALLBACK_AUX_BLEND = 0.72
 FALLBACK_GUARD_BAND_MIN_PCT = 0.55
 FALLBACK_GUARD_BAND_SHARE = 0.50
 EWY_ALIGNMENT_TRIGGER_PCT = 1.0
-EWY_ALIGNMENT_MIN_SHARE = 0.45
-LIVE_REFRESH_KEEP_PREV_WEIGHT = 0.2
+EWY_ALIGNMENT_MIN_SHARE = 0.80
+LIVE_REFRESH_KEEP_PREV_WEIGHT = 0.05
 YAHOO_CHART_URL_TEMPLATE = (
     "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
     "?interval=1m&range=2d&includePrePost=true"
 )
 KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
+KRX_SYNC_MAX_FORWARD_HOURS = 12
 
 
 def read_json(path: Path) -> dict | None:
@@ -182,12 +183,26 @@ def fetch_yahoo_intraday_return_pct(symbol: str, baseline_session_date: str | No
     baseline_kst = datetime.combine(baseline_date, KRX_SYNC_BASELINE_TIME, tzinfo=KST)
     latest_ts_utc, latest_close = points[-1]
 
+    points_kst = [(ts_utc.astimezone(KST), ts_utc, close) for ts_utc, close in points]
+    same_day_points = [row for row in points_kst if row[0].date() == baseline_date]
+
     baseline_point: tuple[datetime, float] | None = None
-    for ts_utc, close in points:
-        if ts_utc.astimezone(KST) <= baseline_kst:
-            baseline_point = (ts_utc, close)
-        else:
-            break
+    if same_day_points:
+        forward_points = [row for row in same_day_points if row[0] >= baseline_kst]
+        if forward_points:
+            ts_kst, ts_utc, close = forward_points[0]
+            delay_hours = (ts_kst - baseline_kst).total_seconds() / 3600
+            if delay_hours <= KRX_SYNC_MAX_FORWARD_HOURS:
+                baseline_point = (ts_utc, close)
+
+    if baseline_point is None:
+        backward_points = [row for row in points_kst if row[0] <= baseline_kst]
+        if backward_points:
+            ts_kst, ts_utc, close = backward_points[-1]
+            lookback_hours = (baseline_kst - ts_kst).total_seconds() / 3600
+            if lookback_hours <= KRX_SYNC_MAX_LOOKBACK_HOURS:
+                baseline_point = (ts_utc, close)
+
     if baseline_point is None:
         return None
 
@@ -195,16 +210,33 @@ def fetch_yahoo_intraday_return_pct(symbol: str, baseline_session_date: str | No
     if baseline_close == 0:
         return None
 
-    baseline_age_hours = (baseline_kst - baseline_ts_utc.astimezone(KST)).total_seconds() / 3600
-    if baseline_age_hours > KRX_SYNC_MAX_LOOKBACK_HOURS:
+    return (latest_close / baseline_close - 1) * 100
+
+
+def compute_ewy_fx_core_change(returns: dict[str, float]) -> float | None:
+    core_sum = 0.0
+    has_signal = False
+
+    ewy_change = returns.get("ewy")
+    if ewy_change is not None:
+        core_sum += float(ewy_change) * EWY_FX_CORE_EWY_WEIGHT
+        has_signal = True
+
+    # USD/KRW 하락(음수)은 환율 측면에서 코스피 환산 상방을 깎아야 하므로 같은 부호로 반영한다.
+    krw_change = returns.get("krw")
+    if krw_change is not None:
+        core_sum += float(krw_change) * EWY_FX_CORE_KRW_WEIGHT
+        has_signal = True
+
+    if not has_signal:
         return None
 
-    return (latest_close / baseline_close - 1) * 100
+    return core_sum
 
 
 def fetch_live_auxiliary_anchor_change(
     baseline_session_date: str | None,
-) -> tuple[float | None, float | None, dict[str, float]]:
+) -> tuple[float | None, float | None, float | None, dict[str, float]]:
     ticker_map = {
         "ewy": "EWY",
         "krw": "KRW=X",
@@ -217,28 +249,27 @@ def fetch_live_auxiliary_anchor_change(
         if value is not None:
             returns[key] = value
 
+    core_change = compute_ewy_fx_core_change(returns)
     ewy_change = returns.get("ewy")
-    aux_inputs = {
-        "ewy": ewy_change,
-        "krw_strength": (-returns["krw"]) if "krw" in returns else None,
-        "sp500": returns.get("sp500"),
-        "nasdaq": returns.get("nasdaq"),
-    }
-
-    weighted_sum = 0.0
-    total_weight = 0.0
+    aux_sum = 0.0
+    aux_weight = 0.0
     for key, weight in AUXILIARY_SIGNAL_WEIGHTS.items():
-        value = aux_inputs.get(key)
+        value = returns.get(key)
         if value is None:
             continue
-        weighted_sum += float(value) * weight
-        total_weight += weight
+        aux_sum += float(value) * weight
+        aux_weight += weight
 
-    if total_weight == 0:
-        return None, ewy_change, returns
+    aux_change = (aux_sum / aux_weight) if aux_weight > 0 else None
 
-    anchor = (weighted_sum / total_weight) * AUXILIARY_SIGNAL_SCALE
-    return anchor, ewy_change, returns
+    if core_change is None:
+        anchor = aux_change
+    elif aux_change is None:
+        anchor = core_change
+    else:
+        anchor = core_change * (1 - AUXILIARY_SIGNAL_BLEND) + aux_change * AUXILIARY_SIGNAL_BLEND
+
+    return anchor, core_change, ewy_change, returns
 
 
 def apply_ewy_alignment_guard(predicted_change: float, ewy_change: float | None) -> float:
@@ -828,9 +859,10 @@ def update_prediction_night_fields(
         if raw_ml_change is None:
             raw_ml_change = to_float(payload.get("predictedChangePct"))
 
-        auxiliary_anchor_change = to_float(model_payload.get("coreAnchorPct"))
+        core_anchor_change = to_float(model_payload.get("coreAnchorPct"))
+        auxiliary_anchor_change = to_float(model_payload.get("auxiliaryAnchorPct"))
         if auxiliary_anchor_change is None:
-            auxiliary_anchor_change = to_float(model_payload.get("auxiliaryAnchorPct"))
+            auxiliary_anchor_change = core_anchor_change
 
         baseline_session_date: str | None = None
         latest_record_date = payload.get("latestRecordDate")
@@ -841,9 +873,13 @@ def update_prediction_night_fields(
             if isinstance(day_close_date, str) and day_close_date:
                 baseline_session_date = day_close_date
 
-        live_aux_anchor, live_ewy_change, _live_returns = fetch_live_auxiliary_anchor_change(baseline_session_date)
+        live_aux_anchor, live_core_anchor, live_ewy_change, _live_returns = fetch_live_auxiliary_anchor_change(
+            baseline_session_date
+        )
         if live_aux_anchor is not None:
             auxiliary_anchor_change = live_aux_anchor
+        if live_core_anchor is not None:
+            core_anchor_change = live_core_anchor
 
         if raw_ml_change is None and auxiliary_anchor_change is None:
             raw_ml_change = 0.0
@@ -859,7 +895,7 @@ def update_prediction_night_fields(
         provisional = base_anchor + ml_adjust + aux_adjust
         guard_band = max(FALLBACK_GUARD_BAND_MIN_PCT, abs(base_anchor) * FALLBACK_GUARD_BAND_SHARE)
         refreshed_change = clamp(provisional, base_anchor - guard_band, base_anchor + guard_band)
-        refreshed_change = apply_ewy_alignment_guard(refreshed_change, live_ewy_change)
+        refreshed_change = apply_ewy_alignment_guard(refreshed_change, core_anchor_change)
 
         previous_change = to_float(payload.get("predictedChangePct"))
         if previous_change is not None:
@@ -888,7 +924,8 @@ def update_prediction_night_fields(
         model_payload["nightFuturesAnchorPct"] = None
         if auxiliary_anchor_change is not None:
             model_payload["auxiliaryAnchorPct"] = round(auxiliary_anchor_change, 2)
-            model_payload["coreAnchorPct"] = round(auxiliary_anchor_change, 2)
+        if core_anchor_change is not None:
+            model_payload["coreAnchorPct"] = round(core_anchor_change, 2)
         model_payload["mlResidualAdjPct"] = round(ml_adjust, 2)
         model_payload["auxResidualAdjPct"] = round(aux_adjust, 2)
         model_payload["liveRefreshGuardBandPct"] = round(guard_band, 2)
