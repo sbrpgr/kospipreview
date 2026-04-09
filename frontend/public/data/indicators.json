@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,481.38원",
-      "changePct": -1.18,
-      "updatedAt": "2026-04-09T08:41:00+00:00",
+      "value": "1,480.91원",
+      "changePct": -1.22,
+      "updatedAt": "2026-04-09T08:42:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$97.68",
-      "changePct": 3.46,
-      "updatedAt": "2026-04-09T08:31:00+00:00",
+      "value": "$97.79",
+      "changePct": 3.58,
+      "updatedAt": "2026-04-09T08:32:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -60,9 +60,9 @@
     {
       "key": "vix",
       "label": "VIX",
-      "value": "21.54",
-      "changePct": 2.38,
-      "updatedAt": "2026-04-09T08:26:00+00:00",
+      "value": "21.58",
+      "changePct": 2.57,
+      "updatedAt": "2026-04-09T08:27:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$362.00",
-      "changePct": -10.62,
-      "updatedAt": "2026-04-09T08:41:40+00:00",
+      "value": "$362.68",
+      "changePct": -10.45,
+      "updatedAt": "2026-04-09T08:42:59+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,750.10",
-      "changePct": 0.01,
-      "updatedAt": "2026-04-09T08:31:00+00:00",
+      "value": "$4,750.60",
+      "changePct": 0.02,
+      "updatedAt": "2026-04-09T08:32:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T08:41:46.454187+00:00",
+  "generatedAt": "2026-04-09T08:43:03.145766+00:00",
   "isUsPremarketNow": true
 }
