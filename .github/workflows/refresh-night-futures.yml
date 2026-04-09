@@ -58,6 +58,12 @@ jobs:
       - name: Refresh night futures payload
         run: python ./scripts/refresh_night_futures.py
 
+      - name: Sync latest data into static export
+        shell: bash
+        run: |
+          mkdir -p frontend/out/data
+          cp frontend/public/data/*.json frontend/out/data/
+
       - name: Prepare Firebase credentials
         shell: bash
         env:
