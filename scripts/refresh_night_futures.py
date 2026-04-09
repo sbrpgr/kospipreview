@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
@@ -20,6 +21,9 @@ ESIGNAL_KOSPI_NIGHT_PAGE_URL = "https://esignal.co.kr/kospi200-futures-night/"
 ESIGNAL_KOSPI_NIGHT_CACHE_URL = "https://esignal.co.kr/data/cache/kospif_ngt.js"
 ESIGNAL_KOSPI_DAY_PAGE_URL = "https://esignal.co.kr/kospi200-futures/"
 ESIGNAL_KOSPI_DAY_CACHE_URL = "https://esignal.co.kr/data/cache/kospif_day.js"
+ESIGNAL_SOCKET_IO_URL = "https://esignal.co.kr/proxy/8889/socket.io/"
+ESIGNAL_ORIGIN_URL = "https://esignal.co.kr"
+ESIGNAL_DAY_SYMBOL = "A0166"
 ESIGNAL_REQUEST_TIMEOUT = 10
 ESIGNAL_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -32,6 +36,25 @@ NIGHT_OPERATION_START = time(18, 0)
 NIGHT_OPERATION_END = time(6, 30)
 NIGHT_FUTURES_STALE_MINUTES = 180
 NIGHT_FUTURES_SOURCE_MIN_REFRESH_SECONDS = 30
+
+AUXILIARY_SIGNAL_WEIGHTS = {
+    "ewy": 0.72,
+    "krw_strength": 0.16,
+    "sp500": 0.06,
+    "nasdaq": 0.06,
+}
+AUXILIARY_SIGNAL_SCALE = 0.68
+FALLBACK_ML_BLEND = 0.18
+FALLBACK_AUX_BLEND = 0.72
+FALLBACK_GUARD_BAND_MIN_PCT = 0.55
+FALLBACK_GUARD_BAND_SHARE = 0.50
+EWY_ALIGNMENT_TRIGGER_PCT = 1.0
+EWY_ALIGNMENT_MIN_SHARE = 0.45
+LIVE_REFRESH_KEEP_PREV_WEIGHT = 0.2
+YAHOO_CHART_URL_TEMPLATE = (
+    "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+    "?interval=1m&range=1d&includePrePost=true"
+)
 
 
 def read_json(path: Path) -> dict | None:
@@ -72,6 +95,139 @@ def is_night_operation_window(now_utc: datetime) -> bool:
     start = NIGHT_OPERATION_START.hour * 60 + NIGHT_OPERATION_START.minute
     end = NIGHT_OPERATION_END.hour * 60 + NIGHT_OPERATION_END.minute
     return current >= start or current <= end
+
+
+def clamp(value: float, minimum: float, maximum: float) -> float:
+    return max(minimum, min(maximum, value))
+
+
+def to_float(value: object) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def fetch_yahoo_intraday_return_pct(symbol: str) -> float | None:
+    encoded_symbol = urllib.parse.quote(symbol, safe="")
+    url = YAHOO_CHART_URL_TEMPLATE.format(symbol=encoded_symbol)
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": ESIGNAL_USER_AGENT,
+            "Accept": "application/json,text/javascript,*/*;q=0.1",
+            "Cache-Control": "no-cache",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=ESIGNAL_REQUEST_TIMEOUT) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, ValueError, TypeError):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+    chart = payload.get("chart")
+    if not isinstance(chart, dict):
+        return None
+    results = chart.get("result")
+    if not isinstance(results, list) or not results:
+        return None
+    first = results[0]
+    if not isinstance(first, dict):
+        return None
+
+    meta = first.get("meta")
+    if not isinstance(meta, dict):
+        return None
+    previous_close = to_float(meta.get("previousClose"))
+    if previous_close is None or previous_close == 0:
+        previous_close = to_float(meta.get("chartPreviousClose"))
+    if previous_close is None or previous_close == 0:
+        return None
+
+    indicators = first.get("indicators")
+    if not isinstance(indicators, dict):
+        return None
+    quotes = indicators.get("quote")
+    if not isinstance(quotes, list) or not quotes:
+        return None
+    quote0 = quotes[0]
+    if not isinstance(quote0, dict):
+        return None
+    closes = quote0.get("close")
+    if not isinstance(closes, list):
+        return None
+
+    last_close = None
+    for value in reversed(closes):
+        close_value = to_float(value)
+        if close_value is not None:
+            last_close = close_value
+            break
+    if last_close is None:
+        return None
+
+    return (last_close / previous_close - 1) * 100
+
+
+def fetch_live_auxiliary_anchor_change() -> tuple[float | None, float | None, dict[str, float]]:
+    ticker_map = {
+        "ewy": "EWY",
+        "krw": "KRW=X",
+        "sp500": "^GSPC",
+        "nasdaq": "^NDX",
+    }
+    returns: dict[str, float] = {}
+    for key, ticker in ticker_map.items():
+        value = fetch_yahoo_intraday_return_pct(ticker)
+        if value is not None:
+            returns[key] = value
+
+    ewy_change = returns.get("ewy")
+    aux_inputs = {
+        "ewy": ewy_change,
+        "krw_strength": (-returns["krw"]) if "krw" in returns else None,
+        "sp500": returns.get("sp500"),
+        "nasdaq": returns.get("nasdaq"),
+    }
+
+    weighted_sum = 0.0
+    total_weight = 0.0
+    for key, weight in AUXILIARY_SIGNAL_WEIGHTS.items():
+        value = aux_inputs.get(key)
+        if value is None:
+            continue
+        weighted_sum += float(value) * weight
+        total_weight += weight
+
+    if total_weight == 0:
+        return None, ewy_change, returns
+
+    anchor = (weighted_sum / total_weight) * AUXILIARY_SIGNAL_SCALE
+    return anchor, ewy_change, returns
+
+
+def apply_ewy_alignment_guard(predicted_change: float, ewy_change: float | None) -> float:
+    if ewy_change is None:
+        return predicted_change
+
+    magnitude = abs(float(ewy_change))
+    if magnitude < EWY_ALIGNMENT_TRIGGER_PCT:
+        return predicted_change
+
+    min_aligned = magnitude * EWY_ALIGNMENT_MIN_SHARE
+    ewy_sign = 1 if ewy_change >= 0 else -1
+    predicted_sign = 1 if predicted_change >= 0 else -1
+
+    if predicted_sign != ewy_sign:
+        return ewy_sign * min_aligned
+
+    if abs(predicted_change) < min_aligned:
+        return ewy_sign * min_aligned
+
+    return predicted_change
 
 
 def previous_business_day(base: date) -> date:
@@ -165,7 +321,159 @@ def fetch_esignal_json(url: str, referer: str) -> dict | None:
     return payload if isinstance(payload, dict) else None
 
 
-def fetch_esignal_kospi_day_close_quote() -> dict | None:
+def fetch_esignal_socket_payload(url: str, referer: str, body: str | None = None) -> str | None:
+    headers = {
+        "User-Agent": ESIGNAL_USER_AGENT,
+        "Referer": referer,
+        "Origin": ESIGNAL_ORIGIN_URL,
+        "Accept": "*/*",
+        "Cache-Control": "no-cache",
+    }
+    data = None
+    method = "GET"
+    if body is not None:
+        method = "POST"
+        headers["Content-Type"] = "text/plain;charset=UTF-8"
+        data = body.encode("utf-8")
+
+    req = urllib.request.Request(url, headers=headers, data=data, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=ESIGNAL_REQUEST_TIMEOUT) as response:
+            return response.read().decode("utf-8")
+    except (urllib.error.URLError, TimeoutError):
+        return None
+
+
+def parse_socket_open_packet(payload: str) -> str | None:
+    for packet in payload.split("\x1e"):
+        if not packet.startswith("0"):
+            continue
+        try:
+            data = json.loads(packet[1:])
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        sid = data.get("sid")
+        if isinstance(sid, str) and sid:
+            return sid
+    return None
+
+
+def parse_socket_event_payload(payload: str) -> list[tuple[str, dict]]:
+    events: list[tuple[str, dict]] = []
+    for packet in payload.split("\x1e"):
+        if not packet.startswith("42"):
+            continue
+        try:
+            parsed = json.loads(packet[2:])
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(parsed, list) or len(parsed) < 2:
+            continue
+
+        event_name = parsed[0]
+        event_body = parsed[1]
+        if isinstance(event_body, str):
+            try:
+                event_body = json.loads(event_body)
+            except (TypeError, ValueError):
+                continue
+
+        if not isinstance(event_name, str) or not isinstance(event_body, dict):
+            continue
+        events.append((event_name, event_body))
+
+    return events
+
+
+def fetch_esignal_kospi_day_close_quote_from_socket() -> dict | None:
+    query = urllib.parse.urlencode(
+        {
+            "EIO": "4",
+            "transport": "polling",
+            "t": str(int(datetime.now(timezone.utc).timestamp() * 1000)),
+        }
+    )
+    open_url = f"{ESIGNAL_SOCKET_IO_URL}?{query}"
+    open_payload = fetch_esignal_socket_payload(open_url, ESIGNAL_KOSPI_DAY_PAGE_URL)
+    if not open_payload:
+        return None
+
+    sid = parse_socket_open_packet(open_payload)
+    if not sid:
+        return None
+
+    sid_query = urllib.parse.urlencode({"EIO": "4", "transport": "polling", "sid": sid})
+    sid_url = f"{ESIGNAL_SOCKET_IO_URL}?{sid_query}"
+    _ = fetch_esignal_socket_payload(sid_url, ESIGNAL_KOSPI_DAY_PAGE_URL, body="40")
+
+    for _ in range(2):
+        poll_url = f"{sid_url}&t={int(datetime.now(timezone.utc).timestamp() * 1000)}"
+        poll_payload = fetch_esignal_socket_payload(poll_url, ESIGNAL_KOSPI_DAY_PAGE_URL)
+        if not poll_payload:
+            continue
+
+        if "2" in poll_payload.split("\x1e"):
+            _ = fetch_esignal_socket_payload(sid_url, ESIGNAL_KOSPI_DAY_PAGE_URL, body="3")
+
+        for event_name, event in parse_socket_event_payload(poll_payload):
+            if event_name not in {"populate", "kospif_day"}:
+                continue
+
+            symbol = str(event.get("symbol", "")).strip()
+            if symbol and symbol != ESIGNAL_DAY_SYMBOL:
+                continue
+
+            close_raw = event.get("close")
+            if close_raw is None:
+                continue
+
+            try:
+                close_value = float(close_raw)
+            except (TypeError, ValueError):
+                continue
+            if close_value == 0:
+                continue
+
+            updated_at: datetime | None = None
+            tstamp = event.get("tstamp")
+            if isinstance(tstamp, str) and tstamp:
+                normalized_tstamp = tstamp.replace("Z", "+00:00")
+                try:
+                    parsed_tstamp = datetime.fromisoformat(normalized_tstamp)
+                except ValueError:
+                    parsed_tstamp = None
+                if parsed_tstamp is not None:
+                    if parsed_tstamp.tzinfo is None:
+                        updated_at = parsed_tstamp.replace(tzinfo=timezone.utc)
+                    else:
+                        updated_at = parsed_tstamp.astimezone(timezone.utc)
+
+            if updated_at is None:
+                unix_ts = event.get("unix_timestamp")
+                try:
+                    if unix_ts is not None:
+                        updated_at = datetime.fromtimestamp(int(unix_ts) / 1000, tz=timezone.utc)
+                except (TypeError, ValueError):
+                    updated_at = None
+
+            if updated_at is None:
+                updated_at = datetime.now(timezone.utc)
+
+            session_date = updated_at.astimezone(KST).date().isoformat()
+            return {
+                "close": close_value,
+                "updated_at": updated_at.isoformat(),
+                "session_date": session_date,
+                "provider": "esignal-socket",
+                "selection": "session-close-socket",
+            }
+
+    return None
+
+
+def fetch_esignal_kospi_day_close_quote_from_cache() -> dict | None:
     payload = fetch_esignal_json(ESIGNAL_KOSPI_DAY_CACHE_URL, ESIGNAL_KOSPI_DAY_PAGE_URL)
     if payload is None:
         return None
@@ -218,13 +526,26 @@ def fetch_esignal_kospi_day_close_quote() -> dict | None:
     }
 
 
+def fetch_esignal_kospi_day_close_quote() -> dict | None:
+    socket_quote = fetch_esignal_kospi_day_close_quote_from_socket()
+    if socket_quote:
+        return socket_quote
+    return fetch_esignal_kospi_day_close_quote_from_cache()
+
+
 def resolve_day_futures_close_quote() -> dict | None:
     now_kst = datetime.now(timezone.utc).astimezone(KST)
     target_session_date = latest_closed_day_futures_session_date(now_kst)
     cached = load_day_futures_close_cache()
 
-    if cached and str(cached.get("session_date", "")) >= target_session_date:
-        return cached
+    if cached:
+        cached_session_date = str(cached.get("session_date", ""))
+        cached_is_socket_close = (
+            str(cached.get("provider", "")) == "esignal-socket"
+            or str(cached.get("selection", "")) == "session-close-socket"
+        )
+        if cached_session_date >= target_session_date and cached_is_socket_close:
+            return cached
 
     fetched = fetch_esignal_kospi_day_close_quote()
     if fetched:
@@ -455,11 +776,7 @@ def update_prediction_night_fields(
     day_close_quote: dict | None,
     now_utc: datetime,
 ) -> dict:
-    prev_close = None
-    try:
-        prev_close = float(payload.get("prevClose"))
-    except (TypeError, ValueError):
-        prev_close = None
+    prev_close = to_float(payload.get("prevClose"))
 
     if quote and quote.get("is_live_night") and prev_close and prev_close != 0:
         change_pct = float(quote.get("change_pct", 0.0))
@@ -468,6 +785,75 @@ def update_prediction_night_fields(
     else:
         payload["nightFuturesSimpleChangePct"] = None
         payload["nightFuturesSimplePoint"] = None
+
+    if prev_close and prev_close != 0:
+        model_payload = payload.get("model")
+        if not isinstance(model_payload, dict):
+            model_payload = {}
+            payload["model"] = model_payload
+
+        raw_ml_change = to_float(model_payload.get("rawModelPct"))
+        if raw_ml_change is None:
+            raw_ml_change = to_float(payload.get("predictedChangePct"))
+
+        auxiliary_anchor_change = to_float(model_payload.get("coreAnchorPct"))
+        if auxiliary_anchor_change is None:
+            auxiliary_anchor_change = to_float(model_payload.get("auxiliaryAnchorPct"))
+
+        live_aux_anchor, live_ewy_change, _live_returns = fetch_live_auxiliary_anchor_change()
+        if live_aux_anchor is not None:
+            auxiliary_anchor_change = live_aux_anchor
+
+        if raw_ml_change is None and auxiliary_anchor_change is None:
+            raw_ml_change = 0.0
+        elif raw_ml_change is None:
+            raw_ml_change = auxiliary_anchor_change
+
+        base_anchor = auxiliary_anchor_change if auxiliary_anchor_change is not None else float(raw_ml_change)
+        ml_adjust = (float(raw_ml_change) - base_anchor) * FALLBACK_ML_BLEND
+        aux_adjust = 0.0
+        if auxiliary_anchor_change is not None:
+            aux_adjust = (auxiliary_anchor_change - base_anchor) * FALLBACK_AUX_BLEND
+
+        provisional = base_anchor + ml_adjust + aux_adjust
+        guard_band = max(FALLBACK_GUARD_BAND_MIN_PCT, abs(base_anchor) * FALLBACK_GUARD_BAND_SHARE)
+        refreshed_change = clamp(provisional, base_anchor - guard_band, base_anchor + guard_band)
+        refreshed_change = apply_ewy_alignment_guard(refreshed_change, live_ewy_change)
+
+        previous_change = to_float(payload.get("predictedChangePct"))
+        if previous_change is not None:
+            refreshed_change = (
+                previous_change * LIVE_REFRESH_KEEP_PREV_WEIGHT
+                + refreshed_change * (1 - LIVE_REFRESH_KEEP_PREV_WEIGHT)
+            )
+
+        point_prediction = prev_close * (1 + refreshed_change / 100)
+        range_low = to_float(payload.get("rangeLow"))
+        range_high = to_float(payload.get("rangeHigh"))
+        if range_low is not None and range_high is not None and range_high >= range_low:
+            half_band = max(1.0, (range_high - range_low) / 2)
+        else:
+            mae = to_float(payload.get("mae30d")) or 18.0
+            half_band = max(12.0, mae)
+
+        payload["pointPrediction"] = round(point_prediction, 2)
+        payload["predictedChangePct"] = round(refreshed_change, 2)
+        payload["rangeLow"] = round(point_prediction - half_band, 2)
+        payload["rangeHigh"] = round(point_prediction + half_band, 2)
+        payload["lastCalculatedAt"] = now_utc.isoformat()
+
+        model_payload["calculationMode"] = "EWYCore+AuxSignals+NoNightFutures(LiveRefresh)"
+        model_payload["nightFuturesExcluded"] = True
+        model_payload["nightFuturesAnchorPct"] = None
+        if auxiliary_anchor_change is not None:
+            model_payload["auxiliaryAnchorPct"] = round(auxiliary_anchor_change, 2)
+            model_payload["coreAnchorPct"] = round(auxiliary_anchor_change, 2)
+        model_payload["mlResidualAdjPct"] = round(ml_adjust, 2)
+        model_payload["auxResidualAdjPct"] = round(aux_adjust, 2)
+        model_payload["liveRefreshGuardBandPct"] = round(guard_band, 2)
+        if live_ewy_change is not None:
+            model_payload["liveEwyChangePct"] = round(live_ewy_change, 2)
+        model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()
 
     if day_close_quote:
         try:

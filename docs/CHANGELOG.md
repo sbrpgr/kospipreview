@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-04-10
+
+- Prediction refresh cadence update
+  - `refresh-night-futures` workflow schedule changed from every 5 minutes to every 1 minute (`* * * * 1-5`).
+  - `scripts/refresh_night_futures.py` now updates `pointPrediction` / `predictedChangePct` every refresh cycle using EWY-core auxiliary signals (night futures excluded from model path).
+- Model logic realignment
+  - `scripts/backtest_and_generate.py` keeps model prediction on no-night-futures path (`night_futures_change=None` in core blending).
+  - Metadata now reports `EWYCore+AuxSignals+NoNightFutures` and `nightFuturesExcluded=true`.
+  - Anchor metadata bug fixed: `auxiliaryAnchorPct` now maps to auxiliary anchor instead of main anchor.
+
 ## 2026-04-09 (Security hardening)
 
 - Frontend dependency security patch
