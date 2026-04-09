@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,481.09원",
-      "changePct": -1.2,
-      "updatedAt": "2026-04-09T07:53:00+00:00",
+      "value": "1,480.48원",
+      "changePct": -1.24,
+      "updatedAt": "2026-04-09T07:54:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$97.58",
-      "changePct": 3.36,
-      "updatedAt": "2026-04-09T07:43:00+00:00",
+      "value": "$97.54",
+      "changePct": 3.32,
+      "updatedAt": "2026-04-09T07:44:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -60,9 +60,9 @@
     {
       "key": "vix",
       "label": "VIX",
-      "value": "21.37",
-      "changePct": -17.11,
-      "updatedAt": "2026-04-09T07:38:00+00:00",
+      "value": "21.36",
+      "changePct": -17.15,
+      "updatedAt": "2026-04-09T07:39:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,747.00",
-      "changePct": -0.05,
-      "updatedAt": "2026-04-09T07:43:00+00:00",
+      "value": "$4,747.50",
+      "changePct": -0.04,
+      "updatedAt": "2026-04-09T07:44:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T07:53:23.930480+00:00",
+  "generatedAt": "2026-04-09T07:54:33.798702+00:00",
   "isUsPremarketNow": false
 }
