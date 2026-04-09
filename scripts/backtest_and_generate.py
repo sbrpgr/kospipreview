@@ -252,6 +252,16 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
     if low > high:
         low, high = high, low
 
+    night_simple_raw = payload.get("nightFuturesSimplePoint")
+    night_simple: float | None
+    if night_simple_raw is None:
+        night_simple = None
+    else:
+        try:
+            night_simple = float(night_simple_raw)
+        except (TypeError, ValueError):
+            night_simple = None
+
     return {
         "predictionDateIso": prediction_date_iso,
         "predictionDate": payload.get("predictionDate"),
@@ -259,6 +269,7 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         "rangeLow": round(low, 2),
         "rangeHigh": round(high, 2),
         "pointPrediction": round(point, 2),
+        "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
     }
 
 
@@ -1513,9 +1524,16 @@ def _build_archive_history_row(
         actual_change = actual_open - prev_close
         direction_hit = np.sign(predicted_change) == np.sign(actual_change)
 
+    night_simple_raw = archive_entry.get("nightFuturesSimplePoint")
+    try:
+        night_simple_open = float(night_simple_raw) if night_simple_raw is not None else None
+    except (TypeError, ValueError):
+        night_simple_open = None
+
     return {
         "date": target_date.isoformat(),
         "pred_open": point,
+        "night_simple_open": night_simple_open,
         "actual_open": actual_open,
         "low": low,
         "high": high,
@@ -1547,6 +1565,7 @@ def _estimate_history_row_from_dataset(
         return {
             "date": target_date.isoformat(),
             "pred_open": point_open,
+            "night_simple_open": None,
             "actual_open": actual_open,
             "low": low,
             "high": high,
@@ -1595,6 +1614,7 @@ def _estimate_history_row_from_dataset(
     return {
         "date": target_date.isoformat(),
         "pred_open": point_open,
+        "night_simple_open": None,
         "actual_open": actual_open,
         "low": low,
         "high": high,
@@ -1697,6 +1717,8 @@ def build_history_df(
     for col in ["low", "high", "actual_open"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+    if "night_simple_open" not in df.columns:
+        df["night_simple_open"] = np.nan
 
     df = _fill_recent_history_gaps(
         history_df=df,
@@ -1720,6 +1742,10 @@ def write_history_json(result: dict, history_df: pd.DataFrame) -> None:
     records = [
         {
             "date": row["date"],
+            "modelPrediction": round(float(row["pred_open"]), 2) if not pd.isna(row["pred_open"]) else None,
+            "nightFuturesSimpleOpen": (
+                round(float(row["night_simple_open"]), 2) if not pd.isna(row.get("night_simple_open")) else None
+            ),
             "low": row["low"],
             "high": row["high"],
             "actualOpen": row["actual_open"],

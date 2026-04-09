@@ -124,7 +124,17 @@ function getDashboardVersion(
   freshness: FreshnessData,
 ) {
   const historyFingerprint = history.records
-    .map((record) => [record.date, record.low, record.high, record.actualOpen, record.hit ? "1" : "0"].join("~"))
+    .map((record) =>
+      [
+        record.date,
+        record.modelPrediction ?? "",
+        record.nightFuturesSimpleOpen ?? "",
+        record.low,
+        record.high,
+        record.actualOpen,
+        record.hit ? "1" : "0",
+      ].join("~"),
+    )
     .join(";");
 
   return [

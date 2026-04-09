@@ -105,6 +105,8 @@ export async function getHistoryData() {
     generatedAt?: string;
     records: Array<{
       date: string;
+      modelPrediction?: number | null;
+      nightFuturesSimpleOpen?: number | null;
       low: number;
       high: number;
       actualOpen: number;
