@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-04-09 (Security hardening)
+
+- Frontend dependency security patch
+  - `next` upgraded to `15.5.15` (from `15.3.0`)
+- Firebase Hosting security headers 강화
+  - `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`,
+    `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, `Strict-Transport-Security`
+- 정기 취약점 점검 워크플로 추가
+  - `.github/workflows/security-audit.yml`
+- 운영 명세 문서 추가
+  - `docs/SECURITY_OPERATIONS_RUNBOOK.md`
+  - `docs/OPERATIONS_INDEX.md`
+
 ## 2026-04-09
 
 - 예측 엔진을 `야간선물 중심 + 보조지표 제한 보정` 구조로 개편

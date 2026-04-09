@@ -1,0 +1,60 @@
+name: security-audit
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Secret pattern scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          PATTERN='-----BEGIN (RSA |EC |OPENSSH |)?PRIVATE KEY-----|"type"[[:space:]]*:[[:space:]]*"service_account"|AIza[0-9A-Za-z_-]{35}'
+          if git grep -nE "$PATTERN" -- . ':(exclude)docs/**' ':(exclude)*.md'; then
+            echo "Potential secret detected in repository-tracked files."
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: NPM production audit
+        working-directory: frontend
+        run: npm audit --omit=dev
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m pip install pip-audit
+
+      - name: Python dependency audit
+        run: python -m pip_audit -r requirements.txt

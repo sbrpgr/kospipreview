@@ -91,3 +91,10 @@ NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxxxxxxxxxxxxxx
 ```bash
 npx firebase-tools deploy --project kospipreview --only hosting
 ```
+
+## 7. 보안 운영 참조 문서
+
+- 취약점 점검/사고대응/키 회전/서버운영 표준:
+  - `docs/SECURITY_OPERATIONS_RUNBOOK.md`
+- 운영 명세 인덱스:
+  - `docs/OPERATIONS_INDEX.md`
