@@ -1,5 +1,13 @@
 # Operations Spec Index
 
+## 2026-04-10 기준 분리 명세
+
+- 예측 보정(내부 계산)은 `KRX 동기화 기준(15:30 KST)`을 유지한다.
+- 지표 카드 표시(`changePct`)는 `미국 정규장 개장(09:30 ET)` 기준으로 계산한다.
+- 관련 코드:
+  - `scripts/backtest_and_generate.py`
+  - `scripts/refresh_night_futures.py`
+
 ## 최신 운영 명세
 
 - 보안/운영 런북: `SECURITY_OPERATIONS_RUNBOOK.md`
