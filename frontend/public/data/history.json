@@ -1,13 +1,13 @@
 {
   "summary": {
-    "mae30d": 18.48
+    "mae30d": 18.49
   },
-  "generatedAt": "2026-04-09T01:32:25.455719+00:00",
+  "generatedAt": "2026-04-09T01:33:50.599849+00:00",
   "records": [
     {
       "date": "2026-04-09",
-      "low": 5536.4,
-      "high": 5627.17,
+      "low": 5536.46,
+      "high": 5627.23,
       "actualOpen": 5826.45,
       "hit": false,
       "isSynthetic": false
