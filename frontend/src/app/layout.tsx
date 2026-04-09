@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import { ThirdPartyScripts } from "@/components/third-party-scripts";
 import {
   SITE_DESCRIPTION,
   SITE_KEYWORDS,
@@ -67,7 +68,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
-      <body className={notoSansKR.className}>{children}</body>
+      <body className={notoSansKR.className}>
+        {children}
+        <ThirdPartyScripts />
+      </body>
     </html>
   );
 }
