@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-04-09T11:50:23.187275+00:00",
+  "generatedAt": "2026-04-09T11:51:42.448550+00:00",
   "records": [
     {
       "predictionDateIso": "2026-04-10",
       "predictionDate": "2026년 04월 10일",
-      "generatedAt": "2026-04-09T11:50:23.186586+00:00",
-      "rangeLow": 5766.16,
-      "rangeHigh": 5815.03,
-      "pointPrediction": 5790.59
+      "generatedAt": "2026-04-09T11:51:42.447940+00:00",
+      "rangeLow": 5766.6,
+      "rangeHigh": 5815.47,
+      "pointPrediction": 5791.03
     },
     {
       "predictionDateIso": "2026-04-09",
