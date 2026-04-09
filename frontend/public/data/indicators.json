@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,480.85원",
-      "changePct": -1.22,
-      "updatedAt": "2026-04-09T08:08:00+00:00",
+      "value": "1,481.09원",
+      "changePct": -1.2,
+      "updatedAt": "2026-04-09T08:10:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,13 +25,13 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$97.75",
-      "changePct": 3.54,
-      "updatedAt": "2026-04-09T07:59:00+00:00",
+      "value": "$97.63",
+      "changePct": 3.41,
+      "updatedAt": "2026-04-09T08:00:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "sp500",
@@ -60,9 +60,9 @@
     {
       "key": "vix",
       "label": "VIX",
-      "value": "21.56",
-      "changePct": 2.47,
-      "updatedAt": "2026-04-09T07:54:00+00:00",
+      "value": "21.50",
+      "changePct": 2.19,
+      "updatedAt": "2026-04-09T07:55:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$359.00",
-      "changePct": -11.36,
-      "updatedAt": "2026-04-09T08:09:00+00:00",
+      "value": "$359.38",
+      "changePct": -11.27,
+      "updatedAt": "2026-04-09T08:09:46+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,13 +107,13 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,746.10",
-      "changePct": -0.07,
-      "updatedAt": "2026-04-09T07:59:00+00:00",
+      "value": "$4,749.40",
+      "changePct": -0.0,
+      "updatedAt": "2026-04-09T08:00:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "us10y",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T08:09:08.770393+00:00",
+  "generatedAt": "2026-04-09T08:10:29.519968+00:00",
   "isUsPremarketNow": true
 }
