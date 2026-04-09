@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$138.80",
-      "changePct": -0.91,
-      "updatedAt": "2026-04-09T21:25:46+00:00",
+      "value": "$139.40",
+      "changePct": -0.48,
+      "updatedAt": "2026-04-09T22:04:27+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,473.94원",
-      "changePct": -1.68,
-      "updatedAt": "2026-04-09T21:26:00+00:00",
+      "value": "1,474.07원",
+      "changePct": -1.67,
+      "updatedAt": "2026-04-09T22:05:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -51,7 +51,7 @@
       "label": "NASDAQ 100",
       "value": "25,082.09",
       "changePct": 0.72,
-      "updatedAt": "2026-04-09T21:15:00+00:00",
+      "updatedAt": "2026-04-09T21:16:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$393.79",
-      "changePct": -2.77,
-      "updatedAt": "2026-04-09T21:26:01+00:00",
+      "value": "$398.20",
+      "changePct": -1.68,
+      "updatedAt": "2026-04-09T22:05:42+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -82,12 +82,12 @@
     {
       "key": "k200f",
       "label": "KOSPI 200 야간선물",
-      "value": "885.05",
-      "changePct": 2.08,
-      "updatedAt": "2026-04-09T21:00:00+00:00",
+      "value": "N/A",
+      "changePct": 0,
+      "updatedAt": "",
       "sourceUrl": "",
       "dataSource": "실시간 수집",
-      "displayTag": "(야간)",
+      "displayTag": "(장 시작전)",
       "isPremarket": false,
       "referenceLabel": "주간선물 종가",
       "referenceValue": "867.05",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T21:26:14.366855+00:00",
+  "generatedAt": "2026-04-09T22:05:58.686540+00:00",
   "isUsPremarketNow": false
 }
