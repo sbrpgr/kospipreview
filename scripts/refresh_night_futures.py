@@ -34,8 +34,6 @@ ESIGNAL_USER_AGENT = (
 
 KOSPI_DAY_FUTURES_SESSION_OPEN = time(8, 45)
 KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 45)
-US_SESSION_OPEN_TIME = time(9, 30)
-US_SESSION_CLOSE_TIME = time(16, 0)
 NIGHT_OPERATION_START = time(18, 0)
 NIGHT_OPERATION_END = time(6, 30)
 NIGHT_FUTURES_STALE_MINUTES = 180
@@ -54,8 +52,6 @@ DISPLAY_TICKER_BY_KEY = {
     "us10y": "^TNX",
     "sox": "^SOX",
 }
-DISPLAY_CHANGE_BASIS = "US_REGULAR_OPEN_0930_ET"
-DISPLAY_CHANGE_BASIS_LABEL = "미국장 정규장 개장(09:30 ET) 기준"
 
 AUXILIARY_SIGNAL_WEIGHTS = {
     "sp500": 0.55,
@@ -200,42 +196,81 @@ def fetch_yahoo_chart_points(symbol: str) -> list[tuple[datetime, float]]:
     return points
 
 
-def resolve_value_at_us_session_open(points: list[tuple[datetime, float]]) -> tuple[float | None, datetime | None]:
-    if not points:
-        return None, None
-
-    latest_ts_utc, _latest_value = points[-1]
-    latest_et = latest_ts_utc.astimezone(US_ET)
-    if latest_et.weekday() < 5 and latest_et.time() >= US_SESSION_OPEN_TIME:
-        session_date = latest_et.date()
-    else:
-        session_date = previous_business_day(latest_et.date())
-
-    session_open_et = datetime.combine(session_date, US_SESSION_OPEN_TIME, tzinfo=US_ET)
-    session_close_et = datetime.combine(session_date, US_SESSION_CLOSE_TIME, tzinfo=US_ET)
-
-    for ts_utc, value in points:
-        ts_et = ts_utc.astimezone(US_ET)
-        if session_open_et <= ts_et <= session_close_et:
-            return value, ts_utc
-
-    return None, None
-
-
-def fetch_yahoo_us_open_display_snapshot(symbol: str) -> dict | None:
-    points = fetch_yahoo_chart_points(symbol)
-    if not points:
+def fetch_yahoo_market_display_snapshot(symbol: str) -> dict | None:
+    encoded_symbol = urllib.parse.quote(symbol, safe="")
+    url = YAHOO_CHART_URL_TEMPLATE.format(symbol=encoded_symbol)
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": ESIGNAL_USER_AGENT,
+            "Accept": "application/json,text/javascript,*/*;q=0.1",
+            "Cache-Control": "no-cache",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=ESIGNAL_REQUEST_TIMEOUT) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, ValueError, TypeError):
         return None
 
-    latest_ts_utc, latest_value = points[-1]
-    baseline_value, _baseline_ts_utc = resolve_value_at_us_session_open(points)
-    if baseline_value is None or baseline_value == 0:
+    if not isinstance(payload, dict):
+        return None
+    chart = payload.get("chart")
+    if not isinstance(chart, dict):
+        return None
+    results = chart.get("result")
+    if not isinstance(results, list) or not results:
+        return None
+    first = results[0]
+    if not isinstance(first, dict):
         return None
 
-    change_pct = (latest_value / baseline_value - 1) * 100
+    timestamps = first.get("timestamp")
+    indicators = first.get("indicators")
+    if not isinstance(timestamps, list) or not isinstance(indicators, dict):
+        return None
+    quotes = indicators.get("quote")
+    if not isinstance(quotes, list) or not quotes:
+        return None
+    quote0 = quotes[0]
+    if not isinstance(quote0, dict):
+        return None
+    closes = quote0.get("close")
+    if not isinstance(closes, list):
+        return None
+
+    latest_ts_utc = None
+    latest_value = None
+    for raw_ts, raw_close in zip(timestamps, closes):
+        close_value = to_float(raw_close)
+        if close_value is None:
+            continue
+        try:
+            ts_utc = datetime.fromtimestamp(int(raw_ts), tz=timezone.utc)
+        except (TypeError, ValueError):
+            continue
+        latest_ts_utc = ts_utc
+        latest_value = close_value
+
+    if latest_ts_utc is None or latest_value is None:
+        return None
+
+    meta = first.get("meta")
+    if not isinstance(meta, dict):
+        return None
+    previous_close = to_float(meta.get("previousClose"))
+    if previous_close == 0:
+        return None
+
+    if previous_close is None:
+        previous_close = to_float(meta.get("chartPreviousClose"))
+    if previous_close is None:
+        return None
+
     return {
         "value": latest_value,
-        "change_pct": change_pct,
+        "change_pct": (latest_value / previous_close - 1) * 100,
         "updated_at": latest_ts_utc.isoformat(),
     }
 
@@ -909,7 +944,6 @@ def build_k200f_indicator(quote: dict | None, day_close_quote: dict | None) -> d
             "label": "KOSPI 200 야간선물",
             "value": f"{price:,.2f}",
             "changePct": round(change_pct, 2),
-            "changeBasis": "KOSPI200_DAY_FUTURES_CLOSE_KRX",
             "updatedAt": updated_at,
             "sourceUrl": "",
             "dataSource": "실시간 수집",
@@ -925,7 +959,6 @@ def build_k200f_indicator(quote: dict | None, day_close_quote: dict | None) -> d
         "label": "KOSPI 200 야간선물",
         "value": "N/A",
         "changePct": 0,
-        "changeBasis": "KOSPI200_DAY_FUTURES_CLOSE_KRX",
         "updatedAt": "",
         "sourceUrl": "",
         "dataSource": "실시간 수집",
@@ -972,7 +1005,7 @@ def update_k200f_in_indicators(payload: dict, k200f_indicator: dict, now_utc: da
     return payload
 
 
-def update_display_changes_from_us_open(payload: dict, now_utc: datetime) -> dict:
+def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -> dict:
     primary = payload.get("primary")
     if not isinstance(primary, list):
         primary = []
@@ -995,7 +1028,7 @@ def update_display_changes_from_us_open(payload: dict, now_utc: datetime) -> dic
                 continue
 
             if key not in snapshots:
-                snapshots[key] = fetch_yahoo_us_open_display_snapshot(ticker)
+                snapshots[key] = fetch_yahoo_market_display_snapshot(ticker)
             snapshot = snapshots[key]
             if not snapshot:
                 continue
@@ -1008,7 +1041,6 @@ def update_display_changes_from_us_open(payload: dict, now_utc: datetime) -> dic
 
             row["value"] = format_indicator_value(key, value)
             row["changePct"] = round(change_pct, 2)
-            row["changeBasis"] = DISPLAY_CHANGE_BASIS
             row["updatedAt"] = updated_at
             row["dataSource"] = "Yahoo Finance"
 
@@ -1017,8 +1049,6 @@ def update_display_changes_from_us_open(payload: dict, now_utc: datetime) -> dic
 
     payload["primary"] = primary
     payload["secondary"] = secondary
-    payload["displayChangeBasis"] = DISPLAY_CHANGE_BASIS
-    payload["displayChangeBasisLabel"] = DISPLAY_CHANGE_BASIS_LABEL
     payload["generatedAt"] = now_utc.isoformat()
     return payload
 
@@ -1155,7 +1185,7 @@ def main() -> None:
     day_close_quote = resolve_day_futures_close_quote()
     night_quote = fetch_esignal_kospi_night_quote(day_close_quote)
 
-    indicators_payload = update_display_changes_from_us_open(indicators_payload, now_utc)
+    indicators_payload = update_display_changes_from_market_quote(indicators_payload, now_utc)
     k200f_indicator = build_k200f_indicator(night_quote, day_close_quote)
     indicators_payload = update_k200f_in_indicators(indicators_payload, k200f_indicator, now_utc)
     write_output_json("indicators.json", indicators_payload)

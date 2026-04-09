@@ -3,8 +3,8 @@
 ## 2026-04-10 기준 분리 명세
 
 - 예측 보정(내부 계산)은 `KRX 동기화 기준(15:30 KST)`을 유지한다.
-- 지표 카드 표시(`changePct`)는 `미국 정규장 개장(09:30 ET)` 기준으로 계산한다.
-- `indicators.json`에 `displayChangeBasis`/`displayChangeBasisLabel` 및 각 카드의 `changeBasis`를 포함해 표시 기준을 명시한다.
+- 지표 카드 표시(`changePct`)는 시장 일반 기준인 `전일 종가 대비`로 계산한다.
+- 내부 보정 계산값은 `prediction.json` 모델 계산 경로에만 사용하고, `indicators.json` 표시 지표에는 반영하지 않는다.
 - 관련 코드:
   - `scripts/backtest_and_generate.py`
   - `scripts/refresh_night_futures.py`

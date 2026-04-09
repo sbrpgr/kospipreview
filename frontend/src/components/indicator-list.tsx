@@ -56,16 +56,10 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
         const hasSourceUrl = Boolean(indicator.sourceUrl?.trim());
         const isSourceHidden = indicator.key === "k200f";
         const isClickable = hasSourceUrl && !isSourceHidden;
-        const changeBasisText =
-          indicator.changeBasis === "US_REGULAR_OPEN_0930_ET"
-            ? "등락률 기준 미국장 정규장 개장(09:30 ET)"
-            : "";
         const sourceText =
           indicator.key === "k200f"
             ? "지연 데이터 표시 (실시간 아님 · 투자 참고용)"
-            : `기준 시각 ${formatUpdatedAt(indicator.updatedAt)} KST · ${indicator.dataSource ?? "Yahoo Finance"}${
-                changeBasisText ? ` · ${changeBasisText}` : ""
-              }`;
+            : `기준 시각 ${formatUpdatedAt(indicator.updatedAt)} KST · ${indicator.dataSource ?? "Yahoo Finance"}`;
         const cardClassName = `indCard${isClickable ? "" : " isStatic"}`;
         const cardContent = (
           <>
