@@ -5,7 +5,7 @@
       "label": "EWY (Korea ETF)",
       "value": "$134.86",
       "changePct": -3.72,
-      "updatedAt": "2026-04-09T08:21:36+00:00",
+      "updatedAt": "2026-04-09T08:22:33+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,481.38원",
-      "changePct": -1.18,
-      "updatedAt": "2026-04-09T08:21:00+00:00",
+      "value": "1,480.58원",
+      "changePct": -1.24,
+      "updatedAt": "2026-04-09T08:23:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$97.45",
-      "changePct": 3.22,
-      "updatedAt": "2026-04-09T08:11:00+00:00",
+      "value": "$97.41",
+      "changePct": 3.18,
+      "updatedAt": "2026-04-09T08:13:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -62,7 +62,7 @@
       "label": "VIX",
       "value": "21.44",
       "changePct": 1.9,
-      "updatedAt": "2026-04-09T08:06:00+00:00",
+      "updatedAt": "2026-04-09T08:08:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$361.00",
-      "changePct": -10.87,
-      "updatedAt": "2026-04-09T08:21:50+00:00",
+      "value": "$360.47",
+      "changePct": -11.0,
+      "updatedAt": "2026-04-09T08:22:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,747.40",
-      "changePct": -0.04,
-      "updatedAt": "2026-04-09T08:11:00+00:00",
+      "value": "$4,748.30",
+      "changePct": -0.03,
+      "updatedAt": "2026-04-09T08:13:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T08:21:59.178994+00:00",
+  "generatedAt": "2026-04-09T08:23:16.711616+00:00",
   "isUsPremarketNow": true
 }
