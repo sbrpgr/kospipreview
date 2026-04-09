@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import Script from "next/script";
 import { ThirdPartyScripts } from "@/components/third-party-scripts";
 import {
   SITE_DESCRIPTION,
+  SITE_HOSTNAME,
   SITE_KEYWORDS,
   SITE_NAME,
   SITE_TITLE,
@@ -17,6 +19,31 @@ const notoSansKR = Noto_Sans_KR({
 });
 
 const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+const canonicalRedirectTarget = SITE_URL;
+
+const canonicalHostRedirectScript = `
+  (function () {
+    var canonicalOrigin = ${JSON.stringify(canonicalRedirectTarget)};
+    var canonicalHost = ${JSON.stringify(SITE_HOSTNAME)};
+    if (!canonicalOrigin || !canonicalHost) return;
+
+    var currentHost = window.location.hostname.toLowerCase();
+    var isAlreadyCanonical =
+      currentHost === canonicalHost || currentHost === ("www." + canonicalHost);
+    if (isAlreadyCanonical) return;
+
+    var isFirebaseDefaultHost =
+      currentHost.endsWith(".web.app") || currentHost.endsWith(".firebaseapp.com");
+    if (!isFirebaseDefaultHost) return;
+
+    var targetUrl =
+      canonicalOrigin +
+      window.location.pathname +
+      window.location.search +
+      window.location.hash;
+    window.location.replace(targetUrl);
+  })();
+`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -69,6 +96,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ko">
       <body className={notoSansKR.className}>
+        <Script id="canonical-host-redirect" strategy="beforeInteractive">
+          {canonicalHostRedirectScript}
+        </Script>
         {children}
         <ThirdPartyScripts />
       </body>

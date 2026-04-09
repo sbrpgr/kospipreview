@@ -1,4 +1,4 @@
-const FALLBACK_SITE_URL = "https://kospipreview.web.app";
+const FALLBACK_SITE_URL = "https://kospipreview.com";
 
 function normalizeSiteUrl(value: string | undefined) {
   if (!value) {
@@ -13,11 +13,20 @@ function normalizeSiteUrl(value: string | undefined) {
   return trimmed.replace(/\/+$/, "");
 }
 
+function extractHostname(value: string) {
+  try {
+    return new URL(value).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
 export const SITE_URL = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+export const SITE_HOSTNAME = extractHostname(SITE_URL);
 export const SITE_NAME = "KOSPI Dawn";
 export const SITE_TITLE = "KOSPI Dawn | 코스피 시초가 예측 대시보드";
 export const SITE_DESCRIPTION =
-  "EWY, 환율, VIX 등 해외 선행 지표를 기반으로 다음 거래일 코스피 시초가 밴드를 예측하는 대시보드입니다.";
+  "EWY, 환율, VIX, 야간선물 등 핵심 지표를 기반으로 다음 거래일 코스피 시초가 범위를 예측하는 대시보드입니다.";
 export const SITE_KEYWORDS = [
   "코스피 시초가 예측",
   "코스피 전망",
