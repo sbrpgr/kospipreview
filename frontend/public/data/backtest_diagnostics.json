@@ -15,17 +15,17 @@
   "rmse": 35.723,
   "mae": 18.4852,
   "featureImportance": {
-    "ewy_return": 797,
-    "koru_return": 723,
-    "sp500_return": 551,
-    "nasdaq_return": 696,
-    "dow_return": 781,
-    "vix_return": 1007,
-    "wti_return": 1003,
-    "gold_return": 969,
-    "us10y_return": 757,
-    "sox_return": 834,
-    "krw_return": 882
+    "ewy_return": 822,
+    "koru_return": 693,
+    "sp500_return": 614,
+    "nasdaq_return": 715,
+    "dow_return": 726,
+    "vix_return": 953,
+    "wti_return": 1010,
+    "gold_return": 1033,
+    "us10y_return": 762,
+    "sox_return": 779,
+    "krw_return": 893
   },
-  "generatedAt": "2026-04-09T01:33:50.610158+00:00"
+  "generatedAt": "2026-04-09T01:35:15.244078+00:00"
 }
