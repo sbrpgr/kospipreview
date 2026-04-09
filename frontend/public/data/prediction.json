@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-04-09T03:53:12.918013+00:00",
+  "generatedAt": "2026-04-09T03:54:25.737853+00:00",
   "predictionDate": "2026년 04월 10일",
-  "pointPrediction": 5971.13,
+  "pointPrediction": 5970.21,
   "nightFuturesSimplePoint": null,
   "nightFuturesSimpleChangePct": null,
   "futuresDayClose": 884.55,
   "futuresDayCloseDate": "2026-04-08",
-  "rangeLow": 5947.1,
-  "rangeHigh": 5995.16,
-  "predictedChangePct": 1.68,
+  "rangeLow": 5946.18,
+  "rangeHigh": 5994.24,
+  "predictedChangePct": 1.67,
   "prevClose": 5872.34,
   "signalSummary": "EWY 상승 · S&P 500 상승 · VIX 하락(안정) · NASDAQ 100 상승 · USD/KRW 원화 강세",
-  "lastCalculatedAt": "2026-04-09T03:53:12.918013+00:00",
+  "lastCalculatedAt": "2026-04-09T03:54:25.737853+00:00",
   "latestRecordDate": "2026-04-08",
   "mae30d": 18.49,
   "model": {
@@ -22,10 +22,10 @@
     "nightFuturesAnchorPct": 1.14,
     "auxiliaryAnchorPct": 1.14,
     "coreAnchorPct": 1.14,
-    "rawModelPct": 4.15,
-    "mlResidualAdjPct": 0.54,
+    "rawModelPct": 4.07,
+    "mlResidualAdjPct": 0.53,
     "auxResidualAdjPct": 0.0,
-    "prevCloseChangePct": 1.3
+    "prevCloseChangePct": 1.25
   },
   "yesterday": {
     "predictionLow": 5536.42,
