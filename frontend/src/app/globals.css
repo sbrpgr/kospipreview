@@ -155,6 +155,28 @@ p {
   flex-wrap: wrap;
 }
 
+.headerNav {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.headerNav a {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.headerNav a:hover {
+  color: var(--brand-strong);
+  border-color: rgba(49, 130, 246, 0.35);
+}
+
 .statusLabel {
   display: inline-flex;
   align-items: center;
@@ -365,6 +387,18 @@ p {
   color: var(--text-dim);
   font-size: 0.84rem;
   font-weight: 500;
+}
+
+.pageSeoTitle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
 }
 
 .sectionTitle {
@@ -765,6 +799,12 @@ p {
   font-weight: 500;
 }
 
+.footerAdNotice {
+  margin-top: 8px;
+  font-size: 0.79rem;
+  color: var(--text-secondary);
+}
+
 .footerLinks {
   display: flex;
   justify-content: center;
@@ -840,6 +880,11 @@ p {
 
   .statusTimeGroup {
     align-items: flex-start;
+  }
+
+  .headerNav {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .cleanTable th,

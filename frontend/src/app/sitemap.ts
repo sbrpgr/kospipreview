@@ -1,16 +1,25 @@
 import type { MetadataRoute } from "next";
 import { toAbsoluteUrl } from "@/lib/seo";
 
-const routes = ["/", "/about", "/history", "/privacy", "/contact", "/operations-policy"] as const;
+const ROUTES = [
+  { path: "/", changeFrequency: "hourly" as const, priority: 1.0 },
+  { path: "/history", changeFrequency: "daily" as const, priority: 0.9 },
+  { path: "/about", changeFrequency: "weekly" as const, priority: 0.8 },
+  { path: "/operations-policy", changeFrequency: "monthly" as const, priority: 0.75 },
+  { path: "/privacy", changeFrequency: "monthly" as const, priority: 0.7 },
+  { path: "/contact", changeFrequency: "monthly" as const, priority: 0.7 },
+  { path: "/disclaimer", changeFrequency: "monthly" as const, priority: 0.7 },
+] as const;
+
 export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
-
-  return routes.map((route) => ({
-    url: toAbsoluteUrl(route),
+  return ROUTES.map((route) => ({
+    url: toAbsoluteUrl(route.path),
     lastModified,
-    changeFrequency: route === "/" ? "hourly" : "weekly",
-    priority: route === "/" ? 1 : 0.7,
+    changeFrequency: route.changeFrequency,
+    priority: route.priority,
   }));
 }
+

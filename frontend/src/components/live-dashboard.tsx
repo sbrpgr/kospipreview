@@ -366,6 +366,7 @@ export function LiveDashboard({
 
       <main>
         <section className="card heroSection">
+          <h1 className="pageSeoTitle">{prediction.predictionDate} 코스피 시초가 예측 및 시장 지표 대시보드</h1>
           <div className="heroTopLine">
             <div className="heroDate">{prediction.predictionDate} 코스피 시초가 전망</div>
             <div className="heroMeta">
@@ -470,9 +471,12 @@ export function LiveDashboard({
 
       <footer className="footer">
         <div>© 2026 KOSPI Dawn. Forecast dashboard for KOSPI opening range.</div>
+        <div className="footerAdNotice">본 사이트에는 서비스 운영을 위한 광고가 포함될 수 있습니다.</div>
         <div className="footerLinks">
+          <a href="/history">최근 예측 기록</a>
           <a href="/about">모델 설명</a>
           <a href="/privacy">개인정보처리방침</a>
+          <a href="/disclaimer">면책 및 광고 고지</a>
           <a href="/contact">문의</a>
           <a href="/operations-policy">운영정책</a>
         </div>

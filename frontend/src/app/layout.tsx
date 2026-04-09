@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ThirdPartyScripts } from "@/components/third-party-scripts";
 import {
+  ADSENSE_PUBLISHER_ID,
+  CONTACT_EMAIL,
   SITE_DESCRIPTION,
   SITE_HOSTNAME,
   SITE_KEYWORDS,
@@ -17,6 +19,8 @@ const GA_MEASUREMENT_ID_FALLBACK = "G-Y19X5LHKSJ";
 const rawGaMeasurementId =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim().toUpperCase() || GA_MEASUREMENT_ID_FALLBACK;
 const gaMeasurementId = rawGaMeasurementId.startsWith("G-") ? rawGaMeasurementId : "";
+const adsenseMetaAccount = ADSENSE_PUBLISHER_ID;
+const adsenseScriptSrc = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`;
 
 const canonicalHostRedirectScript = `
   (function () {
@@ -71,6 +75,12 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/apple-touch-icon.svg",
+  },
   robots: {
     index: true,
     follow: true,
@@ -87,6 +97,10 @@ export const metadata: Metadata = {
         google: googleSiteVerification,
       }
     : undefined,
+  other: {
+    "google-adsense-account": adsenseMetaAccount,
+    "contact:email": CONTACT_EMAIL,
+  },
   openGraph: {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
@@ -94,24 +108,39 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     siteName: SITE_NAME,
     url: toAbsoluteUrl("/"),
+    images: [
+      {
+        url: toAbsoluteUrl("/og-image.svg"),
+        width: 1200,
+        height: 630,
+        alt: "KOSPI Dawn - 코스피 시초가 예측 대시보드",
+      },
+    ],
   },
   twitter: {
     card: "summary",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
+    images: [toAbsoluteUrl("/og-image.svg")],
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#3182f6",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
       <head>
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
+        <link rel="preconnect" href="https://googleads.g.doubleclick.net" />
+        <link rel="dns-prefetch" href="//www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="//pagead2.googlesyndication.com" />
+        <link rel="dns-prefetch" href="//googleads.g.doubleclick.net" />
         <script dangerouslySetInnerHTML={{ __html: canonicalHostRedirectScript }} />
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5869520985295558"
-          crossOrigin="anonymous"
-        />
+        <script async src={adsenseScriptSrc} crossOrigin="anonymous" />
         {gaMeasurementId ? (
           <>
             <script

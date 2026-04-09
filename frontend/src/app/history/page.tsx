@@ -7,7 +7,7 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const HISTORY_TITLE = "최근 예측 기록";
 const HISTORY_DESCRIPTION =
-  "코스피 시초가 예측 히스토리, 백테스트 정확도, 모델 진단 정보를 확인할 수 있습니다.";
+  "코스피 시초가 예측 히스토리, 백테스트 정확도, 모델 진단 데이터를 확인할 수 있습니다.";
 
 export const metadata: Metadata = {
   title: HISTORY_TITLE,
@@ -44,6 +44,15 @@ export default async function HistoryPage() {
     timeZone: "Asia/Seoul",
   }).format(new Date(freshness.newestModifiedAt));
 
+  const jsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${SITE_NAME} 최근 예측 기록`,
+    description: HISTORY_DESCRIPTION,
+    url: toAbsoluteUrl("/history"),
+    inLanguage: "ko-KR",
+  });
+
   return (
     <div className="pageContainer">
       <SiteHeader lastUpdated={updatedAt} status={freshness.status} />
@@ -52,11 +61,13 @@ export default async function HistoryPage() {
         <div style={{ marginBottom: "60px" }}>
           <AccuracyTable history={history} prediction={prediction} />
         </div>
-        <h2 className="sectionTitle">모델 백테스트 검증(과거 데이터)</h2>
+        <h2 className="sectionTitle">모델 백테스트 검증 데이터</h2>
         <div className="prose">
           <ModelDiagnostics diagnostics={diagnostics} />
         </div>
       </main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
     </div>
   );
 }
+
