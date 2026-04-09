@@ -56,6 +56,10 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
         const hasSourceUrl = Boolean(indicator.sourceUrl?.trim());
         const isSourceHidden = indicator.key === "k200f";
         const isClickable = hasSourceUrl && !isSourceHidden;
+        const sourceText =
+          indicator.key === "k200f"
+            ? `기준 시각 ${formatUpdatedAt(indicator.updatedAt)} KST`
+            : `기준 시각 ${formatUpdatedAt(indicator.updatedAt)} KST · ${indicator.dataSource ?? "Yahoo Finance"}`;
         const cardClassName = `indCard${isClickable ? "" : " isStatic"}`;
         const cardContent = (
           <>
@@ -67,9 +71,7 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
             <div className={`indChange ${isPositive ? "isPos" : "isNeg"}`}>
               {changeLabel(indicator.changePct)} {Math.abs(indicator.changePct).toFixed(2)}%
             </div>
-            <div className="indSource">
-              기준 시각 {formatUpdatedAt(indicator.updatedAt)} KST · {indicator.dataSource ?? "Yahoo Finance"}
-            </div>
+            <div className="indSource">{sourceText}</div>
             {referenceValue ? (
               <div className="indReference">
                 {referenceLabel || "기준 종가"} {referenceValue}
