@@ -54,6 +54,8 @@ DISPLAY_TICKER_BY_KEY = {
     "us10y": "^TNX",
     "sox": "^SOX",
 }
+DISPLAY_CHANGE_BASIS = "US_REGULAR_OPEN_0930_ET"
+DISPLAY_CHANGE_BASIS_LABEL = "미국장 정규장 개장(09:30 ET) 기준"
 
 AUXILIARY_SIGNAL_WEIGHTS = {
     "sp500": 0.55,
@@ -907,6 +909,7 @@ def build_k200f_indicator(quote: dict | None, day_close_quote: dict | None) -> d
             "label": "KOSPI 200 야간선물",
             "value": f"{price:,.2f}",
             "changePct": round(change_pct, 2),
+            "changeBasis": "KOSPI200_DAY_FUTURES_CLOSE_KRX",
             "updatedAt": updated_at,
             "sourceUrl": "",
             "dataSource": "실시간 수집",
@@ -922,6 +925,7 @@ def build_k200f_indicator(quote: dict | None, day_close_quote: dict | None) -> d
         "label": "KOSPI 200 야간선물",
         "value": "N/A",
         "changePct": 0,
+        "changeBasis": "KOSPI200_DAY_FUTURES_CLOSE_KRX",
         "updatedAt": "",
         "sourceUrl": "",
         "dataSource": "실시간 수집",
@@ -1004,6 +1008,7 @@ def update_display_changes_from_us_open(payload: dict, now_utc: datetime) -> dic
 
             row["value"] = format_indicator_value(key, value)
             row["changePct"] = round(change_pct, 2)
+            row["changeBasis"] = DISPLAY_CHANGE_BASIS
             row["updatedAt"] = updated_at
             row["dataSource"] = "Yahoo Finance"
 
@@ -1012,6 +1017,8 @@ def update_display_changes_from_us_open(payload: dict, now_utc: datetime) -> dic
 
     payload["primary"] = primary
     payload["secondary"] = secondary
+    payload["displayChangeBasis"] = DISPLAY_CHANGE_BASIS
+    payload["displayChangeBasisLabel"] = DISPLAY_CHANGE_BASIS_LABEL
     payload["generatedAt"] = now_utc.isoformat()
     return payload
 

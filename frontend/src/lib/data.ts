@@ -70,6 +70,7 @@ export async function getIndicatorData() {
       label: string;
       value: string;
       changePct: number;
+      changeBasis?: string;
       updatedAt: string;
       sourceUrl?: string;
       dataSource?: string;
@@ -84,6 +85,7 @@ export async function getIndicatorData() {
       label: string;
       value: string;
       changePct: number;
+      changeBasis?: string;
       updatedAt: string;
       sourceUrl?: string;
       dataSource?: string;
@@ -93,6 +95,8 @@ export async function getIndicatorData() {
       referenceValue?: string;
       referenceDate?: string;
     }>;
+    displayChangeBasis?: string;
+    displayChangeBasisLabel?: string;
     generatedAt?: string;
     isUsPremarketNow?: boolean;
   }>("indicators.json");

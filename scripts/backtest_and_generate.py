@@ -1774,6 +1774,8 @@ def write_indicators_json(
     secondary_keys = ["nasdaq", "vix", "koru", "k200f", "dow", "gold", "us10y", "sox"]
     now_utc = datetime.now(timezone.utc)
     in_us_premarket_now = is_us_premarket_window(now_utc)
+    display_change_basis = "US_REGULAR_OPEN_0930_ET"
+    display_change_basis_label = "미국장 정규장 개장(09:30 ET) 기준"
 
     def build_indicator(name: str) -> dict:
         if name == "k200f":
@@ -1797,6 +1799,7 @@ def write_indicators_json(
                     "label": indicator_label(name),
                     "value": format_value(name, price),
                     "changePct": round(change_pct, 2),
+                    "changeBasis": "KOSPI200_DAY_FUTURES_CLOSE_KRX",
                     "updatedAt": updated_at.isoformat(),
                     "sourceUrl": "",
                     "dataSource": "실시간 수집",
@@ -1812,6 +1815,7 @@ def write_indicators_json(
                 "label": indicator_label(name),
                 "value": "N/A",
                 "changePct": 0,
+                "changeBasis": "KOSPI200_DAY_FUTURES_CLOSE_KRX",
                 "updatedAt": "",
                 "sourceUrl": "",
                 "dataSource": "실시간 수집",
@@ -1830,6 +1834,7 @@ def write_indicators_json(
                 "label": indicator_label(name),
                 "value": "N/A",
                 "changePct": 0,
+                "changeBasis": display_change_basis,
                 "updatedAt": "",
                 "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
                 "dataSource": "Yahoo Finance",
@@ -1862,6 +1867,7 @@ def write_indicators_json(
             "label": indicator_label(name),
             "value": format_value(name, current_value),
             "changePct": round(change_pct, 2),
+            "changeBasis": display_change_basis,
             "updatedAt": latest_ts.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
@@ -1872,6 +1878,8 @@ def write_indicators_json(
     payload = {
         "primary": [build_indicator(name) for name in primary_keys],
         "secondary": [build_indicator(name) for name in secondary_keys],
+        "displayChangeBasis": display_change_basis,
+        "displayChangeBasisLabel": display_change_basis_label,
         "generatedAt": now_utc.isoformat(),
         "isUsPremarketNow": in_us_premarket_now,
     }

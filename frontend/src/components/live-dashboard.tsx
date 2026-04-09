@@ -436,8 +436,9 @@ export function LiveDashboard({
           </div>
         </div>
         <div className="sectionSubtext">
-          지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주시기 바랍니다. 야간선물 데이터는 지연될 수
-          있으며 실시간 정보가 아닐 수 있으므로 투자 참고용으로만 활용해 주시기 바랍니다.
+          지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주시기 바랍니다. 지표 등락률은 미국장 정규장
+          개장(09:30 ET) 기준으로 표시됩니다. 야간선물 데이터는 지연될 수 있으며 실시간 정보가 아닐 수 있으므로 투자 참고용으로만
+          활용해 주시기 바랍니다.
         </div>
         {hasLiveSnapshot ? (
           <IndicatorList indicators={indicators} />
