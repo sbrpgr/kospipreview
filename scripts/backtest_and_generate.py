@@ -28,6 +28,7 @@ DOCS_DIR = ROOT / "docs"
 # Keep yfinance timezone cache outside the repository so CI git state stays clean.
 CACHE_DIR = Path.home() / ".cache" / "kospipreview-yfinance"
 DAY_FUTURES_CLOSE_CACHE_FILE = DATA_DIR / "day_futures_close_cache.json"
+NIGHT_FUTURES_SOURCE_CACHE_FILE = DATA_DIR / "night_futures_source_cache.json"
 PREDICTION_ARCHIVE_FILE = DATA_DIR / "prediction_archive.json"
 
 KST = timezone(timedelta(hours=9))
@@ -107,6 +108,9 @@ REGIME_CLIP_CORE_BUFFER_PCT = 1.25
 TV_FUTURES_SCAN_URL = "https://scanner.tradingview.com/futures/scan"
 TV_KOSPI_NIGHT_SYMBOL = "KRX:K2I1!"
 NIGHT_FUTURES_STALE_MINUTES = 180
+NIGHT_FUTURES_SOURCE_MIN_REFRESH_SECONDS = 30
+NIGHT_FUTURES_OPERATION_START = time(18, 0)
+NIGHT_FUTURES_OPERATION_END = time(6, 30)
 ESIGNAL_KOSPI_NIGHT_PAGE_URL = "https://esignal.co.kr/kospi200-futures-night/"
 ESIGNAL_KOSPI_NIGHT_CACHE_URL = "https://esignal.co.kr/data/cache/kospif_ngt.js"
 ESIGNAL_KOSPI_DAY_PAGE_URL = "https://esignal.co.kr/kospi200-futures/"
@@ -496,7 +500,71 @@ def apply_day_futures_reference(
     return quote
 
 
+def parse_iso_datetime_utc(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def is_night_futures_operation_window(now_utc: datetime) -> bool:
+    now_kst = now_utc.astimezone(KST)
+    current = now_kst.hour * 60 + now_kst.minute
+    start = NIGHT_FUTURES_OPERATION_START.hour * 60 + NIGHT_FUTURES_OPERATION_START.minute
+    end = NIGHT_FUTURES_OPERATION_END.hour * 60 + NIGHT_FUTURES_OPERATION_END.minute
+    return current >= start or current <= end
+
+
+def normalize_night_futures_quote_state(quote: dict, now_utc: datetime | None = None) -> dict:
+    current_utc = now_utc or datetime.now(timezone.utc)
+    normalized = dict(quote)
+    updated_at = parse_iso_datetime_utc(normalized.get("updated_at")) or current_utc
+    age_minutes = max(0.0, (current_utc - updated_at).total_seconds() / 60)
+    normalized["updated_at"] = updated_at.isoformat()
+    normalized["age_minutes"] = round(age_minutes, 1)
+    normalized["is_live_night"] = (
+        age_minutes <= NIGHT_FUTURES_STALE_MINUTES and is_night_futures_operation_window(current_utc)
+    )
+    return normalized
+
+
+def load_night_futures_source_cache() -> dict | None:
+    if not NIGHT_FUTURES_SOURCE_CACHE_FILE.exists():
+        return None
+
+    try:
+        payload = json.loads(NIGHT_FUTURES_SOURCE_CACHE_FILE.read_text(encoding="utf8"))
+    except (OSError, ValueError, TypeError):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    quote = payload.get("quote")
+    fetched_at = parse_iso_datetime_utc(payload.get("fetched_at"))
+    if not isinstance(quote, dict) or fetched_at is None:
+        return None
+
+    return {"quote": quote, "fetched_at": fetched_at}
+
+
+def save_night_futures_source_cache(quote: dict) -> None:
+    payload = {
+        "quote": quote,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+    }
+    write_output_json("night_futures_source_cache.json", payload)
+
+
 def fetch_tradingview_kospi_night_quote(day_close_quote: dict | None = None) -> dict | None:
+    now_utc = datetime.now(timezone.utc)
     payload = {
         "symbols": {"tickers": [TV_KOSPI_NIGHT_SYMBOL], "query": {"types": []}},
         "columns": ["close", "change", "change_abs", "update_time", "update_mode", "description", "exchange"],
@@ -539,19 +607,11 @@ def fetch_tradingview_kospi_night_quote(day_close_quote: dict | None = None) -> 
     else:
         updated_at = datetime.now(timezone.utc)
 
-    now_utc = datetime.now(timezone.utc)
-    age_minutes = (now_utc - updated_at).total_seconds() / 60
-    updated_kst = updated_at.astimezone(KST)
-    in_night_window = updated_kst.time() >= time(18, 0) or updated_kst.time() <= time(6, 0)
-    is_live_night = age_minutes <= NIGHT_FUTURES_STALE_MINUTES and in_night_window
-
     quote = {
         "price": price,
         "previous_close": previous_close,
         "change_pct": float(change_pct) if change_pct is not None else (price / previous_close - 1) * 100,
         "updated_at": updated_at.isoformat(),
-        "age_minutes": round(age_minutes, 1),
-        "is_live_night": is_live_night,
         "update_mode": update_mode or "",
         "description": description or "KOSPI 200 Futures",
         "exchange": exchange or "KRX",
@@ -561,10 +621,21 @@ def fetch_tradingview_kospi_night_quote(day_close_quote: dict | None = None) -> 
         "day_close_updated_at": None,
         "day_close_date": None,
     }
+    quote = normalize_night_futures_quote_state(quote, now_utc)
     return apply_day_futures_reference(quote, day_close_quote)
 
 
 def fetch_esignal_kospi_night_quote(day_close_quote: dict | None = None) -> dict | None:
+    now_utc = datetime.now(timezone.utc)
+    cached_payload = load_night_futures_source_cache()
+    if cached_payload:
+        cached_quote = cached_payload["quote"]
+        cached_fetched_at = cached_payload["fetched_at"]
+        cache_age_seconds = max(0.0, (now_utc - cached_fetched_at).total_seconds())
+        if cache_age_seconds < NIGHT_FUTURES_SOURCE_MIN_REFRESH_SECONDS:
+            normalized_cached = normalize_night_futures_quote_state(cached_quote, now_utc)
+            return apply_day_futures_reference(normalized_cached, day_close_quote)
+
     req = urllib.request.Request(
         ESIGNAL_KOSPI_NIGHT_CACHE_URL,
         headers={
@@ -580,6 +651,9 @@ def fetch_esignal_kospi_night_quote(day_close_quote: dict | None = None) -> dict
         with urllib.request.urlopen(req, timeout=ESIGNAL_REQUEST_TIMEOUT) as response:
             body = response.read().decode("utf-8")
     except (urllib.error.URLError, TimeoutError):
+        if cached_payload:
+            normalized_cached = normalize_night_futures_quote_state(cached_payload["quote"], now_utc)
+            return apply_day_futures_reference(normalized_cached, day_close_quote)
         return None
 
     try:
@@ -597,14 +671,12 @@ def fetch_esignal_kospi_night_quote(day_close_quote: dict | None = None) -> dict
         if previous_close == 0:
             previous_close = price
     except (ValueError, TypeError, IndexError, KeyError):
+        if cached_payload:
+            normalized_cached = normalize_night_futures_quote_state(cached_payload["quote"], now_utc)
+            return apply_day_futures_reference(normalized_cached, day_close_quote)
         return None
 
     updated_at = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
-    now_utc = datetime.now(timezone.utc)
-    age_minutes = (now_utc - updated_at).total_seconds() / 60
-    updated_kst = updated_at.astimezone(KST)
-    in_night_window = updated_kst.time() >= time(18, 0) or updated_kst.time() <= time(6, 0)
-    is_live_night = age_minutes <= NIGHT_FUTURES_STALE_MINUTES and in_night_window
     change_pct = ((price / previous_close - 1) * 100) if previous_close else 0.0
 
     quote = {
@@ -612,8 +684,6 @@ def fetch_esignal_kospi_night_quote(day_close_quote: dict | None = None) -> dict
         "previous_close": previous_close,
         "change_pct": change_pct,
         "updated_at": updated_at.isoformat(),
-        "age_minutes": round(age_minutes, 1),
-        "is_live_night": is_live_night,
         "update_mode": "cache-json",
         "description": "KOSPI 200 Night Futures",
         "exchange": "KRX",
@@ -623,6 +693,8 @@ def fetch_esignal_kospi_night_quote(day_close_quote: dict | None = None) -> dict
         "day_close_updated_at": None,
         "day_close_date": None,
     }
+    save_night_futures_source_cache(quote)
+    quote = normalize_night_futures_quote_state(quote, now_utc)
     return apply_day_futures_reference(quote, day_close_quote)
 
 

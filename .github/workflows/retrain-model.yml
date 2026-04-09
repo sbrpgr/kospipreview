@@ -107,7 +107,7 @@ jobs:
         run: npx firebase-tools@latest deploy --project kospipreview --only hosting --non-interactive
 
       - name: Queue next polling run
-        if: success() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.loop == 'on'))
+        if: success() && github.event_name == 'workflow_dispatch' && github.event.inputs.loop == 'on'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash

@@ -21,7 +21,7 @@ type LiveDashboardProps = {
   initialFreshness: FreshnessData;
 };
 
-const POLL_INTERVAL_MS = 60_000;
+const POLL_INTERVAL_MS = 30_000;
 const OPERATION_STATUS_INTERVAL_MS = 30_000;
 const NIGHT_OPERATION_HOURS_LABEL = "18:00~09:00";
 const NIGHT_OPERATION_START_MINUTES = 18 * 60;
