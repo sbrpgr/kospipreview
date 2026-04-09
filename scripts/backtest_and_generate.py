@@ -1288,7 +1288,7 @@ def write_indicators_json(
                 "updatedAt": "",
                 "sourceUrl": "",
                 "dataSource": "실시간 수집",
-                "displayTag": "(미연결)",
+                "displayTag": "(장 시작전)",
                 "isPremarket": False,
                 "referenceLabel": "주간선물 종가" if reference_value else "",
                 "referenceValue": reference_value,
@@ -1306,7 +1306,7 @@ def write_indicators_json(
                 "updatedAt": "",
                 "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
                 "dataSource": "Yahoo Finance",
-                "displayTag": "(장전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
+                "displayTag": "(장 시작전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
                 "isPremarket": False,
             }
 
@@ -1333,7 +1333,7 @@ def write_indicators_json(
             "updatedAt": latest_ts.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
-            "displayTag": "(장전)" if premarket_untracked else "",
+            "displayTag": "(장 시작전)" if premarket_untracked else "",
             "isPremarket": is_premarket_quote,
         }
 

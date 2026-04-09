@@ -347,12 +347,12 @@ export function LiveDashboard({
                 }`}
               >
                 {nightSimpleChangePct === null
-                  ? "데이터 미연결"
+                  ? "(장 시작전)"
                   : `${nightSimpleChangePct >= 0 ? "상방" : "하방"} ${Math.abs(nightSimpleChangePct).toFixed(2)}%`}
               </div>
               <div className="heroForecastMeta">
                 {futuresDayClose === null
-                  ? "주간선물 종가 미연결"
+                  ? "주간선물 종가 (장 시작전)"
                   : `주간선물 종가 ${futuresDayClose.toLocaleString("ko-KR")}${futuresDayCloseDate ? ` (${futuresDayCloseDate})` : ""}`}
               </div>
             </div>
@@ -384,7 +384,7 @@ export function LiveDashboard({
           시장지표 (최종시장시각 {marketTimestampLabel} KST · 사이트반영시각 {deployTimestampLabel} KST
           {" · "}마지막확인 {checkedTimestampLabel} KST · 마지막변경 {changedTimestampLabel} KST)
           {" · "}지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주세요.
-          {" · "}장전 시간(미국 ET 04:00~09:30)에 추적 불가 항목은 카드에 (장전)으로 표기됩니다.
+          {" · "}장전 시간(미국 ET 04:00~09:30)에 추적 불가 항목은 카드에 (장 시작전)으로 표기됩니다.
         </div>
         <IndicatorList indicators={indicators} />
 
