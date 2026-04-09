@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AccuracyTable } from "@/components/accuracy-table";
 import { ModelDiagnostics } from "@/components/model-diagnostics";
 import { SiteHeader } from "@/components/site-header";
-import { getBacktestDiagnosticsData, getHistoryData, getDataFreshness } from "@/lib/data";
+import { getBacktestDiagnosticsData, getDataFreshness, getHistoryData, getPredictionData } from "@/lib/data";
 import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const HISTORY_TITLE = "최근 예측 기록";
@@ -31,8 +31,9 @@ export const metadata: Metadata = {
 };
 
 export default async function HistoryPage() {
-  const [history, diagnostics, freshness] = await Promise.all([
+  const [history, prediction, diagnostics, freshness] = await Promise.all([
     getHistoryData(),
+    getPredictionData(),
     getBacktestDiagnosticsData(),
     getDataFreshness(),
   ]);
@@ -49,9 +50,9 @@ export default async function HistoryPage() {
       <main>
         <h2 className="sectionTitle">예측 기록 상세</h2>
         <div style={{ marginBottom: "60px" }}>
-            <AccuracyTable history={history} />
+          <AccuracyTable history={history} prediction={prediction} />
         </div>
-        <h2 className="sectionTitle">모델 백테스트 검증 (과거 데이터)</h2>
+        <h2 className="sectionTitle">모델 백테스트 검증(과거 데이터)</h2>
         <div className="prose">
           <ModelDiagnostics diagnostics={diagnostics} />
         </div>

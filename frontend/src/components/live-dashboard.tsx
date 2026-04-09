@@ -140,6 +140,7 @@ function getDashboardVersion(
   return [
     prediction.generatedAt ?? "",
     prediction.lastCalculatedAt ?? "",
+    prediction.predictionDateIso ?? "",
     prediction.pointPrediction,
     prediction.nightFuturesSimplePoint ?? "",
     prediction.nightFuturesSimpleChangePct ?? "",
@@ -444,7 +445,7 @@ export function LiveDashboard({
         <h2 className="sectionTitle" style={{ marginTop: "60px" }}>
           최근 실측 기록
         </h2>
-        <AccuracyTable history={history} />
+        <AccuracyTable history={history} prediction={prediction} />
       </main>
 
       <footer className="footer">

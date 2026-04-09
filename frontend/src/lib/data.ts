@@ -35,6 +35,7 @@ export async function getPredictionData() {
   return fetchJson<{
     generatedAt?: string;
     predictionDate: string;
+    predictionDateIso?: string;
     rangeLow: number;
     rangeHigh: number;
     pointPrediction: number;
