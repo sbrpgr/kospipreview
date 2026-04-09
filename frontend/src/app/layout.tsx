@@ -19,6 +19,10 @@ const notoSansKR = Noto_Sans_KR({
 
 const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 const canonicalRedirectTarget = SITE_URL;
+const GA_MEASUREMENT_ID_FALLBACK = "G-Y19X5LHKSJ";
+const rawGaMeasurementId =
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim().toUpperCase() || GA_MEASUREMENT_ID_FALLBACK;
+const gaMeasurementId = rawGaMeasurementId.startsWith("G-") ? rawGaMeasurementId : "";
 
 const canonicalHostRedirectScript = `
   (function () {
@@ -43,6 +47,19 @@ const canonicalHostRedirectScript = `
     window.location.replace(targetUrl);
   })();
 `;
+
+const gaInitScript = gaMeasurementId
+  ? `
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  window.gtag = gtag;
+  gtag('js', new Date());
+  gtag('config', '${gaMeasurementId}', {
+    anonymize_ip: true,
+    send_page_view: false
+  });
+`
+  : "";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -101,6 +118,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5869520985295558"
           crossOrigin="anonymous"
         />
+        {gaMeasurementId ? (
+          <>
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
+            />
+            <script dangerouslySetInnerHTML={{ __html: gaInitScript }} />
+          </>
+        ) : null}
       </head>
       <body className={notoSansKR.className}>
         {children}
