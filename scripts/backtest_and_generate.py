@@ -75,6 +75,8 @@ FALLBACK_ESTIMATE_BAND_MAE_FACTOR = 1.1
 PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
 PREMARKET_STALE_MINUTES = 45
 KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
+KRX_SYNC_BASELINE_TIME = time(15, 30)
+KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 
 NIGHT_FUTURES_PRIMARY_SCALE = 1.0
 AUXILIARY_SIGNAL_WEIGHTS = {
@@ -1114,10 +1116,50 @@ def resolve_latest_completed_krx_close(live_series: pd.Series, history_series: p
     return close
 
 
+def resolve_value_at_krx_sync_baseline(
+    live_series: pd.Series,
+    baseline_session_date: str | None,
+) -> tuple[float | None, datetime | None]:
+    series = live_series.dropna()
+    if series.empty or not baseline_session_date:
+        return None, None
+
+    try:
+        baseline_date = date.fromisoformat(baseline_session_date)
+    except ValueError:
+        return None, None
+
+    baseline_kst = datetime.combine(baseline_date, KRX_SYNC_BASELINE_TIME, tzinfo=KST)
+    index = pd.DatetimeIndex(series.index)
+    if index.tz is None:
+        index_utc = index.tz_localize("UTC")
+    else:
+        index_utc = index.tz_convert("UTC")
+    index_kst = index_utc.tz_convert(KST)
+
+    frame = pd.DataFrame({"value": series.values}, index=index_kst).dropna()
+    if frame.empty:
+        return None, None
+
+    matched = frame[frame.index <= baseline_kst]
+    if matched.empty:
+        return None, None
+
+    baseline_ts_kst = matched.index[-1]
+    age_hours = (baseline_kst - baseline_ts_kst).total_seconds() / 3600
+    if age_hours > KRX_SYNC_MAX_LOOKBACK_HOURS:
+        return None, None
+
+    baseline_value = float(matched.iloc[-1]["value"])
+    baseline_ts_utc = baseline_ts_kst.tz_convert("UTC").to_pydatetime()
+    return baseline_value, baseline_ts_utc
+
+
 def compute_live_return_pct(
     name: str,
     live_market: dict[str, pd.DataFrame],
     history_market: dict[str, pd.DataFrame],
+    baseline_session_date: str | None = None,
     live_overrides: dict[str, dict] | None = None,
 ) -> float | None:
     live_frame = live_market.get(name, pd.DataFrame())
@@ -1132,12 +1174,16 @@ def compute_live_return_pct(
             if prev_close != 0:
                 return (float(override["price"]) / prev_close - 1) * 100
 
+    current_value = float(live_series.iloc[-1])
+    baseline_value, _ = resolve_value_at_krx_sync_baseline(live_series, baseline_session_date)
+    if baseline_value is not None and baseline_value != 0:
+        return (current_value / baseline_value - 1) * 100
+
     if "PrevClose" in live_frame and not live_frame["PrevClose"].dropna().empty:
         prev_close = float(live_frame["PrevClose"].dropna().iloc[-1])
         if prev_close != 0:
-            return (float(live_series.iloc[-1]) / prev_close - 1) * 100
+            return (current_value / prev_close - 1) * 100
 
-    current_value = float(live_series.iloc[-1])
     latest_ts = as_utc_datetime(pd.Timestamp(live_series.index[-1]))
 
     history_frame = history_market.get(name, pd.DataFrame())
@@ -1323,8 +1369,22 @@ def build_latest(
     returns: dict[str, float] = {}
     vix = 20.0
 
+    prev_kospi_series = history_market["kospi"]["Close"] if "kospi" in history_market else pd.Series(dtype=float)
+    live_kospi_frame = live_market.get("kospi", pd.DataFrame())
+    live_kospi_series = live_kospi_frame["Close"] if "Close" in live_kospi_frame else pd.Series(dtype=float)
+    prev_close, latest_record_date = resolve_latest_completed_krx_session(live_kospi_series, prev_kospi_series)
+    prev_kospi_non_na = prev_kospi_series.dropna()
+    prior_close = float(prev_kospi_non_na.iloc[-1]) if not prev_kospi_non_na.empty else prev_close
+    prev_close_change = ((prev_close / prior_close - 1) * 100) if prior_close else 0.0
+
     for name in ALL_FEATURES:
-        change_pct = compute_live_return_pct(name, live_market, history_market, live_overrides)
+        change_pct = compute_live_return_pct(
+            name,
+            live_market,
+            history_market,
+            baseline_session_date=latest_record_date,
+            live_overrides=live_overrides,
+        )
         if change_pct is None:
             continue
         returns[name] = change_pct
@@ -1333,14 +1393,13 @@ def build_latest(
             if not live_series.empty:
                 vix = float(live_series.iloc[-1])
 
-    prev_kospi_series = history_market["kospi"]["Close"] if "kospi" in history_market else pd.Series(dtype=float)
-    live_kospi_frame = live_market.get("kospi", pd.DataFrame())
-    live_kospi_series = live_kospi_frame["Close"] if "Close" in live_kospi_frame else pd.Series(dtype=float)
-    prev_close, latest_record_date = resolve_latest_completed_krx_session(live_kospi_series, prev_kospi_series)
-    prev_kospi_non_na = prev_kospi_series.dropna()
-    prior_close = float(prev_kospi_non_na.iloc[-1]) if not prev_kospi_non_na.empty else prev_close
-    prev_close_change = ((prev_close / prior_close - 1) * 100) if prior_close else 0.0
-    night_futures_change = compute_live_return_pct("k200f", live_market, history_market, live_overrides)
+    night_futures_change = compute_live_return_pct(
+        "k200f",
+        live_market,
+        history_market,
+        baseline_session_date=latest_record_date,
+        live_overrides=live_overrides,
+    )
     k200f_override = live_overrides.get("k200f", {})
     futures_day_close_raw = k200f_override.get("day_close")
     try:
@@ -1484,7 +1543,7 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "engine": "LightGBM",
             "vix": round(latest["vix"], 2),
             "lgbmRmse": round(result["rmse"], 2),
-            "calculationMode": "EWYCore+AuxSignals+NoNightFutures",
+            "calculationMode": "EWYCore+AuxSignals+NoNightFutures(KRXCloseSync)",
             "nightFuturesExcluded": True,
             "nightFuturesAnchorPct": (
                 round(float(latest["night_anchor_c"]), 2) if latest.get("night_anchor_c") is not None else None
@@ -1501,6 +1560,7 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
                 round(float(latest["aux_residual_adj_c"]), 2) if latest.get("aux_residual_adj_c") is not None else None
             ),
             "prevCloseChangePct": round(float(latest["prev_close_change_c"]), 2),
+            "krxBaselineDate": latest_record_date,
         },
         "yesterday": {
             "predictionLow": round(float(yesterday_row["low"]), 2) if yesterday_row is not None else 0,
@@ -1522,6 +1582,11 @@ def write_indicators_json(
     secondary_keys = ["nasdaq", "vix", "koru", "k200f", "dow", "gold", "us10y", "sox"]
     now_utc = datetime.now(timezone.utc)
     in_us_premarket_now = is_us_premarket_window(now_utc)
+    kospi_live = live_market.get("kospi", pd.DataFrame())
+    kospi_live_series = kospi_live["Close"] if "Close" in kospi_live else pd.Series(dtype=float)
+    kospi_history = history_market.get("kospi", pd.DataFrame())
+    kospi_history_series = kospi_history["Close"] if "Close" in kospi_history else pd.Series(dtype=float)
+    _, baseline_session_date = resolve_latest_completed_krx_session(kospi_live_series, kospi_history_series)
 
     def build_indicator(name: str) -> dict:
         if name == "k200f":
@@ -1587,11 +1652,16 @@ def write_indicators_json(
 
         current_value = float(series.iloc[-1])
         latest_ts = as_utc_datetime(pd.Timestamp(series.index[-1]))
-        history_frame = history_market.get(name, pd.DataFrame())
-        history_series = history_frame["Close"].dropna() if "Close" in history_frame else pd.Series(dtype=float)
-        previous_close = resolve_previous_close(history_series, latest_ts)
-        if previous_close is None or previous_close == 0:
-            previous_close = float(series.iloc[0])
+        baseline_value, _ = resolve_value_at_krx_sync_baseline(series, baseline_session_date)
+        if baseline_value is not None and baseline_value != 0:
+            change_pct = (current_value / baseline_value - 1) * 100
+        else:
+            history_frame = history_market.get(name, pd.DataFrame())
+            history_series = history_frame["Close"].dropna() if "Close" in history_frame else pd.Series(dtype=float)
+            previous_close = resolve_previous_close(history_series, latest_ts)
+            if previous_close is None or previous_close == 0:
+                previous_close = float(series.iloc[0])
+            change_pct = (current_value / previous_close - 1) * 100 if previous_close else 0.0
         age_minutes = (now_utc - latest_ts).total_seconds() / 60
         is_premarket_quote = is_timestamp_in_us_premarket(latest_ts)
         premarket_untracked = (
@@ -1604,7 +1674,7 @@ def write_indicators_json(
             "key": name,
             "label": indicator_label(name),
             "value": format_value(name, current_value),
-            "changePct": round((current_value / previous_close - 1) * 100, 2),
+            "changePct": round(change_pct, 2),
             "updatedAt": latest_ts.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",

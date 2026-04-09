@@ -53,8 +53,10 @@ EWY_ALIGNMENT_MIN_SHARE = 0.45
 LIVE_REFRESH_KEEP_PREV_WEIGHT = 0.2
 YAHOO_CHART_URL_TEMPLATE = (
     "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
-    "?interval=1m&range=1d&includePrePost=true"
+    "?interval=1m&range=2d&includePrePost=true"
 )
+KRX_SYNC_BASELINE_TIME = time(15, 30)
+KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 
 
 def read_json(path: Path) -> dict | None:
@@ -108,7 +110,7 @@ def to_float(value: object) -> float | None:
         return None
 
 
-def fetch_yahoo_intraday_return_pct(symbol: str) -> float | None:
+def fetch_yahoo_chart_points(symbol: str) -> list[tuple[datetime, float]]:
     encoded_symbol = urllib.parse.quote(symbol, safe="")
     url = YAHOO_CHART_URL_TEMPLATE.format(symbol=encoded_symbol)
     req = urllib.request.Request(
@@ -124,55 +126,85 @@ def fetch_yahoo_intraday_return_pct(symbol: str) -> float | None:
         with urllib.request.urlopen(req, timeout=ESIGNAL_REQUEST_TIMEOUT) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, ValueError, TypeError):
-        return None
+        return []
 
     if not isinstance(payload, dict):
-        return None
+        return []
     chart = payload.get("chart")
     if not isinstance(chart, dict):
-        return None
+        return []
     results = chart.get("result")
     if not isinstance(results, list) or not results:
-        return None
+        return []
     first = results[0]
     if not isinstance(first, dict):
-        return None
-
-    meta = first.get("meta")
-    if not isinstance(meta, dict):
-        return None
-    previous_close = to_float(meta.get("previousClose"))
-    if previous_close is None or previous_close == 0:
-        previous_close = to_float(meta.get("chartPreviousClose"))
-    if previous_close is None or previous_close == 0:
-        return None
+        return []
 
     indicators = first.get("indicators")
     if not isinstance(indicators, dict):
-        return None
+        return []
     quotes = indicators.get("quote")
     if not isinstance(quotes, list) or not quotes:
-        return None
+        return []
     quote0 = quotes[0]
     if not isinstance(quote0, dict):
-        return None
+        return []
     closes = quote0.get("close")
-    if not isinstance(closes, list):
+    timestamps = first.get("timestamp")
+    if not isinstance(closes, list) or not isinstance(timestamps, list):
+        return []
+
+    points: list[tuple[datetime, float]] = []
+    for raw_ts, raw_close in zip(timestamps, closes):
+        try:
+            ts_utc = datetime.fromtimestamp(int(raw_ts), tz=timezone.utc)
+        except (TypeError, ValueError):
+            continue
+        close_value = to_float(raw_close)
+        if close_value is None:
+            continue
+        points.append((ts_utc, close_value))
+    return points
+
+
+def fetch_yahoo_intraday_return_pct(symbol: str, baseline_session_date: str | None) -> float | None:
+    if not baseline_session_date:
+        return None
+    try:
+        baseline_date = date.fromisoformat(baseline_session_date)
+    except ValueError:
         return None
 
-    last_close = None
-    for value in reversed(closes):
-        close_value = to_float(value)
-        if close_value is not None:
-            last_close = close_value
+    points = fetch_yahoo_chart_points(symbol)
+    if not points:
+        return None
+
+    baseline_kst = datetime.combine(baseline_date, KRX_SYNC_BASELINE_TIME, tzinfo=KST)
+    latest_ts_utc, latest_close = points[-1]
+
+    baseline_point: tuple[datetime, float] | None = None
+    for ts_utc, close in points:
+        if ts_utc.astimezone(KST) <= baseline_kst:
+            baseline_point = (ts_utc, close)
+        else:
             break
-    if last_close is None:
+    if baseline_point is None:
         return None
 
-    return (last_close / previous_close - 1) * 100
+    baseline_ts_utc, baseline_close = baseline_point
+    if baseline_close == 0:
+        return None
+
+    baseline_age_hours = (baseline_kst - baseline_ts_utc.astimezone(KST)).total_seconds() / 3600
+    if baseline_age_hours > KRX_SYNC_MAX_LOOKBACK_HOURS:
+        return None
+
+    return (latest_close / baseline_close - 1) * 100
 
 
-def fetch_live_auxiliary_anchor_change() -> tuple[float | None, float | None, dict[str, float]]:
+def fetch_live_auxiliary_anchor_change(
+    baseline_session_date: str | None,
+) -> tuple[float | None, float | None, dict[str, float]]:
     ticker_map = {
         "ewy": "EWY",
         "krw": "KRW=X",
@@ -181,7 +213,7 @@ def fetch_live_auxiliary_anchor_change() -> tuple[float | None, float | None, di
     }
     returns: dict[str, float] = {}
     for key, ticker in ticker_map.items():
-        value = fetch_yahoo_intraday_return_pct(ticker)
+        value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date)
         if value is not None:
             returns[key] = value
 
@@ -800,7 +832,16 @@ def update_prediction_night_fields(
         if auxiliary_anchor_change is None:
             auxiliary_anchor_change = to_float(model_payload.get("auxiliaryAnchorPct"))
 
-        live_aux_anchor, live_ewy_change, _live_returns = fetch_live_auxiliary_anchor_change()
+        baseline_session_date: str | None = None
+        latest_record_date = payload.get("latestRecordDate")
+        if isinstance(latest_record_date, str) and latest_record_date:
+            baseline_session_date = latest_record_date
+        elif day_close_quote:
+            day_close_date = day_close_quote.get("session_date")
+            if isinstance(day_close_date, str) and day_close_date:
+                baseline_session_date = day_close_date
+
+        live_aux_anchor, live_ewy_change, _live_returns = fetch_live_auxiliary_anchor_change(baseline_session_date)
         if live_aux_anchor is not None:
             auxiliary_anchor_change = live_aux_anchor
 
@@ -842,7 +883,7 @@ def update_prediction_night_fields(
         payload["rangeHigh"] = round(point_prediction + half_band, 2)
         payload["lastCalculatedAt"] = now_utc.isoformat()
 
-        model_payload["calculationMode"] = "EWYCore+AuxSignals+NoNightFutures(LiveRefresh)"
+        model_payload["calculationMode"] = "EWYCore+AuxSignals+NoNightFutures(KRXCloseSyncLiveRefresh)"
         model_payload["nightFuturesExcluded"] = True
         model_payload["nightFuturesAnchorPct"] = None
         if auxiliary_anchor_change is not None:
@@ -853,6 +894,8 @@ def update_prediction_night_fields(
         model_payload["liveRefreshGuardBandPct"] = round(guard_band, 2)
         if live_ewy_change is not None:
             model_payload["liveEwyChangePct"] = round(live_ewy_change, 2)
+        if baseline_session_date:
+            model_payload["krxBaselineDate"] = baseline_session_date
         model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()
 
     if day_close_quote:
