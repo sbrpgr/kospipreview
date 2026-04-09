@@ -3,9 +3,9 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$135.36",
-      "changePct": -3.36,
-      "updatedAt": "2026-04-09T10:53:46+00:00",
+      "value": "$135.33",
+      "changePct": -3.38,
+      "updatedAt": "2026-04-09T10:54:32+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -14,9 +14,9 @@
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,480.71원",
-      "changePct": -1.23,
-      "updatedAt": "2026-04-09T10:53:00+00:00",
+      "value": "1,480.31원",
+      "changePct": -1.26,
+      "updatedAt": "2026-04-09T10:54:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -25,9 +25,9 @@
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$99.07",
-      "changePct": 4.94,
-      "updatedAt": "2026-04-09T10:43:00+00:00",
+      "value": "$99.20",
+      "changePct": 5.07,
+      "updatedAt": "2026-04-09T10:45:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -60,9 +60,9 @@
     {
       "key": "vix",
       "label": "VIX",
-      "value": "21.49",
-      "changePct": 2.14,
-      "updatedAt": "2026-04-09T10:38:00+00:00",
+      "value": "21.47",
+      "changePct": 2.04,
+      "updatedAt": "2026-04-09T10:40:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -71,9 +71,9 @@
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$365.00",
-      "changePct": -9.88,
-      "updatedAt": "2026-04-09T10:53:46+00:00",
+      "value": "$367.61",
+      "changePct": -9.23,
+      "updatedAt": "2026-04-09T10:55:12+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -82,9 +82,9 @@
     {
       "key": "k200f",
       "label": "KOSPI 200 야간선물",
-      "value": "866.65",
-      "changePct": -0.21,
-      "updatedAt": "2026-04-09T10:53:45+00:00",
+      "value": "866.50",
+      "changePct": -0.23,
+      "updatedAt": "2026-04-09T10:55:05+00:00",
       "sourceUrl": "",
       "dataSource": "실시간 수집",
       "displayTag": "(야간)",
@@ -107,9 +107,9 @@
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,765.60",
-      "changePct": 0.34,
-      "updatedAt": "2026-04-09T10:43:00+00:00",
+      "value": "$4,765.00",
+      "changePct": 0.33,
+      "updatedAt": "2026-04-09T10:45:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -138,6 +138,6 @@
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-09T10:54:01.620330+00:00",
+  "generatedAt": "2026-04-09T10:55:20.979682+00:00",
   "isUsPremarketNow": true
 }
