@@ -15,7 +15,6 @@ type DisplayRecord = {
   modelPrediction: number | null;
   nightFuturesSimpleOpen: number | null;
   actualOpen: number | null;
-  hit: boolean | null;
   isPredictionTarget: boolean;
 };
 
@@ -74,7 +73,6 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       modelPrediction,
       nightFuturesSimpleOpen: isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null,
       actualOpen: isFiniteNumber(record.actualOpen) ? record.actualOpen : null,
-      hit: typeof record.hit === "boolean" ? record.hit : null,
       isPredictionTarget: predictionDateIso !== null && record.date === predictionDateIso,
     };
   });
@@ -101,12 +99,24 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       modelPrediction: isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : null,
       nightFuturesSimpleOpen: isFiniteNumber(prediction.nightFuturesSimplePoint) ? prediction.nightFuturesSimplePoint : null,
       actualOpen: null,
-      hit: null,
       isPredictionTarget: true,
     });
   }
 
   return baseRecords.sort((a, b) => compareDateDesc(a.date, b.date));
+}
+
+function computeRelativeAccuracyPct(nightError: number | null, modelError: number | null): number | null {
+  if (nightError === null || modelError === null) {
+    return null;
+  }
+
+  const nightAbs = Math.abs(nightError);
+  if (nightAbs < 1e-8) {
+    return null;
+  }
+
+  return ((nightAbs - Math.abs(modelError)) / nightAbs) * 100;
 }
 
 export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
@@ -132,18 +142,26 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             <th>모델 예측치</th>
             <th>야간선물 오차</th>
             <th>모델 오차</th>
-            <th style={{ textAlign: "center" }}>결과</th>
+            <th style={{ textAlign: "center" }}>
+              상대정확도(%){" "}
+              <span
+                className="tableHintIcon"
+                title="야간선물 오차에 비해 얼마나 더 높은 정확도(%)를 보였는지 표시합니다."
+                aria-label="상대정확도 설명"
+              >
+                ?
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody>
           {pagedRecords.map((record) => {
-            const hasActualOpen = isFiniteNumber(record.actualOpen);
-            const actualOpenValue = hasActualOpen ? record.actualOpen : null;
+            const actualOpenValue = isFiniteNumber(record.actualOpen) ? record.actualOpen : null;
             const modelPrediction = isFiniteNumber(record.modelPrediction) ? record.modelPrediction : null;
             const nightSimple = isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null;
             const nightError = actualOpenValue !== null && nightSimple !== null ? actualOpenValue - nightSimple : null;
             const modelError = actualOpenValue !== null && modelPrediction !== null ? actualOpenValue - modelPrediction : null;
-            const modelWins = nightError !== null && modelError !== null && Math.abs(modelError) < Math.abs(nightError);
+            const relativeAccuracyPct = computeRelativeAccuracyPct(nightError, modelError);
 
             return (
               <tr key={record.date} className={record.isPredictionTarget ? "isPredictionTarget" : undefined}>
@@ -172,10 +190,19 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                 >
                   {modelError === null ? "-" : `${modelError >= 0 ? "+" : ""}${modelError.toFixed(1)}`}
                 </td>
-                <td style={{ textAlign: "center" }}>
-                  <span className={`badge ${hasActualOpen ? (record.hit ? "hit" : "miss") : "pending"}`}>
-                    {!hasActualOpen ? "예측 중" : nightError === null ? (record.hit ? "적중" : "미적중") : modelWins ? "모델 우세" : "야간선물 우세"}
-                  </span>
+                <td
+                  style={{
+                    textAlign: "center",
+                    fontWeight: 800,
+                    color:
+                      relativeAccuracyPct === null
+                        ? "var(--text-secondary)"
+                        : relativeAccuracyPct >= 0
+                          ? "var(--positive)"
+                          : "var(--negative)",
+                  }}
+                >
+                  {relativeAccuracyPct === null ? "-" : `${relativeAccuracyPct >= 0 ? "+" : ""}${relativeAccuracyPct.toFixed(1)}%`}
                 </td>
               </tr>
             );

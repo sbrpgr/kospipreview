@@ -64,6 +64,7 @@ INDICATOR_SOURCE_URLS["k200f"] = ""
 LOOKBACK_DAYS = 3 * 365
 ALL_FEATURES = list(FEATURE_TICKERS.keys())
 HISTORY_RECORDS = 30
+HISTORY_ACCUMULATION_START_DATE = date(2026, 4, 9)
 RECENT_HISTORY_FILL_DAYS = 5
 PREDICTION_ARCHIVE_MAX_RECORDS = 200
 ESTIMATED_BAND_MAE_FACTOR = 0.9
@@ -1731,6 +1732,18 @@ def build_history_df(
         dataset=dataset,
         prediction_archive=prediction_archive,
     )
+
+    if "date" in df.columns:
+        parsed_dates = pd.to_datetime(df["date"], errors="coerce")
+        valid_mask = parsed_dates.notna()
+        df = df.loc[valid_mask].copy()
+        parsed_dates = parsed_dates.loc[valid_mask]
+
+        start_mask = parsed_dates.dt.date >= HISTORY_ACCUMULATION_START_DATE
+        df = df.loc[start_mask].copy()
+        parsed_dates = parsed_dates.loc[start_mask]
+        df["date"] = parsed_dates.dt.strftime("%Y-%m-%d").to_numpy()
+
     if {"low", "high", "actual_open"}.issubset(df.columns):
         df[["low", "high", "actual_open"]] = df[["low", "high", "actual_open"]].round(2)
     return df.sort_values("date", ascending=False).head(HISTORY_RECORDS).reset_index(drop=True)

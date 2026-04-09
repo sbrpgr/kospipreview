@@ -624,6 +624,22 @@ p {
   color: var(--text-secondary);
 }
 
+.tableHintIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  margin-left: 4px;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 800;
+  vertical-align: middle;
+  cursor: help;
+}
+
 .badge {
   display: inline-block;
   padding: 5px 10px;
