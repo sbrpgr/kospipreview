@@ -2,10 +2,12 @@
   "summary": {
     "mae30d": 18.8
   },
-  "generatedAt": "2026-04-09T11:56:42.730256+00:00",
+  "generatedAt": "2026-04-09T11:57:57.560984+00:00",
   "records": [
     {
       "date": "2026-04-09",
+      "modelPrediction": 5952.97,
+      "nightFuturesSimpleOpen": null,
       "low": 5929.25,
       "high": 5976.69,
       "actualOpen": 5826.45,
@@ -14,6 +16,8 @@
     },
     {
       "date": "2026-04-08",
+      "modelPrediction": 5496.01,
+      "nightFuturesSimpleOpen": null,
       "low": 5471.28,
       "high": 5520.74,
       "actualOpen": 5804.7,
@@ -22,6 +26,8 @@
     },
     {
       "date": "2026-04-07",
+      "modelPrediction": 5461.96,
+      "nightFuturesSimpleOpen": null,
       "low": 5440.7,
       "high": 5483.21,
       "actualOpen": 5552.19,
@@ -30,6 +36,8 @@
     },
     {
       "date": "2026-04-06",
+      "modelPrediction": 5404.93,
+      "nightFuturesSimpleOpen": null,
       "low": 5384.25,
       "high": 5425.61,
       "actualOpen": 5423.35,
@@ -38,6 +46,8 @@
     },
     {
       "date": "2026-04-03",
+      "modelPrediction": 5219.97,
+      "nightFuturesSimpleOpen": null,
       "low": 5211.7,
       "high": 5253.54,
       "actualOpen": 5375.5,
@@ -46,6 +56,8 @@
     },
     {
       "date": "2026-04-02",
+      "modelPrediction": 5526.61,
+      "nightFuturesSimpleOpen": null,
       "low": 5505.24,
       "high": 5547.97,
       "actualOpen": 5551.69,
@@ -54,6 +66,8 @@
     },
     {
       "date": "2026-04-01",
+      "modelPrediction": 5161.73,
+      "nightFuturesSimpleOpen": null,
       "low": 5090.54,
       "high": 5171.69,
       "actualOpen": 5330.04,
@@ -62,6 +76,8 @@
     },
     {
       "date": "2026-03-31",
+      "modelPrediction": 5245.71,
+      "nightFuturesSimpleOpen": null,
       "low": 5214.05,
       "high": 5277.38,
       "actualOpen": 5143.75,
@@ -70,6 +86,8 @@
     },
     {
       "date": "2026-03-30",
+      "modelPrediction": 5444.71,
+      "nightFuturesSimpleOpen": null,
       "low": 5384.5,
       "high": 5464.45,
       "actualOpen": 5181.8,
@@ -78,6 +96,8 @@
     },
     {
       "date": "2026-03-27",
+      "modelPrediction": 5336.29,
+      "nightFuturesSimpleOpen": null,
       "low": 5343.54,
       "high": 5409.38,
       "actualOpen": 5300.61,
@@ -86,6 +106,8 @@
     },
     {
       "date": "2026-03-26",
+      "modelPrediction": 5674.08,
+      "nightFuturesSimpleOpen": null,
       "low": 5648.69,
       "high": 5699.47,
       "actualOpen": 5594.06,
@@ -94,6 +116,8 @@
     },
     {
       "date": "2026-03-25",
+      "modelPrediction": 5575.03,
+      "nightFuturesSimpleOpen": null,
       "low": 5515.3,
       "high": 5572.13,
       "actualOpen": 5680.33,
@@ -102,6 +126,8 @@
     },
     {
       "date": "2026-03-24",
+      "modelPrediction": 5416.49,
+      "nightFuturesSimpleOpen": null,
       "low": 5392.16,
       "high": 5440.81,
       "actualOpen": 5638.2,
@@ -110,6 +136,8 @@
     },
     {
       "date": "2026-03-23",
+      "modelPrediction": 5767.51,
+      "nightFuturesSimpleOpen": null,
       "low": 5716.21,
       "high": 5778.92,
       "actualOpen": 5580.15,
@@ -118,6 +146,8 @@
     },
     {
       "date": "2026-03-20",
+      "modelPrediction": 5763.01,
+      "nightFuturesSimpleOpen": null,
       "low": 5740.53,
       "high": 5785.48,
       "actualOpen": 5813.35,
@@ -126,6 +156,8 @@
     },
     {
       "date": "2026-03-19",
+      "modelPrediction": 5866.62,
+      "nightFuturesSimpleOpen": null,
       "low": 5855.27,
       "high": 5914.4,
       "actualOpen": 5761.4,
@@ -134,6 +166,8 @@
     },
     {
       "date": "2026-03-18",
+      "modelPrediction": 5645.65,
+      "nightFuturesSimpleOpen": null,
       "low": 5623.66,
       "high": 5667.65,
       "actualOpen": 5767.1,
@@ -142,6 +176,8 @@
     },
     {
       "date": "2026-03-17",
+      "modelPrediction": 5581.42,
+      "nightFuturesSimpleOpen": null,
       "low": 5567.76,
       "high": 5611.38,
       "actualOpen": 5711.8,
@@ -150,6 +186,8 @@
     },
     {
       "date": "2026-03-16",
+      "modelPrediction": 5476.58,
+      "nightFuturesSimpleOpen": null,
       "low": 5451.88,
       "high": 5501.27,
       "actualOpen": 5510.82,
@@ -158,6 +196,8 @@
     },
     {
       "date": "2026-03-13",
+      "modelPrediction": 5521.22,
+      "nightFuturesSimpleOpen": null,
       "low": 5497.67,
       "high": 5578.3,
       "actualOpen": 5412.39,
@@ -166,6 +206,8 @@
     },
     {
       "date": "2026-03-12",
+      "modelPrediction": 5624.83,
+      "nightFuturesSimpleOpen": null,
       "low": 5602.95,
       "high": 5646.71,
       "actualOpen": 5567.65,
@@ -174,6 +216,8 @@
     },
     {
       "date": "2026-03-11",
+      "modelPrediction": 5548.35,
+      "nightFuturesSimpleOpen": null,
       "low": 5509.7,
       "high": 5563.97,
       "actualOpen": 5658.72,
@@ -182,6 +226,8 @@
     },
     {
       "date": "2026-03-10",
+      "modelPrediction": 5284.32,
+      "nightFuturesSimpleOpen": null,
       "low": 5260.69,
       "high": 5307.96,
       "actualOpen": 5523.21,
@@ -190,6 +236,8 @@
     },
     {
       "date": "2026-03-09",
+      "modelPrediction": 5578.75,
+      "nightFuturesSimpleOpen": null,
       "low": 5544.36,
       "high": 5611.57,
       "actualOpen": 5265.37,
@@ -198,6 +246,8 @@
     },
     {
       "date": "2026-03-06",
+      "modelPrediction": 5586.77,
+      "nightFuturesSimpleOpen": null,
       "low": 5528.01,
       "high": 5605.6,
       "actualOpen": 5491.02,
@@ -206,6 +256,8 @@
     },
     {
       "date": "2026-03-05",
+      "modelPrediction": 5114.96,
+      "nightFuturesSimpleOpen": null,
       "low": 5095.1,
       "high": 5134.83,
       "actualOpen": 5250.92,
@@ -214,6 +266,8 @@
     },
     {
       "date": "2026-03-04",
+      "modelPrediction": 5666.31,
+      "nightFuturesSimpleOpen": null,
       "low": 5720.03,
       "high": 5773.73,
       "actualOpen": 5592.59,
@@ -222,6 +276,8 @@
     },
     {
       "date": "2026-03-03",
+      "modelPrediction": 6251.04,
+      "nightFuturesSimpleOpen": null,
       "low": 6212.87,
       "high": 6267.32,
       "actualOpen": 6165.15,
@@ -230,6 +286,8 @@
     },
     {
       "date": "2026-02-27",
+      "modelPrediction": 6263.24,
+      "nightFuturesSimpleOpen": null,
       "low": 6239.08,
       "high": 6309.41,
       "actualOpen": 6197.49,
@@ -238,6 +296,8 @@
     },
     {
       "date": "2026-02-26",
+      "modelPrediction": 6125.29,
+      "nightFuturesSimpleOpen": null,
       "low": 6107.04,
       "high": 6143.54,
       "actualOpen": 6121.03,
