@@ -46,7 +46,7 @@ jobs:
 
       - name: Restore static export cache
         id: static-export-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: frontend/out
           key: next-export-${{ runner.os }}-${{ hashFiles('frontend/src/**', 'frontend/package-lock.json', 'frontend/next.config.ts', 'frontend/tsconfig.json') }}-${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
