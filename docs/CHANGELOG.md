@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-04-11
+
+- Operations documentation refresh
+  - Rewrote `docs/ARCHITECTURE.md` to reflect the current split production shape:
+    - Firebase Hosting for static frontend
+    - Cloud Run + Cloud Scheduler + Cloud Storage for live JSON refresh
+    - GitHub Actions `retrain-model` for full rebuild and static publish
+  - Rewrote `docs/CLOUD_RUN_LIVE_REFRESH.md` with current live endpoints, role split, IAM requirements, and recovery notes.
+  - Rewrote `docs/SECURITY_OPERATIONS_RUNBOOK.md` with updated deploy, secret, IAM, and failure-triage guidance.
+  - Updated `docs/OPERATIONS_INDEX.md` to serve as the primary handoff / resume entry point for future sessions.
+
+- Firebase Hosting deploy incident fixed
+  - Failing GitHub Actions runs:
+    - `24246079902`
+    - `24248400402`
+  - Failure step:
+    - `Deploy to Firebase Hosting`
+  - Root cause:
+    - after adding Firebase Hosting rewrite to Cloud Run with `pinTag: true`, the Firebase deploy service account lacked required IAM roles
+  - Fix applied at project IAM level:
+    - `roles/firebasehosting.admin`
+    - `roles/run.developer`
+  - Verification:
+    - next scheduled `retrain-model` run `24250747384` completed successfully
+    - `Deploy to Firebase Hosting` step passed again
+
 ## 2026-04-10
 
 - EWY synthetic K200 model redesign

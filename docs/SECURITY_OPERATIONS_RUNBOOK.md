@@ -1,113 +1,204 @@
-# Security & Operations Runbook (2026-04-09)
+# Security & Operations Runbook (2026-04-11)
 
-## 1) 점검 범위
+## Scope
 
-- 코드/설정 내 비밀정보 노출 여부
-- 프론트엔드/백엔드(파이썬) 의존성 취약점
-- Firebase Hosting 보안 헤더
-- 배포/자동화 워크플로 운영 리스크
+This runbook covers:
 
-## 2) 이번 점검 결과
+- secret handling
+- deploy safety
+- Cloudflare + Firebase + Cloud Run operations
+- workflow failure recovery
+- routine security checks
 
-- 저장소 내 서비스계정 개인키/일반 비밀키 패턴 재검: **미검출**
-- `frontend` 의존성 감사(`npm audit --omit=dev`):
-  - 기존 `next@15.3.0`에서 보안 권고 탐지
-  - `next@15.5.15`로 상향 후 **취약점 0건**
-- Python 의존성 감사(`python -m pip_audit -r requirements.txt`):
-  - **취약점 0건**
+## Current Security Baseline
 
-## 3) 적용한 보안 조치
+### Secrets
 
-### 3.1 의존성 보안 패치
+- never commit service-account JSON or private keys
+- never paste long-lived keys into issues, PRs, or chat
+- GitHub secret in use:
+  - `FIREBASE_SERVICE_ACCOUNT`
 
-- `frontend/package.json`
-  - `next` 버전 고정: `15.5.15`
+### Frontend dependency posture
 
-### 3.2 Hosting 보안 헤더 강화
+- `next` pinned to `15.5.15`
+- latest recorded checks:
+  - `npm audit --omit=dev`: no known issues at the time of the last audit
+  - `python -m pip_audit -r requirements.txt`: no known issues at the time of the last audit
 
-- `firebase.json`에 전역 보안 헤더 적용:
-  - `X-Content-Type-Options: nosniff`
-  - `X-Frame-Options: SAMEORIGIN`
-  - `Referrer-Policy: strict-origin-when-cross-origin`
-  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-  - `Cross-Origin-Opener-Policy: same-origin`
-  - `Cross-Origin-Resource-Policy: same-origin`
-  - `Strict-Transport-Security: max-age=31536000`
+### Hosting headers
 
-### 3.3 정기 보안 감사 자동화
+`firebase.json` applies:
 
-- 신규 워크플로: `.github/workflows/security-audit.yml`
-  - 매일 1회 + 수동 실행
-  - 비밀정보 패턴 스캔
-  - `npm audit --omit=dev`
-  - `pip-audit -r requirements.txt`
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: SAMEORIGIN`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- `Cross-Origin-Opener-Policy: same-origin`
+- `Cross-Origin-Resource-Policy: same-origin`
+- `Strict-Transport-Security: max-age=31536000`
 
-## 4) 배포/서버 운영 표준 절차
+## Current Production Topology
 
-### 4.1 배포 전 체크
+- domain edge: Cloudflare
+- static site: Firebase Hosting
+- live JSON refresh: Cloud Run + Cloud Scheduler + Cloud Storage
+- full retrain and static deploy: GitHub Actions
 
-1. `frontend` 빌드 성공 확인
-2. `npm audit --omit=dev` 결과 0건 확인
-3. `python -m pip_audit -r requirements.txt` 결과 0건 확인
-4. 변경사항에 비밀정보 포함 여부 확인
+## Deployment Roles That Matter
 
-### 4.2 배포 실행
+### Firebase deploy service account
 
-1. `git push origin main`
-2. 필요 시 수동 배포:
-   - `npx firebase-tools deploy --project kospipreview --only hosting --non-interactive`
+Service account:
 
-### 4.3 배포 후 검증
+- `firebase-adminsdk-fbsvc@kospipreview.iam.gserviceaccount.com`
 
-1. 메인 페이지 정상 렌더 확인
-2. `/data/prediction.json`, `/data/indicators.json` 최신 시각 갱신 확인
-3. 응답 헤더 보안값 확인(브라우저 DevTools 또는 curl)
-4. Cloudflare WAF/Bot 이벤트 급증 여부 확인
+Critical project roles:
 
-## 5) 자동화 워크플로 운영 가이드
+- `roles/firebase.sdkAdminServiceAgent`
+- `roles/iam.serviceAccountTokenCreator`
+- `roles/firebasehosting.admin`
+- `roles/run.developer`
 
-- 데이터 갱신 워크플로:
-  - `retrain-model`
-  - `refresh-night-futures`
-- 상시 루프 운영 시 주의:
-  - 두 워크플로를 동시에 수동 루프로 과도하게 돌리지 않는다.
-  - 장애/드리프트 의심 시 우선 루프 중단 후 단일 워크플로만 재시작한다.
-  - 배포 결과가 꼬이면 `main` 최신 커밋 기준으로 재빌드/재배포한다.
+The last two became necessary after Hosting rewrites started pinning a Cloud Run service revision.
 
-## 6) 비밀키/계정 보안 정책
+## Incident Note: Hosting Deploy Failure
 
-- 원칙:
-  - 서비스 계정 JSON/개인키를 저장소, 이슈, 채팅에 남기지 않는다.
-  - GitHub Secrets만 사용한다 (`FIREBASE_SERVICE_ACCOUNT`).
-- 키 노출 의심 시 즉시:
-  1. 기존 키 폐기(Disable/Delete)
-  2. 신규 키 발급
-  3. GitHub Secrets 교체
-  4. 배포 재검증
+Production incident:
 
-## 7) Cloudflare + Firebase 운영 정책
+- failing runs:
+  - `24246079902`
+  - `24248400402`
+- failing step:
+  - `Deploy to Firebase Hosting`
 
-- Cloudflare DNS `A(@)` 레코드는 `Proxied`(주황 구름) 유지
-- WAF/Bot Fight Mode 활성 유지
-- Firebase 기본 도메인(`*.web.app`)은 canonical 리다이렉트 정책 유지
-- 대규모 이상 트래픽 시 Cloudflare Rate Limit 임시 상향
+Root cause:
 
-## 8) 정기 점검 체크리스트
+- `firebase.json` introduced a Cloud Run rewrite with `pinTag: true`
+- deploy service account did not have enough Hosting / Cloud Run IAM permissions
 
-### 매일
+Fix applied:
 
-- Actions 실패 런/지연 런 확인
-- 지표 JSON 갱신 시각 확인
-- Cloudflare 보안 이벤트 확인
+- added:
+  - `roles/firebasehosting.admin`
+  - `roles/run.developer`
 
-### 매주
+Verification:
 
-- `security-audit` 결과 확인
-- 의존성 업데이트 후보 검토
-- 데이터 품질(이상치/고정값) 샘플 점검
+- next scheduled `retrain-model` run `24250747384` completed successfully
+- `Deploy to Firebase Hosting` step passed
 
-### 매월
+## Standard Deploy Procedure
 
-- 비밀키/권한 최소화 점검(IAM)
-- 배포/복구 리허설(롤백 테스트)
+### Before deploy
 
+1. confirm no secrets are in the diff
+2. confirm the repo is in the expected branch/state
+3. run targeted build/test as appropriate
+4. if infra-related changes are included, verify docs are updated too
+
+### Main deploy paths
+
+#### Static / full rebuild
+
+- push to `main`
+- allow `retrain-model` to run
+- if needed, run manual Firebase Hosting deploy:
+  - `npx firebase-tools@latest deploy --project kospipreview --only hosting --non-interactive`
+
+#### Live refresh path
+
+- Cloud Scheduler should call Cloud Run every minute
+- no full Hosting redeploy required for normal live data updates
+
+### After deploy
+
+1. confirm homepage loads
+2. confirm `/api/live/prediction.json` freshness
+3. confirm `/api/live/indicators.json` freshness
+4. confirm `/data/*.json` still serves valid fallback payloads
+5. confirm Cloudflare proxy / DNS is still correct
+
+## Failure Triage
+
+### A. Dashboard values look stale
+
+Check:
+
+1. `/api/live/prediction.json`
+2. `/api/live/indicators.json`
+3. Cloud Scheduler last run
+4. Cloud Run logs
+5. source symbol freshness
+
+Likely causes:
+
+- Cloud Scheduler auth issue
+- Cloud Run refresh failure
+- source market data lag
+
+### B. Static pages are behind
+
+Check:
+
+1. latest `retrain-model` run status
+2. build step success
+3. Firebase Hosting deploy step success
+
+Likely causes:
+
+- GitHub Actions failure
+- Firebase deploy failure
+- stale static export cache edge case
+
+### C. Hosting deploy fails after infra rewrite changes
+
+Check:
+
+1. `firebase.json` rewrites / `pinTag`
+2. deploy service account IAM
+3. secret validity for `FIREBASE_SERVICE_ACCOUNT`
+
+## Secret Rotation Procedure
+
+If a service-account key is exposed or suspected to be exposed:
+
+1. disable or delete the leaked key immediately
+2. create a new key only if key-based auth is still required
+3. update GitHub secret `FIREBASE_SERVICE_ACCOUNT`
+4. rerun deploy verification
+5. note the incident in docs/changelog
+
+Important:
+
+- previous chat leakage already established the need to keep key rotation discipline strict
+
+## Cloudflare Policy
+
+- root A record stays proxied
+- WAF / bot protection stays enabled
+- `kospipreview.com` is the primary host
+- Hosting remains behind Cloudflare for real traffic
+
+## Routine Checklist
+
+### Daily
+
+- inspect failed GitHub Actions runs
+- inspect Cloud Scheduler / Cloud Run freshness
+- spot-check `prediction.json` and `indicators.json`
+
+### Weekly
+
+- run or review dependency audit
+- inspect source-data anomalies
+- inspect Cloudflare security events
+
+### Monthly
+
+- re-check IAM minimum required roles
+- re-check secrets posture
+- test recovery path:
+  - Cloud Run degraded
+  - Hosting-only fallback
+  - manual refresh workflow fallback

@@ -1,63 +1,152 @@
 # Cloud Run Live Refresh
 
-## 목적
+## Purpose
 
-- GitHub Actions schedule 기반의 느린/불안정한 야간 지표 갱신을 분리한다.
-- Firebase Hosting 정적 배포는 유지하고, 빠른 갱신만 Cloud Run + Cloud Scheduler로 옮긴다.
-- DB는 도입하지 않고 Cloud Storage의 JSON 객체를 최신 상태 저장소로 사용한다.
+This document describes the production live-refresh path introduced to replace slow and unreliable GitHub schedule driven data refresh.
 
-## 구성
+Primary goal:
 
-1. Firebase Hosting
-   - 정적 페이지와 기본 `public/data/*.json` 제공
-   - `/api/live/**` 요청은 Cloud Run 서비스로 rewrite
-2. Cloud Run service: `kospi-live-data`
-   - `GET /api/live/prediction.json`
-   - `GET /api/live/indicators.json`
-   - `GET /api/live/history.json`
-   - `POST /api/tasks/refresh`
-3. Cloud Storage bucket
-   - 최신 JSON 저장
-   - DB 대신 파일 기반 최신 상태 저장소 역할
-4. Cloud Scheduler
-   - 평일 1분 단위로 Cloud Run `refresh` 호출
+- keep Firebase Hosting as the static frontend
+- move minute-level live JSON refresh into GCP managed runtime
+- avoid introducing a database
 
-## 동작 방식
+## Deployed Resources
 
-1. Cloud Scheduler가 Cloud Run `POST /api/tasks/refresh` 호출
-2. Cloud Run이 현재 bucket JSON + 번들 기본 JSON을 로컬 임시 디렉터리로 seed
-3. `scripts/refresh_night_futures.py` 실행
-4. 결과 JSON을 Cloud Storage bucket에 업로드
-5. 프론트엔드는 `/api/live/*.json`을 통해 최신 JSON 조회
+- Cloud Run service: `kospi-live-data`
+- Cloud Scheduler job: `kospi-live-refresh`
+- Cloud Storage bucket: `kospipreview-live-data`
+- Firebase Hosting rewrite:
+  - `/api/live/**`
+  - service `kospi-live-data`
+  - region `asia-northeast3`
 
-## 현재 남겨둔 배치
+## What Is Live And What Is Static
 
-- `retrain-model` GitHub Actions는 유지
-- 역할:
-  - 모델 재산출
-  - 정적 페이지/기본 JSON 갱신
-  - Firebase Hosting 배포
-- Cloud Run live refresh는 빠른 지표/예측 갱신 담당
+### Live path
 
-## 배포
+- `/api/live/prediction.json`
+- `/api/live/indicators.json`
+- `/api/live/history.json`
 
-- 배포 스크립트: `scripts/deploy_cloud_run_live_data.ps1`
-- 기본값:
-  - project: `kospipreview`
-  - region: `asia-northeast3`
-  - service: `kospi-live-data`
-  - bucket: `kospipreview-live-data`
-  - scheduler: `kospi-live-refresh`
+These are served through Firebase Hosting rewrite to Cloud Run.
 
-## 보안
+### Static path
 
-- Cloud Run 서비스는 `GET /api/live/*`는 공개 접근
-- `POST /api/tasks/refresh`는 `Authorization: Bearer <token>` 요구
-- refresh token은 Cloud Run env / Scheduler header에만 저장
-- 저장 후 별도 런북 또는 Secret Manager 이전 고려
+- `/data/*.json`
+- exported pages in `frontend/out`
 
-## 운영 메모
+These remain important for:
 
-- GitHub Actions `refresh-night-futures`는 Cloud Run 전환 검증 후 비활성화 권장
-- Cloud Scheduler 최소 단위는 1분
-- 30초 체감 갱신은 브라우저 폴링으로 만들고, 서버측 원본 갱신은 1분 유지
+- cold start fallback
+- SEO / static rendering
+- model rebuild snapshots
+
+## Runtime Flow
+
+1. Cloud Scheduler calls `POST /api/tasks/refresh`
+2. Cloud Run validates bearer token
+3. Cloud Run seeds a temp workspace from:
+   - current Cloud Storage objects when available
+   - repo-bundled JSON fallback when live objects are missing
+4. `scripts/refresh_night_futures.py` runs in that workspace
+5. refreshed JSON is uploaded back to Cloud Storage
+6. browser fetches new values through `/api/live/*.json`
+
+## Why No Database
+
+The platform intentionally uses JSON object storage instead of a DB.
+
+Reasoning:
+
+- easier operations
+- lower cost
+- no schema migrations
+- easier manual recovery
+- fewer failure domains
+
+For this product stage, "latest JSON object state" is enough.
+
+## Current Role Split
+
+### Cloud Run + Cloud Scheduler
+
+Responsible for:
+
+- minute-level live indicator refresh
+- minute-level model prediction refresh
+- faster dashboard freshness without full Hosting redeploy
+
+### GitHub Actions `retrain-model`
+
+Still responsible for:
+
+- full model rebuild
+- static page regeneration
+- baseline JSON rebuild
+- Firebase Hosting deploy
+
+### GitHub Actions `refresh-night-futures`
+
+Now treated as:
+
+- manual fallback workflow only
+- not primary production refresh
+
+## Security Model
+
+- `GET /api/live/*`
+  - public read
+- `POST /api/tasks/refresh`
+  - protected by bearer token
+- token placement
+  - Cloud Run environment variable
+  - Cloud Scheduler authorization header
+
+Recommended long-term upgrade:
+
+- move refresh token handling into Secret Manager if the current inline env/header setup grows
+
+## Required IAM Notes
+
+The Firebase deploy service account must have enough rights to deploy Hosting when `firebase.json` includes Cloud Run rewrites with `pinTag: true`.
+
+Required project roles for the deploy service account:
+
+- `roles/firebasehosting.admin`
+- `roles/run.developer`
+
+This mattered in production after the Hosting deploy failure on:
+
+- GitHub Actions run `24248400402`
+- GitHub Actions run `24246079902`
+
+Those failures were resolved by adding the missing roles to:
+
+- `firebase-adminsdk-fbsvc@kospipreview.iam.gserviceaccount.com`
+
+## Health Checks
+
+When live refresh looks stale, check in this order:
+
+1. Cloud Scheduler execution timestamps
+2. Cloud Run service health and recent logs
+3. Cloud Storage object updated timestamps
+4. browser `/api/live/*.json` response timestamps
+5. source market data freshness by symbol
+
+## Practical Boundaries
+
+- server-side minimum cadence is 1 minute
+- browser polling can be shorter, but source refresh is still 1 minute
+- some market symbols update slower than others even when our pipeline is healthy
+- live refresh does not replace full retraining or static export updates
+
+## Recovery Notes
+
+If Cloud Run live refresh fails:
+
+1. keep static Hosting online
+2. verify Cloud Run token and Scheduler auth
+3. verify Cloud Storage read/write
+4. if needed, run fallback workflow `refresh-night-futures` manually
+5. if live path is unstable, dashboard can still fall back to `/data/*.json`
