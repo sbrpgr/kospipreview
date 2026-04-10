@@ -398,7 +398,7 @@ export function LiveDashboard({
             <div className="heroDate">{prediction.predictionDate} 코스피 시초가 전망</div>
             <div className="heroMeta">
               <div className="heroMetaChip">
-                운영시간 {marketOperation.hoursLabel} · 운영상태 {marketOperation.statusLabel}
+                운영시간 {marketOperation.hoursLabel}
               </div>
             </div>
           </div>
