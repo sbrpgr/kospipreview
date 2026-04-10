@@ -1,5 +1,10 @@
 # Operations Spec Index
 
+## 2026-04-10 model spec
+
+- Current model reference: `MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`
+- Current prediction engine: `EWY Synthetic K200 Ridge`
+
 ## 2026-04-10 기준 분리 명세
 
 - 예측 보정(내부 계산)은 `KRX 동기화 기준(15:30 KST)`을 유지한다.

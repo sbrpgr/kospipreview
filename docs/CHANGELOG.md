@@ -2,6 +2,15 @@
 
 ## 2026-04-10
 
+- EWY synthetic K200 model redesign
+  - Prediction engine migrated from legacy LightGBM-centered flow to `EWY Synthetic K200 Ridge`.
+  - New pipeline: `EWY + USD/KRW core -> optional residual correction -> KOSPI mapping`.
+  - Night futures were fully removed from the model path and kept as comparison-only data.
+  - Residual correction now auto-downweights itself when recent time-series validation does not improve accuracy.
+  - Live refresh (`scripts/refresh_night_futures.py`) now recomputes prediction values with the same model metadata used by the training pipeline.
+  - Home hero label now explicitly states `모델 예측 (야간 선물 지표 완전 미사용)`.
+  - Current model spec documented in `docs/MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`.
+
 - Prediction refresh cadence update
   - `refresh-night-futures` workflow schedule changed from every 5 minutes to every 1 minute (`* * * * 1-5`).
   - `scripts/refresh_night_futures.py` now updates `pointPrediction` / `predictedChangePct` every refresh cycle using EWY-core auxiliary signals (night futures excluded from model path).

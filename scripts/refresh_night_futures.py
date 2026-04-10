@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -8,7 +9,20 @@ from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from backtest_and_generate import (  # noqa: E402
+    compute_prediction_components as compute_model_prediction_components,
+    log_return_pct_to_simple_return_pct,
+    price_from_log_return,
+    simple_return_pct_to_log_return_pct,
+)
+
 DATA_DIR = ROOT / "frontend" / "public" / "data"
 OUT_DATA_DIR = ROOT / "frontend" / "out" / "data"
 INDICATORS_FILE = DATA_DIR / "indicators.json"
@@ -54,9 +68,23 @@ DISPLAY_TICKER_BY_KEY = {
 }
 
 AUXILIARY_SIGNAL_WEIGHTS = {
-    "sp500": 0.55,
-    "nasdaq": 0.45,
+    "sp500": 0.35,
+    "nasdaq": 0.30,
+    "sox": 0.20,
+    "dow": 0.15,
 }
+BRIDGE_SIGNAL_WEIGHTS = {
+    "sp500f": 0.55,
+    "nasdaqf": 0.45,
+}
+US_EQUITY_FACTOR_WEIGHTS = {
+    "sp500": 0.30,
+    "nasdaq": 0.30,
+    "dow": 0.15,
+    "sp500f": 0.15,
+    "nasdaqf": 0.10,
+}
+BRIDGE_KRW_BLEND = 0.24
 EWY_FX_CORE_EWY_WEIGHT = 1.0
 EWY_FX_CORE_KRW_WEIGHT = 1.0
 AUXILIARY_SIGNAL_BLEND = 0.18
@@ -79,6 +107,27 @@ FALLBACK_GUARD_BAND_SHARE = 0.50
 EWY_ALIGNMENT_TRIGGER_PCT = 1.0
 EWY_ALIGNMENT_MIN_SHARE = 0.80
 LIVE_REFRESH_KEEP_PREV_WEIGHT = 0.05
+RESIDUAL_MODEL_CAP_MIN_PCT = 0.18
+RESIDUAL_MODEL_CAP_MAX_PCT = 0.95
+RESIDUAL_MODEL_CAP_SHARE = 0.38
+ANCHOR_BIAS_BLEND = 0.12
+ANCHOR_BIAS_CAP_PCT = 0.24
+SESSION_GUARD_BAND_MIN_PCT = 0.42
+SESSION_GUARD_BAND_SHARE = 0.38
+BRIDGE_GUARD_BAND_MIN_PCT = 0.65
+BRIDGE_GUARD_BAND_SHARE = 0.58
+US_PREMARKET_OPEN_ET = time(4, 0)
+US_SESSION_END_ET = time(20, 0)
+MACRO_SHOCK_US10Y_TRIGGER_PCT = 1.2
+MACRO_SHOCK_WTI_TRIGGER_PCT = 3.0
+RISK_OFF_GOLD_TRIGGER_PCT = 0.40
+RISK_OFF_VIX_TRIGGER_PCT = 2.0
+RISK_OFF_EQUITY_TRIGGER_PCT = -0.40
+REGIME_US10Y_PENALTY_WEIGHT = 0.08
+REGIME_WTI_PENALTY_WEIGHT = 0.05
+REGIME_RISK_OFF_PENALTY_WEIGHT = 0.14
+REGIME_POSITIVE_BONUS_WEIGHT = 0.04
+REGIME_ADJUSTMENT_CAP_PCT = 0.55
 YAHOO_CHART_URL_TEMPLATE = (
     "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
     "?interval=1m&range=2d&includePrePost=true"
@@ -330,6 +379,60 @@ def fetch_yahoo_intraday_return_pct(symbol: str, baseline_session_date: str | No
     return (latest_close / baseline_close - 1) * 100
 
 
+def fetch_yahoo_intraday_model_change(
+    symbol: str,
+    baseline_session_date: str | None,
+    *,
+    diff_mode: bool = False,
+) -> float | None:
+    if not baseline_session_date:
+        return None
+    try:
+        baseline_date = date.fromisoformat(baseline_session_date)
+    except ValueError:
+        return None
+
+    points = fetch_yahoo_chart_points(symbol)
+    if not points:
+        return None
+
+    baseline_kst = datetime.combine(baseline_date, KRX_SYNC_BASELINE_TIME, tzinfo=KST)
+    latest_ts_utc, latest_close = points[-1]
+
+    points_kst = [(ts_utc.astimezone(KST), ts_utc, close) for ts_utc, close in points]
+    same_day_points = [row for row in points_kst if row[0].date() == baseline_date]
+
+    baseline_point: tuple[datetime, float] | None = None
+    if same_day_points:
+        forward_points = [row for row in same_day_points if row[0] >= baseline_kst]
+        if forward_points:
+            ts_kst, ts_utc, close = forward_points[0]
+            delay_hours = (ts_kst - baseline_kst).total_seconds() / 3600
+            if delay_hours <= KRX_SYNC_MAX_FORWARD_HOURS:
+                baseline_point = (ts_utc, close)
+
+    if baseline_point is None:
+        backward_points = [row for row in points_kst if row[0] <= baseline_kst]
+        if backward_points:
+            ts_kst, ts_utc, close = backward_points[-1]
+            lookback_hours = (baseline_kst - ts_kst).total_seconds() / 3600
+            if lookback_hours <= KRX_SYNC_MAX_LOOKBACK_HOURS:
+                baseline_point = (ts_utc, close)
+
+    if baseline_point is None:
+        return None
+
+    _, baseline_close = baseline_point
+    if diff_mode:
+        return latest_close - baseline_close
+    if baseline_close == 0:
+        return None
+    ratio = latest_close / baseline_close
+    if ratio <= 0:
+        return None
+    return float(np.log(ratio) * 100)
+
+
 def resolve_ewy_fx_correction_params(model_payload: dict | None) -> dict[str, float]:
     if not isinstance(model_payload, dict):
         return {
@@ -359,6 +462,48 @@ def resolve_ewy_fx_correction_params(model_payload: dict | None) -> dict[str, fl
         "krw_coef": clamp(krw_coef, EWY_FX_CORRECTION_KRW_COEF_MIN, EWY_FX_CORRECTION_KRW_COEF_MAX),
         "sample_size": sample_size if sample_size is not None else 0.0,
         "r2": fit_r2 if fit_r2 is not None else 0.0,
+    }
+
+
+def resolve_residual_model_artifact(model_payload: dict | None) -> dict[str, object]:
+    if not isinstance(model_payload, dict):
+        return {}
+
+    artifact = model_payload.get("residualModel")
+    if not isinstance(artifact, dict):
+        return {}
+
+    coefficients = artifact.get("coefficients")
+    means = artifact.get("means")
+    stds = artifact.get("stds")
+    broad_pca_components = artifact.get("broadPcaComponents")
+
+    return {
+        "intercept": to_float(artifact.get("intercept")) or 0.0,
+        "coefficients": coefficients if isinstance(coefficients, dict) else {},
+        "means": means if isinstance(means, dict) else {},
+        "stds": stds if isinstance(stds, dict) else {},
+        "broad_pca_components": broad_pca_components if isinstance(broad_pca_components, list) else [],
+        "sox_ndx_beta": to_float(artifact.get("soxNdxBeta")) or 1.0,
+        "basis_ewma": to_float(artifact.get("basisEwma")) or 0.0,
+        "weight": to_float(artifact.get("weight")) or 0.0,
+        "sample_size": to_float(artifact.get("sampleSize")) or 0.0,
+        "mae": to_float(artifact.get("mae")) or 0.0,
+    }
+
+
+def resolve_k200_mapping_artifact(model_payload: dict | None) -> dict[str, float]:
+    if not isinstance(model_payload, dict):
+        return {"intercept": 0.0, "beta": 1.0, "sample_size": 0.0}
+
+    artifact = model_payload.get("k200Mapping")
+    if not isinstance(artifact, dict):
+        return {"intercept": 0.0, "beta": 1.0, "sample_size": 0.0}
+
+    return {
+        "intercept": to_float(artifact.get("intercept")) or 0.0,
+        "beta": to_float(artifact.get("beta")) or 1.0,
+        "sample_size": to_float(artifact.get("sampleSize")) or 0.0,
     }
 
 
@@ -405,43 +550,217 @@ def compute_ewy_fx_core_change(
     return learned_core * (1 - blend) + structural_sum * blend
 
 
-def fetch_live_auxiliary_anchor_change(
+def weighted_average_from_returns(returns: dict[str, float], weights: dict[str, float]) -> float | None:
+    weighted_sum = 0.0
+    total_weight = 0.0
+    for key, weight in weights.items():
+        value = returns.get(key)
+        if value is None:
+            continue
+        weighted_sum += float(value) * weight
+        total_weight += weight
+    if total_weight <= 0:
+        return None
+    return weighted_sum / total_weight
+
+
+def compute_us_equity_factor(returns: dict[str, float]) -> float | None:
+    return weighted_average_from_returns(returns, US_EQUITY_FACTOR_WEIGHTS)
+
+
+def compute_bridge_proxy_change(returns: dict[str, float]) -> float | None:
+    futures_change = weighted_average_from_returns(returns, BRIDGE_SIGNAL_WEIGHTS)
+    krw_change = returns.get("krw")
+
+    if futures_change is None and krw_change is None:
+        return None
+    if futures_change is None:
+        return float(krw_change)
+    if krw_change is None:
+        return futures_change
+    return futures_change * (1 - BRIDGE_KRW_BLEND) + float(krw_change) * BRIDGE_KRW_BLEND
+
+
+def is_macro_shock_regime(returns: dict[str, float]) -> bool:
+    us10y_change = returns.get("us10y")
+    wti_change = returns.get("wti")
+    if us10y_change is not None and abs(float(us10y_change)) >= MACRO_SHOCK_US10Y_TRIGGER_PCT:
+        return True
+    if wti_change is not None and abs(float(wti_change)) >= MACRO_SHOCK_WTI_TRIGGER_PCT:
+        return True
+    return False
+
+
+def is_risk_off_regime(returns: dict[str, float]) -> bool:
+    gold_change = returns.get("gold")
+    vix_change = returns.get("vix")
+    us_equity_factor = compute_us_equity_factor(returns)
+    if gold_change is None or vix_change is None or us_equity_factor is None:
+        return False
+    return (
+        float(gold_change) >= RISK_OFF_GOLD_TRIGGER_PCT
+        and float(vix_change) >= RISK_OFF_VIX_TRIGGER_PCT
+        and float(us_equity_factor) <= RISK_OFF_EQUITY_TRIGGER_PCT
+    )
+
+
+def regime_label_from_returns(returns: dict[str, float]) -> str:
+    if is_risk_off_regime(returns):
+        return "risk_off"
+    if is_macro_shock_regime(returns):
+        return "macro_shock"
+    return "normal"
+
+
+def compute_regime_adjustment(anchor_change: float | None, returns: dict[str, float]) -> float:
+    adjustment = 0.0
+    us10y_change = returns.get("us10y")
+    wti_change = returns.get("wti")
+    gold_change = returns.get("gold")
+    vix_change = returns.get("vix")
+    us_equity_factor = compute_us_equity_factor(returns)
+
+    if us10y_change is not None and float(us10y_change) > MACRO_SHOCK_US10Y_TRIGGER_PCT:
+        adjustment -= min(0.28, float(us10y_change) * REGIME_US10Y_PENALTY_WEIGHT)
+    if wti_change is not None and float(wti_change) > MACRO_SHOCK_WTI_TRIGGER_PCT:
+        adjustment -= min(0.25, float(wti_change) * REGIME_WTI_PENALTY_WEIGHT)
+
+    if is_risk_off_regime(returns):
+        gold_strength = max(float(gold_change or 0.0), 0.0)
+        vix_strength = max(float(vix_change or 0.0), 0.0)
+        equity_stress = abs(float(us_equity_factor or 0.0))
+        adjustment -= min(
+            0.40,
+            gold_strength * REGIME_RISK_OFF_PENALTY_WEIGHT + vix_strength * 0.03 + equity_stress * 0.08,
+        )
+    elif us_equity_factor is not None and us_equity_factor > 0:
+        if us10y_change is not None and float(us10y_change) < -MACRO_SHOCK_US10Y_TRIGGER_PCT:
+            adjustment += min(0.18, abs(float(us10y_change)) * REGIME_POSITIVE_BONUS_WEIGHT)
+        if wti_change is not None and float(wti_change) < -MACRO_SHOCK_WTI_TRIGGER_PCT:
+            adjustment += min(0.12, abs(float(wti_change)) * (REGIME_POSITIVE_BONUS_WEIGHT * 0.6))
+
+    if anchor_change is not None and float(anchor_change) < 0 and adjustment > 0:
+        adjustment *= 0.5
+
+    return clamp(adjustment, -REGIME_ADJUSTMENT_CAP_PCT, REGIME_ADJUSTMENT_CAP_PCT)
+
+
+def resolve_anchor_for_phase(
+    core_anchor_change: float | None,
+    auxiliary_anchor_change: float | None,
+    bridge_anchor_change: float | None,
+    prediction_phase: str,
+) -> tuple[float | None, str]:
+    normalized_phase = prediction_phase if prediction_phase in {"bridge", "session"} else "session"
+    if normalized_phase == "bridge":
+        if bridge_anchor_change is not None:
+            if core_anchor_change is None:
+                return float(bridge_anchor_change), "bridge"
+            return float(bridge_anchor_change) * 0.8 + float(core_anchor_change) * 0.2, "bridge"
+        if auxiliary_anchor_change is not None:
+            return float(auxiliary_anchor_change), "auxiliary-fallback"
+        if core_anchor_change is not None:
+            return float(core_anchor_change), "core-fallback"
+        return None, "missing"
+
+    if core_anchor_change is not None:
+        return float(core_anchor_change), "core"
+    if bridge_anchor_change is not None:
+        return float(bridge_anchor_change), "bridge-fallback"
+    if auxiliary_anchor_change is not None:
+        return float(auxiliary_anchor_change), "auxiliary-fallback"
+    return None, "missing"
+
+
+def combine_phase_prediction(
+    core_anchor_change: float | None,
+    raw_residual_change: float,
+    auxiliary_anchor_change: float | None,
+    bridge_anchor_change: float | None,
+    returns: dict[str, float],
+    prediction_phase: str,
+) -> tuple[float, dict[str, float | str | None]]:
+    anchor_change, anchor_source = resolve_anchor_for_phase(
+        core_anchor_change=core_anchor_change,
+        auxiliary_anchor_change=auxiliary_anchor_change,
+        bridge_anchor_change=bridge_anchor_change,
+        prediction_phase=prediction_phase,
+    )
+    base_anchor = float(anchor_change) if anchor_change is not None else 0.0
+    residual_cap = max(RESIDUAL_MODEL_CAP_MIN_PCT, min(RESIDUAL_MODEL_CAP_MAX_PCT, abs(base_anchor) * RESIDUAL_MODEL_CAP_SHARE))
+    residual_adjust = clamp(raw_residual_change, -residual_cap, residual_cap)
+
+    anchor_bias = 0.0
+    if auxiliary_anchor_change is not None and anchor_change is not None:
+        anchor_bias = clamp(
+            (float(auxiliary_anchor_change) - float(anchor_change)) * ANCHOR_BIAS_BLEND,
+            -ANCHOR_BIAS_CAP_PCT,
+            ANCHOR_BIAS_CAP_PCT,
+        )
+
+    regime_adjustment = compute_regime_adjustment(anchor_change, returns)
+    provisional = base_anchor + residual_adjust + anchor_bias + regime_adjustment
+    if prediction_phase == "bridge":
+        guard_band = max(BRIDGE_GUARD_BAND_MIN_PCT, abs(base_anchor) * BRIDGE_GUARD_BAND_SHARE)
+    else:
+        guard_band = max(SESSION_GUARD_BAND_MIN_PCT, abs(base_anchor) * SESSION_GUARD_BAND_SHARE)
+    guarded = clamp(provisional, base_anchor - guard_band, base_anchor + guard_band)
+
+    return guarded, {
+        "anchor": base_anchor,
+        "anchor_source": anchor_source,
+        "aux_anchor": auxiliary_anchor_change,
+        "bridge_anchor": bridge_anchor_change,
+        "raw_residual": raw_residual_change,
+        "residual_adjust": residual_adjust,
+        "anchor_bias": anchor_bias,
+        "regime_adjustment": regime_adjustment,
+        "guard_band": guard_band,
+        "phase": prediction_phase,
+    }
+
+
+def resolve_live_prediction_phase(now_utc: datetime, live_returns: dict[str, float]) -> str:
+    now_et = now_utc.astimezone(US_ET)
+    if now_et.weekday() >= 5:
+        return "bridge"
+    if now_et.time() < US_PREMARKET_OPEN_ET or now_et.time() >= US_SESSION_END_ET:
+        return "bridge"
+    return "session" if live_returns.get("ewy") is not None else "bridge"
+
+
+def fetch_live_prediction_inputs(
     baseline_session_date: str | None,
     correction_params: dict[str, float] | None = None,
-) -> tuple[float | None, float | None, float | None, dict[str, float]]:
+) -> tuple[dict[str, float], dict[str, float]]:
     ticker_map = {
         "ewy": "EWY",
         "krw": "KRW=X",
         "sp500": "^GSPC",
         "nasdaq": "^NDX",
+        "dow": "^DJI",
+        "sox": "^SOX",
+        "vix": "^VIX",
+        "gold": "GC=F",
+        "wti": "CL=F",
+        "us10y": "^TNX",
     }
-    returns: dict[str, float] = {}
+    display_returns: dict[str, float] = {}
+    model_returns: dict[str, float] = {}
     for key, ticker in ticker_map.items():
-        value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date)
-        if value is not None:
-            returns[key] = value
+        display_value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date)
+        if display_value is not None:
+            display_returns[key] = display_value
 
-    core_change = compute_ewy_fx_core_change(returns, correction_params)
-    ewy_change = returns.get("ewy")
-    aux_sum = 0.0
-    aux_weight = 0.0
-    for key, weight in AUXILIARY_SIGNAL_WEIGHTS.items():
-        value = returns.get(key)
-        if value is None:
-            continue
-        aux_sum += float(value) * weight
-        aux_weight += weight
+        model_value = fetch_yahoo_intraday_model_change(
+            ticker,
+            baseline_session_date,
+            diff_mode=(key == "us10y"),
+        )
+        if model_value is not None:
+            model_returns[key] = model_value
 
-    aux_change = (aux_sum / aux_weight) if aux_weight > 0 else None
-
-    if core_change is None:
-        anchor = aux_change
-    elif aux_change is None:
-        anchor = core_change
-    else:
-        anchor = core_change * (1 - AUXILIARY_SIGNAL_BLEND) + aux_change * AUXILIARY_SIGNAL_BLEND
-
-    return anchor, core_change, ewy_change, returns
+    return display_returns, model_returns
 
 
 def apply_ewy_alignment_guard(predicted_change: float, ewy_change: float | None) -> float:
@@ -1075,15 +1394,8 @@ def update_prediction_night_fields(
             model_payload = {}
             payload["model"] = model_payload
         correction_params = resolve_ewy_fx_correction_params(model_payload)
-
-        raw_ml_change = to_float(model_payload.get("rawModelPct"))
-        if raw_ml_change is None:
-            raw_ml_change = to_float(payload.get("predictedChangePct"))
-
-        core_anchor_change = to_float(model_payload.get("coreAnchorPct"))
-        auxiliary_anchor_change = to_float(model_payload.get("auxiliaryAnchorPct"))
-        if auxiliary_anchor_change is None:
-            auxiliary_anchor_change = core_anchor_change
+        residual_artifact = resolve_residual_model_artifact(model_payload)
+        mapping_artifact = resolve_k200_mapping_artifact(model_payload)
 
         baseline_session_date: str | None = None
         latest_record_date = payload.get("latestRecordDate")
@@ -1094,75 +1406,91 @@ def update_prediction_night_fields(
             if isinstance(day_close_date, str) and day_close_date:
                 baseline_session_date = day_close_date
 
-        live_aux_anchor, live_core_anchor, live_ewy_change, live_returns = fetch_live_auxiliary_anchor_change(
+        live_display_returns, live_model_returns = fetch_live_prediction_inputs(
             baseline_session_date, correction_params
         )
-        if live_aux_anchor is not None:
-            auxiliary_anchor_change = live_aux_anchor
-        if live_core_anchor is not None:
-            core_anchor_change = live_core_anchor
+        prediction_components = compute_model_prediction_components(
+            live_model_returns,
+            core_params=correction_params,
+            residual_artifact=residual_artifact,
+            mapping_artifact=mapping_artifact,
+        )
+        if prediction_components.get("ready"):
+            refreshed_change = to_float(prediction_components.get("predicted_kospi_simple_pct"))
+            if refreshed_change is None:
+                refreshed_change = to_float(payload.get("predictedChangePct")) or 0.0
 
-        if raw_ml_change is None and auxiliary_anchor_change is None:
-            raw_ml_change = 0.0
-        elif raw_ml_change is None:
-            raw_ml_change = auxiliary_anchor_change
+            previous_change = to_float(payload.get("predictedChangePct"))
+            if previous_change is not None:
+                refreshed_change = (
+                    previous_change * LIVE_REFRESH_KEEP_PREV_WEIGHT
+                    + refreshed_change * (1 - LIVE_REFRESH_KEEP_PREV_WEIGHT)
+                )
 
-        base_anchor = auxiliary_anchor_change if auxiliary_anchor_change is not None else float(raw_ml_change)
-        ml_adjust = (float(raw_ml_change) - base_anchor) * FALLBACK_ML_BLEND
-        aux_adjust = 0.0
-        if auxiliary_anchor_change is not None:
-            aux_adjust = (auxiliary_anchor_change - base_anchor) * FALLBACK_AUX_BLEND
+            refreshed_return = simple_return_pct_to_log_return_pct(refreshed_change)
+            if refreshed_return is None:
+                refreshed_return = to_float(prediction_components.get("predicted_kospi_return")) or 0.0
 
-        provisional = base_anchor + ml_adjust + aux_adjust
-        guard_band = max(FALLBACK_GUARD_BAND_MIN_PCT, abs(base_anchor) * FALLBACK_GUARD_BAND_SHARE)
-        refreshed_change = clamp(provisional, base_anchor - guard_band, base_anchor + guard_band)
-        refreshed_change = apply_ewy_alignment_guard(refreshed_change, core_anchor_change)
+            point_prediction = price_from_log_return(prev_close, refreshed_return)
+            range_low = to_float(payload.get("rangeLow"))
+            range_high = to_float(payload.get("rangeHigh"))
+            if range_low is not None and range_high is not None and range_high >= range_low:
+                half_band = max(1.0, (range_high - range_low) / 2)
+            else:
+                mae = to_float(payload.get("mae30d")) or 18.0
+                half_band = max(12.0, mae)
 
-        previous_change = to_float(payload.get("predictedChangePct"))
-        if previous_change is not None:
-            refreshed_change = (
-                previous_change * LIVE_REFRESH_KEEP_PREV_WEIGHT
-                + refreshed_change * (1 - LIVE_REFRESH_KEEP_PREV_WEIGHT)
-            )
+            payload["pointPrediction"] = round(point_prediction, 2)
+            payload["predictedChangePct"] = round(refreshed_change, 2)
+            payload["rangeLow"] = round(point_prediction - half_band, 2)
+            payload["rangeHigh"] = round(point_prediction + half_band, 2)
+            payload["lastCalculatedAt"] = now_utc.isoformat()
 
-        point_prediction = prev_close * (1 + refreshed_change / 100)
-        range_low = to_float(payload.get("rangeLow"))
-        range_high = to_float(payload.get("rangeHigh"))
-        if range_low is not None and range_high is not None and range_high >= range_low:
-            half_band = max(1.0, (range_high - range_low) / 2)
-        else:
-            mae = to_float(payload.get("mae30d")) or 18.0
-            half_band = max(12.0, mae)
-
-        payload["pointPrediction"] = round(point_prediction, 2)
-        payload["predictedChangePct"] = round(refreshed_change, 2)
-        payload["rangeLow"] = round(point_prediction - half_band, 2)
-        payload["rangeHigh"] = round(point_prediction + half_band, 2)
-        payload["lastCalculatedAt"] = now_utc.isoformat()
-
-        model_payload["calculationMode"] = "EWYCore+AuxSignals+NoNightFutures(KRXCloseSyncLiveRefresh)"
-        model_payload["nightFuturesExcluded"] = True
-        model_payload["nightFuturesAnchorPct"] = None
-        if auxiliary_anchor_change is not None:
-            model_payload["auxiliaryAnchorPct"] = round(auxiliary_anchor_change, 2)
-        if core_anchor_change is not None:
-            model_payload["coreAnchorPct"] = round(core_anchor_change, 2)
-        model_payload["mlResidualAdjPct"] = round(ml_adjust, 2)
-        model_payload["auxResidualAdjPct"] = round(aux_adjust, 2)
-        model_payload["liveRefreshGuardBandPct"] = round(guard_band, 2)
-        if live_ewy_change is not None:
-            model_payload["liveEwyChangePct"] = round(live_ewy_change, 2)
-        live_krw_change = live_returns.get("krw")
-        if live_krw_change is not None:
-            model_payload["liveKrwChangePct"] = round(float(live_krw_change), 2)
-        model_payload["ewyFxIntercept"] = round(float(correction_params["intercept"]), 4)
-        model_payload["ewyFxEwyCoef"] = round(float(correction_params["ewy_coef"]), 4)
-        model_payload["ewyFxKrwCoef"] = round(float(correction_params["krw_coef"]), 4)
-        model_payload["ewyFxSampleSize"] = int(float(correction_params.get("sample_size", 0.0)))
-        model_payload["ewyFxFitR2"] = round(float(correction_params.get("r2", 0.0)), 4)
-        if baseline_session_date:
-            model_payload["krxBaselineDate"] = baseline_session_date
-        model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()
+            model_payload["engine"] = "EWY Synthetic K200 Ridge"
+            model_payload["calculationMode"] = "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(NoNightFuturesLiveRefresh)"
+            model_payload["nightFuturesExcluded"] = True
+            model_payload["nightFuturesAnchorPct"] = None
+            model_payload["auxiliaryAnchorPct"] = None
+            model_payload["bridgeAnchorPct"] = None
+            core_anchor = to_float(prediction_components.get("core_kospi_return"))
+            if core_anchor is not None:
+                model_payload["coreAnchorPct"] = round(log_return_pct_to_simple_return_pct(core_anchor) or 0.0, 2)
+            raw_model_pct = to_float(prediction_components.get("predicted_kospi_simple_pct_pre_guard"))
+            if raw_model_pct is not None:
+                model_payload["rawModelPct"] = round(raw_model_pct, 2)
+            residual_adj = to_float(prediction_components.get("residual_adj_k200_return"))
+            if residual_adj is not None:
+                model_payload["mlResidualAdjPct"] = round(log_return_pct_to_simple_return_pct(residual_adj) or 0.0, 2)
+                mapping_beta = to_float(mapping_artifact.get("beta")) or 1.0
+                model_payload["rawResidualPct"] = round(
+                    log_return_pct_to_simple_return_pct(residual_adj * mapping_beta) or 0.0,
+                    2,
+                )
+            residual_cap = to_float(prediction_components.get("residual_cap_k200_return"))
+            if residual_cap is not None:
+                model_payload["liveRefreshGuardBandPct"] = round(
+                    log_return_pct_to_simple_return_pct(residual_cap) or 0.0,
+                    2,
+                )
+            model_payload["auxResidualAdjPct"] = None
+            model_payload["regimeAdjustmentPct"] = None
+            model_payload["predictionPhase"] = "session"
+            model_payload["anchorSource"] = "ewy_synthetic_k200"
+            model_payload["regimeState"] = None
+            live_ewy_change = live_display_returns.get("ewy")
+            if live_ewy_change is not None:
+                model_payload["liveEwyChangePct"] = round(live_ewy_change, 2)
+            live_krw_change = live_display_returns.get("krw")
+            if live_krw_change is not None:
+                model_payload["liveKrwChangePct"] = round(float(live_krw_change), 2)
+            model_payload["ewyFxIntercept"] = round(float(correction_params["intercept"]), 4)
+            model_payload["ewyFxEwyCoef"] = round(float(correction_params["ewy_coef"]), 4)
+            model_payload["ewyFxKrwCoef"] = round(float(correction_params["krw_coef"]), 4)
+            model_payload["ewyFxSampleSize"] = int(float(correction_params.get("sample_size", 0.0)))
+            model_payload["ewyFxFitR2"] = round(float(correction_params.get("r2", 0.0)), 4)
+            if baseline_session_date:
+                model_payload["krxBaselineDate"] = baseline_session_date
+            model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()
 
     if day_close_quote:
         try:

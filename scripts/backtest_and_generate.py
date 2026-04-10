@@ -11,10 +11,11 @@ from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-import lightgbm as lgb
 import numpy as np
 import pandas as pd
 import yfinance as yf
+from sklearn.decomposition import PCA
+from sklearn.linear_model import Ridge
 from sklearn.model_selection import TimeSeriesSplit
 
 warnings.filterwarnings("ignore")
@@ -34,7 +35,7 @@ PREDICTION_ARCHIVE_FILE = DATA_DIR / "prediction_archive.json"
 
 KST = timezone(timedelta(hours=9))
 US_ET = ZoneInfo("America/New_York")
-KOREA_TICKERS = {"kospi": "^KS11"}
+KOREA_TICKERS = {"kospi": "^KS11", "kospi200": "^KS200"}
 FEATURE_TICKERS = {
     "ewy": "EWY",
     "koru": "KORU",
@@ -48,12 +49,22 @@ FEATURE_TICKERS = {
     "sox": "^SOX",
     "krw": "KRW=X",
 }
+MODEL_SIGNAL_KEYS = ["ewy", "krw", "sp500", "nasdaq", "dow", "sox", "wti", "gold", "us10y"]
+RESIDUAL_FEATURE_COLUMNS = ["broad_factor", "tech_factor", "semi_factor", "wti_z", "gold_z", "us10y_z"]
+MODEL_ONLY_TICKERS = {
+    "sp500f": "ES=F",
+    "nasdaqf": "NQ=F",
+}
 
 INDICATOR_ONLY_TICKERS: dict[str, str] = {}
 
 INDICATOR_TICKERS = {
     **FEATURE_TICKERS,
     **INDICATOR_ONLY_TICKERS,
+}
+MODEL_TICKERS = {
+    **FEATURE_TICKERS,
+    **MODEL_ONLY_TICKERS,
 }
 
 INDICATOR_SOURCE_URLS = {
@@ -63,7 +74,7 @@ INDICATOR_SOURCE_URLS = {
 INDICATOR_SOURCE_URLS["k200f"] = ""
 
 LOOKBACK_DAYS = 3 * 365
-ALL_FEATURES = list(FEATURE_TICKERS.keys())
+ALL_FEATURES = list(MODEL_TICKERS.keys())
 HISTORY_RECORDS = 30
 HISTORY_ACCUMULATION_START_DATE = date(2026, 4, 9)
 RECENT_HISTORY_FILL_DAYS = 5
@@ -81,9 +92,23 @@ KRX_SYNC_MAX_FORWARD_HOURS = 12
 
 NIGHT_FUTURES_PRIMARY_SCALE = 1.0
 AUXILIARY_SIGNAL_WEIGHTS = {
-    "sp500": 0.55,
-    "nasdaq": 0.45,
+    "sp500": 0.35,
+    "nasdaq": 0.30,
+    "sox": 0.20,
+    "dow": 0.15,
 }
+BRIDGE_SIGNAL_WEIGHTS = {
+    "sp500f": 0.55,
+    "nasdaqf": 0.45,
+}
+US_EQUITY_FACTOR_WEIGHTS = {
+    "sp500": 0.30,
+    "nasdaq": 0.30,
+    "dow": 0.15,
+    "sp500f": 0.15,
+    "nasdaqf": 0.10,
+}
+BRIDGE_KRW_BLEND = 0.24
 EWY_FX_CORE_EWY_WEIGHT = 1.0
 EWY_FX_CORE_KRW_WEIGHT = 1.0
 AUXILIARY_SIGNAL_BLEND = 0.18
@@ -126,6 +151,28 @@ REGIME_CLIP_PREV_CLOSE_SHARE = 0.9
 REGIME_CLIP_CORE_BUFFER_PCT = 1.25
 EWY_ALIGNMENT_TRIGGER_PCT = 1.0
 EWY_ALIGNMENT_MIN_SHARE = 0.80
+RESIDUAL_MODEL_CAP_MIN_PCT = 0.18
+RESIDUAL_MODEL_CAP_MAX_PCT = 0.95
+RESIDUAL_MODEL_CAP_SHARE = 0.38
+ANCHOR_BIAS_BLEND = 0.12
+ANCHOR_BIAS_CAP_PCT = 0.24
+SESSION_GUARD_BAND_MIN_PCT = 0.42
+SESSION_GUARD_BAND_SHARE = 0.38
+BRIDGE_GUARD_BAND_MIN_PCT = 0.65
+BRIDGE_GUARD_BAND_SHARE = 0.58
+US_PREMARKET_OPEN_ET = time(4, 0)
+US_SESSION_END_ET = time(20, 0)
+EWY_LIVE_STALE_MINUTES = 45
+MACRO_SHOCK_US10Y_TRIGGER_PCT = 1.2
+MACRO_SHOCK_WTI_TRIGGER_PCT = 3.0
+RISK_OFF_GOLD_TRIGGER_PCT = 0.40
+RISK_OFF_VIX_TRIGGER_PCT = 2.0
+RISK_OFF_EQUITY_TRIGGER_PCT = -0.40
+REGIME_US10Y_PENALTY_WEIGHT = 0.08
+REGIME_WTI_PENALTY_WEIGHT = 0.05
+REGIME_RISK_OFF_PENALTY_WEIGHT = 0.14
+REGIME_POSITIVE_BONUS_WEIGHT = 0.04
+REGIME_ADJUSTMENT_CAP_PCT = 0.55
 
 TV_FUTURES_SCAN_URL = "https://scanner.tradingview.com/futures/scan"
 TV_KOSPI_NIGHT_SYMBOL = "KRX:K2I1!"
@@ -148,21 +195,16 @@ ESIGNAL_USER_AGENT = (
 KOSPI_DAY_FUTURES_SESSION_OPEN = time(8, 45)
 KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 45)
 
-LGBM_BASE = dict(
-    n_estimators=300,
-    learning_rate=0.05,
-    num_leaves=31,
-    min_child_samples=15,
-    subsample=0.8,
-    colsample_bytree=0.8,
-    reg_alpha=0.1,
-    reg_lambda=0.1,
-    verbosity=-1,
-    random_state=42,
-)
-LGBM_CENTER = dict(**LGBM_BASE, objective="regression", metric="rmse")
-LGBM_LOW = dict(**LGBM_BASE, objective="quantile", alpha=0.1)
-LGBM_HIGH = dict(**LGBM_BASE, objective="quantile", alpha=0.9)
+CORE_MODEL_LOOKBACK_DAYS = 180
+RESIDUAL_MODEL_LOOKBACK_DAYS = 180
+KOSPI_MAPPING_LOOKBACK_DAYS = 240
+CORE_MODEL_ALPHA = 1.0
+RESIDUAL_MODEL_ALPHA = 2.0
+KOSPI_MAPPING_ALPHA = 0.5
+RESIDUAL_STD_FLOOR = 1e-6
+BASIS_EWMA_DECAY = 0.82
+BASIS_EWMA_CAP_PCT = 0.55
+SOX_NDX_BETA_CAP = 2.5
 
 
 def main() -> None:
@@ -177,7 +219,7 @@ def main() -> None:
     live_market, live_overrides = fetch_live_indicators()
     print("Building training dataset...")
     dataset = build_dataset(market)
-    print("Training LightGBM models...")
+    print("Training EWY synthetic KOSPI model...")
     result = train_lgbm(dataset)
     prior_prediction_payload = load_prediction_payload()
     prediction_archive = load_prediction_archive()
@@ -340,7 +382,7 @@ def write_prediction_archive_json(archive: list[dict]) -> None:
 def fetch_market_data() -> dict[str, pd.DataFrame]:
     period = f"{LOOKBACK_DAYS}d"
     frames: dict[str, pd.DataFrame] = {}
-    all_tickers = {**KOREA_TICKERS, **FEATURE_TICKERS, **INDICATOR_ONLY_TICKERS}
+    all_tickers = {**KOREA_TICKERS, **MODEL_TICKERS, **INDICATOR_ONLY_TICKERS}
 
     for name, ticker in all_tickers.items():
       print(f"  - downloading {name} ({ticker})")
@@ -900,7 +942,7 @@ def fetch_live_indicators() -> tuple[dict[str, pd.DataFrame], dict[str, dict]]:
     frames: dict[str, pd.DataFrame] = {}
     overrides: dict[str, dict] = {}
 
-    for name, ticker in {**KOREA_TICKERS, **FEATURE_TICKERS}.items():
+    for name, ticker in {**KOREA_TICKERS, **MODEL_TICKERS}.items():
         df = yf.download(
             ticker,
             period="2d",
@@ -963,9 +1005,22 @@ def _norm(ts: pd.Timestamp) -> pd.Timestamp:
 
 def build_dataset(market: dict[str, pd.DataFrame]) -> pd.DataFrame:
     kospi = market["kospi"][["Open", "Close"]].copy()
+    kospi200 = market["kospi200"][["Open", "Close"]].copy()
     kospi.index = kospi.index.map(_norm)
-    kospi["target_return"] = (kospi["Open"] / kospi["Close"].shift(1) - 1) * 100
-    kospi["prev_close"] = kospi["Close"].shift(1)
+    kospi200.index = kospi200.index.map(_norm)
+
+    dataset = kospi.rename(columns={"Open": "kospi_open", "Close": "kospi_close"}).join(
+        kospi200.rename(columns={"Open": "kospi200_open", "Close": "kospi200_close"}),
+        how="inner",
+    )
+
+    dataset["Open"] = dataset["kospi_open"]
+    dataset["Close"] = dataset["kospi_close"]
+    dataset["target_return"] = np.log(dataset["kospi_open"] / dataset["kospi_close"].shift(1)) * 100
+    dataset["target_k200_return"] = np.log(dataset["kospi200_open"] / dataset["kospi200_close"].shift(1)) * 100
+    dataset["prev_close"] = dataset["kospi_close"].shift(1)
+    dataset["prev_k200_close"] = dataset["kospi200_close"].shift(1)
+    dataset["prev_close_change"] = np.log(dataset["kospi_close"].shift(1) / dataset["kospi_close"].shift(2)) * 100
 
     features = []
     for name in ALL_FEATURES:
@@ -974,16 +1029,17 @@ def build_dataset(market: dict[str, pd.DataFrame]) -> pd.DataFrame:
             continue
 
         feat = pd.DataFrame(index=frame.index)
-        feat[f"{name}_return"] = frame["Close"].pct_change() * 100
+        if name == "us10y":
+            feat[f"{name}_return"] = frame["Close"].diff()
+        else:
+            feat[f"{name}_return"] = np.log(frame["Close"] / frame["Close"].shift(1)) * 100
         if name == "vix":
             feat["vix_level"] = frame["Close"]
 
-        # Overseas indicators are aligned to the next Korea business day open.
         feat.index = feat.index.map(_norm) + pd.offsets.BDay(1)
         feat = feat.groupby(feat.index).last()
         features.append(feat)
 
-    dataset = kospi.copy()
     for feature_frame in features:
         dataset = dataset.join(feature_frame, how="inner")
 
@@ -1000,37 +1056,34 @@ def fit_ewy_fx_correction(dataset: pd.DataFrame) -> dict[str, float | int]:
         "mae": 0.0,
     }
 
-    required_columns = {"target_return", "ewy_return", "krw_return"}
+    required_columns = {"target_k200_return", "ewy_return", "krw_return"}
     if not required_columns.issubset(dataset.columns):
         return default_payload
 
-    sample = dataset[["target_return", "ewy_return", "krw_return"]].dropna()
+    sample = dataset[["target_k200_return", "ewy_return", "krw_return"]].dropna()
     if sample.empty:
         return default_payload
 
-    sample = sample.tail(EWY_FX_CORRECTION_LOOKBACK_DAYS)
+    sample = sample.tail(CORE_MODEL_LOOKBACK_DAYS)
     sample_size = int(len(sample))
     if sample_size < EWY_FX_CORRECTION_MIN_SAMPLES:
         default_payload["sample_size"] = sample_size
         return default_payload
 
-    y = sample["target_return"].to_numpy(dtype=np.float64)
+    y = sample["target_k200_return"].to_numpy(dtype=np.float64)
     ewy = sample["ewy_return"].to_numpy(dtype=np.float64)
     krw = sample["krw_return"].to_numpy(dtype=np.float64)
-    X = np.column_stack([np.ones(sample_size, dtype=np.float64), ewy, krw])
+    X = np.column_stack([ewy, krw])
 
     decay_exponents = np.arange(sample_size - 1, -1, -1, dtype=np.float64)
     weights = np.power(EWY_FX_CORRECTION_RECENCY_DECAY, decay_exponents)
-    sqrt_weights = np.sqrt(weights)
-    weighted_X = X * sqrt_weights[:, None]
-    weighted_y = y * sqrt_weights
-
     try:
-        beta, *_ = np.linalg.lstsq(weighted_X, weighted_y, rcond=None)
-        intercept_raw = float(beta[0])
-        ewy_coef_raw = float(beta[1])
-        krw_coef_raw = float(beta[2])
-    except (np.linalg.LinAlgError, ValueError):
+        model = Ridge(alpha=CORE_MODEL_ALPHA)
+        model.fit(X, y, sample_weight=weights)
+        intercept_raw = float(model.intercept_)
+        ewy_coef_raw = float(model.coef_[0])
+        krw_coef_raw = float(model.coef_[1])
+    except (ValueError, TypeError):
         return default_payload
 
     intercept = float(
@@ -1055,87 +1108,704 @@ def fit_ewy_fx_correction(dataset: pd.DataFrame) -> dict[str, float | int]:
     }
 
 
-def train_lgbm(dataset: pd.DataFrame) -> dict:
-    feat_cols = [f"{name}_return" for name in ALL_FEATURES if f"{name}_return" in dataset.columns]
-    X_df = dataset[feat_cols]
-    y = dataset["target_return"].values
-    dates = dataset.index
-    prev_closes = dataset["prev_close"].values
-    actual_opens = dataset["Open"].values
-    vix_levels = dataset["vix_level"].values if "vix_level" in dataset.columns else np.full(len(y), 20.0)
-
-    X = X_df.values.astype(np.float64)
-
-    rows: list[dict] = []
-    tscv = TimeSeriesSplit(n_splits=5)
-    for train_idx, test_idx in tscv.split(X):
-        if len(train_idx) < 60:
+def extract_feature_returns_from_row(row: pd.Series) -> dict[str, float]:
+    returns: dict[str, float] = {}
+    for name in ALL_FEATURES:
+        column = f"{name}_return"
+        if column not in row.index or pd.isna(row[column]):
             continue
+        returns[name] = float(row[column])
+    return returns
 
-        Xtr, ytr = X[train_idx], y[train_idx]
-        model_center = lgb.LGBMRegressor(**LGBM_CENTER)
-        model_low = lgb.LGBMRegressor(**LGBM_LOW)
-        model_high = lgb.LGBMRegressor(**LGBM_HIGH)
 
-        model_center.fit(Xtr, ytr)
-        model_low.fit(Xtr, ytr)
-        model_high.fit(Xtr, ytr)
+def weighted_average_from_returns(returns: dict[str, float], weights: dict[str, float]) -> float | None:
+    weighted_sum = 0.0
+    total_weight = 0.0
+    for key, weight in weights.items():
+        value = returns.get(key)
+        if value is None:
+            continue
+        weighted_sum += float(value) * weight
+        total_weight += weight
+    if total_weight <= 0:
+        return None
+    return weighted_sum / total_weight
 
-        pred_center = model_center.predict(X[test_idx])
-        pred_low = model_low.predict(X[test_idx])
-        pred_high = model_high.predict(X[test_idx])
 
-        for i, idx in enumerate(test_idx):
-            prev_close = prev_closes[idx]
-            actual_open = actual_opens[idx]
-            point_open = prev_close * (1 + pred_center[i] / 100)
-            band_low = prev_close * (1 + pred_low[i] / 100)
-            band_high = prev_close * (1 + pred_high[i] / 100)
+def build_recency_weights(length: int, decay: float = EWY_FX_CORRECTION_RECENCY_DECAY) -> np.ndarray:
+    decay_exponents = np.arange(length - 1, -1, -1, dtype=np.float64)
+    return np.power(decay, decay_exponents)
 
-            min_half_band = prev_close * 0.003 * choose_band_multiplier(vix_levels[idx])
-            if band_high - band_low < min_half_band * 2:
-                band_low = point_open - min_half_band
-                band_high = point_open + min_half_band
 
-            rows.append(
+def weighted_mean(values: np.ndarray, weights: np.ndarray) -> float:
+    total_weight = float(np.sum(weights))
+    if total_weight <= 0:
+        return float(np.mean(values))
+    return float(np.sum(values * weights) / total_weight)
+
+
+def weighted_std(values: np.ndarray, weights: np.ndarray) -> float:
+    mean_value = weighted_mean(values, weights)
+    total_weight = float(np.sum(weights))
+    if total_weight <= 0:
+        return max(float(np.std(values)), RESIDUAL_STD_FLOOR)
+    variance = float(np.sum(weights * np.square(values - mean_value)) / total_weight)
+    return max(float(np.sqrt(max(variance, 0.0))), RESIDUAL_STD_FLOOR)
+
+
+def transform_signal_to_residual_features(
+    signal_values: dict[str, float],
+    residual_state: dict[str, object],
+) -> dict[str, float]:
+    means = residual_state.get("means", {})
+    stds = residual_state.get("stds", {})
+    if not isinstance(means, dict) or not isinstance(stds, dict):
+        return {
+            "broad_factor": 0.0,
+            "tech_factor": 0.0,
+            "semi_factor": 0.0,
+            "wti_z": 0.0,
+            "gold_z": 0.0,
+            "us10y_z": 0.0,
+        }
+
+    def zscore(name: str) -> float:
+        value = float(signal_values.get(name, 0.0))
+        mean_value = float(means.get(name, 0.0))
+        std_value = max(float(stds.get(name, 1.0)), RESIDUAL_STD_FLOOR)
+        return (value - mean_value) / std_value
+
+    z_spx = zscore("sp500")
+    z_ndx = zscore("nasdaq")
+    z_dow = zscore("dow")
+    z_sox = zscore("sox")
+    z_wti = zscore("wti")
+    z_gold = zscore("gold")
+    z_us10y = zscore("us10y")
+
+    pca_components = residual_state.get("broad_pca_components", [0.0, 0.0, 0.0])
+    if not isinstance(pca_components, list) or len(pca_components) != 3:
+        pca_components = [0.0, 0.0, 0.0]
+
+    broad_factor = float(np.dot(np.array([z_spx, z_ndx, z_dow], dtype=np.float64), np.array(pca_components)))
+    tech_factor = float(z_ndx - z_spx)
+    sox_ndx_beta = float(residual_state.get("sox_ndx_beta", 1.0))
+    semi_factor = float(z_sox - sox_ndx_beta * z_ndx)
+
+    return {
+        "broad_factor": broad_factor,
+        "tech_factor": tech_factor,
+        "semi_factor": semi_factor,
+        "wti_z": float(z_wti),
+        "gold_z": float(z_gold),
+        "us10y_z": float(z_us10y),
+    }
+
+
+def fit_residual_model_artifact(
+    dataset: pd.DataFrame,
+    core_params: dict[str, float | int],
+) -> dict[str, object]:
+    default_payload: dict[str, object] = {
+        "intercept": 0.0,
+        "coefficients": {
+            "broad_factor": 0.0,
+            "tech_factor": 0.0,
+            "semi_factor": 0.0,
+            "wti_z": 0.0,
+            "gold_z": 0.0,
+            "us10y_z": 0.0,
+        },
+        "means": {key: 0.0 for key in ("sp500", "nasdaq", "dow", "sox", "wti", "gold", "us10y")},
+        "stds": {key: 1.0 for key in ("sp500", "nasdaq", "dow", "sox", "wti", "gold", "us10y")},
+        "broad_pca_components": [0.0, 0.0, 0.0],
+        "sox_ndx_beta": 1.0,
+        "basis_ewma": 0.0,
+        "weight": 0.0,
+        "sample_size": 0,
+        "mae": 0.0,
+        "core_mae": 0.0,
+        "full_mae": 0.0,
+    }
+
+    required_columns = {
+        "target_k200_return",
+        "ewy_return",
+        "krw_return",
+        "sp500_return",
+        "nasdaq_return",
+        "dow_return",
+        "sox_return",
+        "wti_return",
+        "gold_return",
+        "us10y_return",
+    }
+    if not required_columns.issubset(dataset.columns):
+        return default_payload
+
+    sample = dataset[list(required_columns)].dropna().tail(RESIDUAL_MODEL_LOOKBACK_DAYS)
+    sample_size = int(len(sample))
+    if sample_size < EWY_FX_CORRECTION_MIN_SAMPLES:
+        default_payload["sample_size"] = sample_size
+        return default_payload
+
+    weights = build_recency_weights(sample_size)
+    means: dict[str, float] = {}
+    stds: dict[str, float] = {}
+    for key in ("sp500", "nasdaq", "dow", "sox", "wti", "gold", "us10y"):
+        values = sample[f"{key}_return"].to_numpy(dtype=np.float64)
+        means[key] = weighted_mean(values, weights)
+        stds[key] = weighted_std(values, weights)
+
+    broad_matrix = np.column_stack(
+        [
+            (sample["sp500_return"].to_numpy(dtype=np.float64) - means["sp500"]) / stds["sp500"],
+            (sample["nasdaq_return"].to_numpy(dtype=np.float64) - means["nasdaq"]) / stds["nasdaq"],
+            (sample["dow_return"].to_numpy(dtype=np.float64) - means["dow"]) / stds["dow"],
+        ]
+    )
+    pca = PCA(n_components=1)
+    pca.fit(broad_matrix)
+    pca_components = pca.components_[0].astype(np.float64)
+
+    z_nasdaq = (sample["nasdaq_return"].to_numpy(dtype=np.float64) - means["nasdaq"]) / stds["nasdaq"]
+    z_sox = (sample["sox_return"].to_numpy(dtype=np.float64) - means["sox"]) / stds["sox"]
+    denom = float(np.dot(weights, np.square(z_nasdaq)))
+    if denom <= 0:
+        sox_ndx_beta = 1.0
+    else:
+        sox_ndx_beta = float(np.dot(weights, z_sox * z_nasdaq) / denom)
+    sox_ndx_beta = float(np.clip(sox_ndx_beta, -SOX_NDX_BETA_CAP, SOX_NDX_BETA_CAP))
+
+    residual_rows: list[dict[str, float]] = []
+    for _, row in sample.iterrows():
+        signal_values = {
+            "sp500": float(row["sp500_return"]),
+            "nasdaq": float(row["nasdaq_return"]),
+            "dow": float(row["dow_return"]),
+            "sox": float(row["sox_return"]),
+            "wti": float(row["wti_return"]),
+            "gold": float(row["gold_return"]),
+            "us10y": float(row["us10y_return"]),
+        }
+        residual_rows.append(
+            transform_signal_to_residual_features(
+                signal_values,
                 {
-                    "date": dates[idx].strftime("%Y-%m-%d"),
-                    "pred_open": point_open,
-                    "actual_open": actual_open,
-                    "low": band_low,
-                    "high": band_high,
-                    "error": point_open - actual_open,
-                    "hit": band_low <= actual_open <= band_high,
-                    "direction_hit": np.sign(pred_center[i]) == np.sign(y[idx]),
-                }
+                    "means": means,
+                    "stds": stds,
+                    "broad_pca_components": pca_components.tolist(),
+                    "sox_ndx_beta": sox_ndx_beta,
+                },
             )
+        )
+
+    residual_features = pd.DataFrame(residual_rows, index=sample.index)
+    core_pred = sample.apply(lambda row: compute_ewy_fx_core_change({"ewy": float(row["ewy_return"]), "krw": float(row["krw_return"])}, core_params) or 0.0, axis=1)
+    residual_target = sample["target_k200_return"].to_numpy(dtype=np.float64) - core_pred.to_numpy(dtype=np.float64)
+    residual_model = Ridge(alpha=RESIDUAL_MODEL_ALPHA)
+    residual_model.fit(residual_features.to_numpy(dtype=np.float64), residual_target, sample_weight=weights)
+    fitted_residual = residual_model.predict(residual_features.to_numpy(dtype=np.float64))
+    core_fitted = core_pred.to_numpy(dtype=np.float64)
+    target_values = sample["target_k200_return"].to_numpy(dtype=np.float64)
+    core_errors = target_values - core_fitted
+
+    cv_core_errors: list[float] = []
+    cv_full_errors: list[float] = []
+    if sample_size >= 80:
+        cv = TimeSeriesSplit(n_splits=3)
+        feature_matrix = residual_features.to_numpy(dtype=np.float64)
+        for train_idx, test_idx in cv.split(feature_matrix):
+            if len(train_idx) < EWY_FX_CORRECTION_MIN_SAMPLES:
+                continue
+            fold_model = Ridge(alpha=RESIDUAL_MODEL_ALPHA)
+            fold_model.fit(feature_matrix[train_idx], residual_target[train_idx], sample_weight=weights[train_idx])
+            fold_residual = fold_model.predict(feature_matrix[test_idx])
+            fold_core = core_fitted[test_idx]
+            fold_target = target_values[test_idx]
+            cv_core_errors.extend((fold_target - fold_core).tolist())
+            for local_idx, core_value in enumerate(fold_core):
+                cap = compute_residual_cap(float(core_value))
+                corrected = float(core_value) + float(np.clip(fold_residual[local_idx], -cap, cap))
+                cv_full_errors.append(float(fold_target[local_idx] - corrected))
+
+    if cv_core_errors and cv_full_errors:
+        core_mae = float(np.mean(np.abs(np.array(cv_core_errors, dtype=np.float64))))
+        full_mae = float(np.mean(np.abs(np.array(cv_full_errors, dtype=np.float64))))
+    else:
+        full_fitted_raw = core_fitted + fitted_residual
+        full_errors_raw = target_values - full_fitted_raw
+        core_mae = float(np.mean(np.abs(core_errors)))
+        full_mae = float(np.mean(np.abs(full_errors_raw)))
+
+    residual_weight = 1.0 if full_mae + 1e-6 < core_mae else 0.0
+
+    weighted_total_fitted = []
+    for idx, core_value in enumerate(core_fitted):
+        weighted_raw = float(fitted_residual[idx]) * residual_weight
+        cap = compute_residual_cap(float(core_value))
+        weighted_total_fitted.append(float(core_value) + float(np.clip(weighted_raw, -cap, cap)))
+    weighted_total_fitted_array = np.array(weighted_total_fitted, dtype=np.float64)
+    errors = target_values - weighted_total_fitted_array
+
+    basis_ewma = 0.0
+    if residual_weight > 0:
+        for error in errors:
+            basis_ewma = BASIS_EWMA_DECAY * basis_ewma + (1 - BASIS_EWMA_DECAY) * float(error)
+        basis_ewma = float(np.clip(basis_ewma, -BASIS_EWMA_CAP_PCT, BASIS_EWMA_CAP_PCT))
+
+    return {
+        "intercept": float(residual_model.intercept_),
+        "coefficients": {
+            "broad_factor": float(residual_model.coef_[0]),
+            "tech_factor": float(residual_model.coef_[1]),
+            "semi_factor": float(residual_model.coef_[2]),
+            "wti_z": float(residual_model.coef_[3]),
+            "gold_z": float(residual_model.coef_[4]),
+            "us10y_z": float(residual_model.coef_[5]),
+        },
+        "means": means,
+        "stds": stds,
+        "broad_pca_components": pca_components.tolist(),
+        "sox_ndx_beta": sox_ndx_beta,
+        "basis_ewma": basis_ewma,
+        "weight": residual_weight,
+        "sample_size": sample_size,
+        "mae": float(np.mean(np.abs(errors))),
+        "core_mae": core_mae,
+        "full_mae": float(np.mean(np.abs(errors))),
+    }
+
+
+def compute_residual_adjustment(
+    signal_values: dict[str, float],
+    residual_artifact: dict[str, object] | None,
+) -> float:
+    artifact = residual_artifact or {}
+    transformed = transform_signal_to_residual_features(signal_values, artifact)
+    coefficients = artifact.get("coefficients", {})
+    if not isinstance(coefficients, dict):
+        coefficients = {}
+    adjustment = float(artifact.get("intercept", 0.0))
+    for key, value in transformed.items():
+        adjustment += float(coefficients.get(key, 0.0)) * float(value)
+    adjustment += float(artifact.get("basis_ewma", 0.0))
+    return adjustment
+
+
+def fit_kospi_mapping(
+    dataset: pd.DataFrame,
+    core_params: dict[str, float | int] | None = None,
+    residual_artifact: dict[str, object] | None = None,
+) -> dict[str, float | int]:
+    default_payload = {"intercept": 0.0, "beta": 1.0, "sample_size": 0}
+    required_columns = {"target_return", "ewy_return", "krw_return"}
+    if not required_columns.issubset(dataset.columns):
+        return default_payload
+
+    sample = dataset.dropna(subset=sorted(required_columns)).tail(KOSPI_MAPPING_LOOKBACK_DAYS).copy()
+    synthetic_k200_values: list[float] = []
+    target_values: list[float] = []
+    for _, row in sample.iterrows():
+        returns = extract_feature_returns_from_row(row)
+        components = compute_prediction_components(
+            returns,
+            core_params=core_params,
+            residual_artifact=residual_artifact,
+            mapping_artifact={"intercept": 0.0, "beta": 1.0},
+        )
+        predicted_k200_return = components.get("predicted_k200_return")
+        if predicted_k200_return is None:
+            continue
+        synthetic_k200_values.append(float(predicted_k200_return))
+        target_values.append(float(row["target_return"]))
+
+    sample_size = int(len(synthetic_k200_values))
+    if sample_size < EWY_FX_CORRECTION_MIN_SAMPLES:
+        default_payload["sample_size"] = sample_size
+        return default_payload
+
+    weights = build_recency_weights(sample_size)
+    model = Ridge(alpha=KOSPI_MAPPING_ALPHA)
+    X = np.array(synthetic_k200_values, dtype=np.float64).reshape(-1, 1)
+    y = np.array(target_values, dtype=np.float64)
+    model.fit(X, y, sample_weight=weights)
+    return {
+        "intercept": float(model.intercept_),
+        "beta": float(model.coef_[0]),
+        "sample_size": sample_size,
+    }
+
+
+def map_k200_to_kospi_return(k200_return: float, mapping_artifact: dict[str, float | int] | None) -> float:
+    artifact = mapping_artifact or {}
+    intercept = float(artifact.get("intercept", 0.0))
+    beta = float(artifact.get("beta", 1.0))
+    return intercept + beta * float(k200_return)
+
+
+def simple_return_pct_to_log_return_pct(value: float | None) -> float | None:
+    if value is None:
+        return None
+    ratio = 1 + float(value) / 100.0
+    if ratio <= 0:
+        return None
+    return float(np.log(ratio) * 100)
+
+
+def log_return_pct_to_simple_return_pct(value: float | None) -> float | None:
+    if value is None:
+        return None
+    return float((np.exp(float(value) / 100.0) - 1.0) * 100.0)
+
+
+def price_from_log_return(prev_close: float, log_return_pct: float) -> float:
+    return float(prev_close * np.exp(float(log_return_pct) / 100.0))
+
+
+def compute_residual_cap(core_k200_return: float | None) -> float:
+    magnitude = abs(float(core_k200_return or 0.0))
+    return float(
+        np.clip(
+            max(RESIDUAL_MODEL_CAP_MIN_PCT, magnitude * RESIDUAL_MODEL_CAP_SHARE),
+            RESIDUAL_MODEL_CAP_MIN_PCT,
+            RESIDUAL_MODEL_CAP_MAX_PCT,
+        )
+    )
+
+
+def compute_prediction_components(
+    signal_returns: dict[str, float],
+    core_params: dict[str, float | int] | None,
+    residual_artifact: dict[str, object] | None,
+    mapping_artifact: dict[str, float | int] | None,
+) -> dict[str, float | bool | dict | None]:
+    core_k200_return = compute_ewy_fx_core_change(signal_returns, core_params)
+    if core_k200_return is None:
+        return {
+            "ready": False,
+            "core_k200_return": None,
+            "residual_raw_k200_return": None,
+            "residual_adj_k200_return": None,
+            "residual_cap_k200_return": None,
+            "predicted_k200_return": None,
+            "core_kospi_return": None,
+            "predicted_kospi_return_pre_guard": None,
+            "predicted_kospi_return": None,
+            "predicted_kospi_simple_pct_pre_guard": None,
+            "predicted_kospi_simple_pct": None,
+            "ewy_simple_pct": None,
+            "residual_features": {},
+            "residual_weight": None,
+        }
+
+    residual_signal_values = {
+        key: float(signal_returns[key])
+        for key in ("sp500", "nasdaq", "dow", "sox", "wti", "gold", "us10y")
+        if key in signal_returns
+    }
+    residual_features = transform_signal_to_residual_features(residual_signal_values, residual_artifact or {})
+    residual_raw_k200_return = float(compute_residual_adjustment(residual_signal_values, residual_artifact))
+    residual_weight = float((residual_artifact or {}).get("weight", 1.0))
+    residual_cap = compute_residual_cap(core_k200_return)
+    residual_adj_k200_return = float(np.clip(residual_raw_k200_return * residual_weight, -residual_cap, residual_cap))
+    predicted_k200_return = float(core_k200_return + residual_adj_k200_return)
+
+    core_kospi_return = float(map_k200_to_kospi_return(core_k200_return, mapping_artifact))
+    predicted_kospi_return_pre_guard = float(map_k200_to_kospi_return(predicted_k200_return, mapping_artifact))
+    predicted_kospi_simple_pct_pre_guard = log_return_pct_to_simple_return_pct(predicted_kospi_return_pre_guard)
+    ewy_simple_pct = log_return_pct_to_simple_return_pct(signal_returns.get("ewy"))
+
+    return {
+        "ready": True,
+        "core_k200_return": float(core_k200_return),
+        "residual_raw_k200_return": residual_raw_k200_return,
+        "residual_adj_k200_return": residual_adj_k200_return,
+        "residual_cap_k200_return": residual_cap,
+        "predicted_k200_return": predicted_k200_return,
+        "core_kospi_return": core_kospi_return,
+        "predicted_kospi_return_pre_guard": predicted_kospi_return_pre_guard,
+        "predicted_kospi_return": predicted_kospi_return_pre_guard,
+        "predicted_kospi_simple_pct_pre_guard": predicted_kospi_simple_pct_pre_guard,
+        "predicted_kospi_simple_pct": predicted_kospi_simple_pct_pre_guard,
+        "ewy_simple_pct": ewy_simple_pct,
+        "residual_features": residual_features,
+        "residual_weight": residual_weight,
+    }
+
+
+def compute_us_equity_factor(returns: dict[str, float]) -> float | None:
+    return weighted_average_from_returns(returns, US_EQUITY_FACTOR_WEIGHTS)
+
+
+def compute_bridge_proxy_change(returns: dict[str, float]) -> float | None:
+    futures_change = weighted_average_from_returns(returns, BRIDGE_SIGNAL_WEIGHTS)
+    krw_change = returns.get("krw")
+
+    if futures_change is None and krw_change is None:
+        return None
+    if futures_change is None:
+        return float(krw_change)
+    if krw_change is None:
+        return futures_change
+
+    return futures_change * (1 - BRIDGE_KRW_BLEND) + float(krw_change) * BRIDGE_KRW_BLEND
+
+
+def is_macro_shock_regime(returns: dict[str, float]) -> bool:
+    us10y_change = returns.get("us10y")
+    wti_change = returns.get("wti")
+    if us10y_change is not None and abs(float(us10y_change)) >= MACRO_SHOCK_US10Y_TRIGGER_PCT:
+        return True
+    if wti_change is not None and abs(float(wti_change)) >= MACRO_SHOCK_WTI_TRIGGER_PCT:
+        return True
+    return False
+
+
+def is_risk_off_regime(returns: dict[str, float]) -> bool:
+    gold_change = returns.get("gold")
+    vix_change = returns.get("vix")
+    us_equity_factor = compute_us_equity_factor(returns)
+    if gold_change is None or vix_change is None or us_equity_factor is None:
+        return False
+    return (
+        float(gold_change) >= RISK_OFF_GOLD_TRIGGER_PCT
+        and float(vix_change) >= RISK_OFF_VIX_TRIGGER_PCT
+        and float(us_equity_factor) <= RISK_OFF_EQUITY_TRIGGER_PCT
+    )
+
+
+def regime_label_from_returns(returns: dict[str, float]) -> str:
+    if is_risk_off_regime(returns):
+        return "risk_off"
+    if is_macro_shock_regime(returns):
+        return "macro_shock"
+    return "normal"
+
+
+def compute_regime_adjustment(anchor_change: float | None, returns: dict[str, float]) -> float:
+    adjustment = 0.0
+    us10y_change = returns.get("us10y")
+    wti_change = returns.get("wti")
+    gold_change = returns.get("gold")
+    vix_change = returns.get("vix")
+    us_equity_factor = compute_us_equity_factor(returns)
+
+    if us10y_change is not None and float(us10y_change) > MACRO_SHOCK_US10Y_TRIGGER_PCT:
+        adjustment -= min(0.28, float(us10y_change) * REGIME_US10Y_PENALTY_WEIGHT)
+
+    if wti_change is not None and float(wti_change) > MACRO_SHOCK_WTI_TRIGGER_PCT:
+        adjustment -= min(0.25, float(wti_change) * REGIME_WTI_PENALTY_WEIGHT)
+
+    if is_risk_off_regime(returns):
+        gold_strength = max(float(gold_change or 0.0), 0.0)
+        vix_strength = max(float(vix_change or 0.0), 0.0)
+        equity_stress = abs(float(us_equity_factor or 0.0))
+        adjustment -= min(
+            0.40,
+            gold_strength * REGIME_RISK_OFF_PENALTY_WEIGHT + vix_strength * 0.03 + equity_stress * 0.08,
+        )
+    elif us_equity_factor is not None and us_equity_factor > 0:
+        if us10y_change is not None and float(us10y_change) < -MACRO_SHOCK_US10Y_TRIGGER_PCT:
+            adjustment += min(0.18, abs(float(us10y_change)) * REGIME_POSITIVE_BONUS_WEIGHT)
+        if wti_change is not None and float(wti_change) < -MACRO_SHOCK_WTI_TRIGGER_PCT:
+            adjustment += min(0.12, abs(float(wti_change)) * (REGIME_POSITIVE_BONUS_WEIGHT * 0.6))
+
+    if anchor_change is not None and float(anchor_change) < 0 and adjustment > 0:
+        adjustment *= 0.5
+
+    return float(np.clip(adjustment, -REGIME_ADJUSTMENT_CAP_PCT, REGIME_ADJUSTMENT_CAP_PCT))
+
+
+def build_modeling_dataset(
+    dataset: pd.DataFrame,
+    correction_params: dict[str, float | int],
+) -> pd.DataFrame:
+    model_df = dataset.copy()
+    core_values: list[float | None] = []
+    auxiliary_values: list[float | None] = []
+    bridge_values: list[float | None] = []
+    equity_factor_values: list[float | None] = []
+    macro_flags: list[float] = []
+    risk_off_flags: list[float] = []
+    regime_adjustments: list[float] = []
+    regime_labels: list[str] = []
+
+    for _, row in model_df.iterrows():
+        returns = extract_feature_returns_from_row(row)
+        core_anchor = compute_ewy_fx_core_change(returns, correction_params)
+        auxiliary_anchor = compute_auxiliary_anchor_change(returns, correction_params)
+        bridge_anchor = compute_bridge_proxy_change(returns)
+        us_equity_factor = compute_us_equity_factor(returns)
+        regime_adjustment = compute_regime_adjustment(core_anchor, returns)
+
+        core_values.append(core_anchor)
+        auxiliary_values.append(auxiliary_anchor)
+        bridge_values.append(bridge_anchor)
+        equity_factor_values.append(us_equity_factor)
+        macro_flags.append(1.0 if is_macro_shock_regime(returns) else 0.0)
+        risk_off_flags.append(1.0 if is_risk_off_regime(returns) else 0.0)
+        regime_adjustments.append(regime_adjustment)
+        regime_labels.append(regime_label_from_returns(returns))
+
+    model_df["core_anchor_return"] = core_values
+    model_df["auxiliary_anchor_return"] = auxiliary_values
+    model_df["bridge_anchor_return"] = bridge_values
+    model_df["us_equity_factor"] = equity_factor_values
+    model_df["macro_shock_flag"] = macro_flags
+    model_df["risk_off_flag"] = risk_off_flags
+    model_df["regime_adjustment_hint"] = regime_adjustments
+    model_df["regime_label"] = regime_labels
+    model_df["aux_core_gap"] = model_df["auxiliary_anchor_return"] - model_df["core_anchor_return"]
+    model_df["bridge_core_gap"] = model_df["bridge_anchor_return"] - model_df["core_anchor_return"]
+    model_df["residual_target"] = model_df["target_return"] - model_df["core_anchor_return"]
+
+    if "prev_close_change" not in model_df.columns:
+        model_df["prev_close_change"] = 0.0
+
+    return model_df.dropna(subset=["core_anchor_return", "residual_target"]).copy()
+
+
+def train_lgbm(dataset: pd.DataFrame) -> dict:
+    required_columns = {"target_return", "target_k200_return", "prev_close", "ewy_return", "krw_return"}
+    model_dataset = dataset.dropna(subset=sorted(required_columns)).copy()
+    feat_cols = RESIDUAL_FEATURE_COLUMNS.copy()
+
+    rows: list[dict[str, float | str | bool | None]] = []
+    if len(model_dataset) >= max(EWY_FX_CORRECTION_MIN_SAMPLES + 10, 80):
+        tscv = TimeSeriesSplit(n_splits=5)
+        for train_idx, test_idx in tscv.split(model_dataset):
+            train_df = model_dataset.iloc[train_idx].copy()
+            if len(train_df) < EWY_FX_CORRECTION_MIN_SAMPLES:
+                continue
+
+            core_params = fit_ewy_fx_correction(train_df)
+            residual_artifact = fit_residual_model_artifact(train_df, core_params)
+            mapping_artifact = fit_kospi_mapping(train_df, core_params, residual_artifact)
+
+            for idx in test_idx:
+                row = model_dataset.iloc[idx]
+                prev_close = row.get("prev_close")
+                actual_open = row.get("Open")
+                if prev_close is None or actual_open is None or pd.isna(prev_close) or pd.isna(actual_open):
+                    continue
+
+                returns = extract_feature_returns_from_row(row)
+                components = compute_prediction_components(
+                    returns,
+                    core_params=core_params,
+                    residual_artifact=residual_artifact,
+                    mapping_artifact=mapping_artifact,
+                )
+                if not components.get("ready"):
+                    continue
+
+                prev_close_value = float(prev_close)
+                actual_open_value = float(actual_open)
+                predicted_kospi_return = float(components["predicted_kospi_return"])
+                point_open = price_from_log_return(prev_close_value, predicted_kospi_return)
+
+                vix_level = row.get("vix_level", 20.0)
+                vix_float = 20.0 if pd.isna(vix_level) else float(vix_level)
+
+                rows.append(
+                    {
+                        "date": pd.Timestamp(model_dataset.index[idx]).strftime("%Y-%m-%d"),
+                        "pred_open": point_open,
+                        "night_simple_open": None,
+                        "actual_open": actual_open_value,
+                        "low": np.nan,
+                        "high": np.nan,
+                        "error": point_open - actual_open_value,
+                        "hit": False,
+                        "direction_hit": np.sign(point_open - prev_close_value) == np.sign(actual_open_value - prev_close_value),
+                        "prev_close": prev_close_value,
+                        "vix_level": vix_float,
+                    }
+                )
 
     preds = pd.DataFrame(rows)
-    rmse = float(np.sqrt(np.mean(np.square(preds["error"]))))
-    mae = float(np.mean(np.abs(preds["error"])))
+    if preds.empty:
+        preds = pd.DataFrame(
+            columns=[
+                "date",
+                "pred_open",
+                "night_simple_open",
+                "actual_open",
+                "low",
+                "high",
+                "error",
+                "hit",
+                "direction_hit",
+                "prev_close",
+                "vix_level",
+            ]
+        )
+        rmse = 0.0
+        mae = 0.0
+        bhr = 0.0
+        dhr = 0.0
+    else:
+        rmse = float(np.sqrt(np.mean(np.square(preds["error"].astype(float)))))
+        mae = float(np.mean(np.abs(preds["error"].astype(float))))
 
-    final_center = lgb.LGBMRegressor(**LGBM_CENTER)
-    final_center.fit(X, y)
-    feature_importance = {key: int(value) for key, value in zip(feat_cols, final_center.feature_importances_)}
-    target_bounds = {
-        "p01": float(np.percentile(y, 1)),
-        "p99": float(np.percentile(y, 99)),
-        "min": float(np.min(y)),
-        "max": float(np.max(y)),
+        low_values: list[float] = []
+        high_values: list[float] = []
+        hit_values: list[bool] = []
+        for _, pred_row in preds.iterrows():
+            prev_close_value = float(pred_row["prev_close"])
+            vix_float = 20.0 if pd.isna(pred_row.get("vix_level")) else float(pred_row["vix_level"])
+            half_band = max(
+                mae * ESTIMATED_BAND_MAE_FACTOR * choose_band_multiplier(vix_float),
+                prev_close_value * ESTIMATED_BAND_MIN_PCT * choose_band_multiplier(vix_float),
+            )
+            low = float(pred_row["pred_open"]) - half_band
+            high = float(pred_row["pred_open"]) + half_band
+            low_values.append(low)
+            high_values.append(high)
+            hit_values.append(low <= float(pred_row["actual_open"]) <= high)
+
+        preds["low"] = low_values
+        preds["high"] = high_values
+        preds["hit"] = hit_values
+        bhr = float(np.mean(preds["hit"].astype(float)) * 100)
+        dhr = float(np.mean(preds["direction_hit"].astype(float)) * 100)
+
+    final_core_params = fit_ewy_fx_correction(model_dataset)
+    final_residual_artifact = fit_residual_model_artifact(model_dataset, final_core_params)
+    final_mapping_artifact = fit_kospi_mapping(model_dataset, final_core_params, final_residual_artifact)
+
+    residual_coefficients = final_residual_artifact.get("coefficients", {})
+    if not isinstance(residual_coefficients, dict):
+        residual_coefficients = {}
+
+    feature_importance = {
+        "ewy_core": round(abs(float(final_core_params.get("ewy_coef", 0.0))), 6),
+        "krw_core": round(abs(float(final_core_params.get("krw_coef", 0.0))), 6),
+        "broad_factor": round(abs(float(residual_coefficients.get("broad_factor", 0.0))), 6),
+        "tech_factor": round(abs(float(residual_coefficients.get("tech_factor", 0.0))), 6),
+        "semi_factor": round(abs(float(residual_coefficients.get("semi_factor", 0.0))), 6),
+        "wti_z": round(abs(float(residual_coefficients.get("wti_z", 0.0))), 6),
+        "gold_z": round(abs(float(residual_coefficients.get("gold_z", 0.0))), 6),
+        "us10y_z": round(abs(float(residual_coefficients.get("us10y_z", 0.0))), 6),
+        "basis_ewma": round(abs(float(final_residual_artifact.get("basis_ewma", 0.0))), 6),
+        "k200_to_kospi_beta": round(abs(float(final_mapping_artifact.get("beta", 0.0))), 6),
     }
-    ewy_fx_correction = fit_ewy_fx_correction(dataset)
 
     return {
         "rmse": rmse,
         "mae": mae,
-        "bhr": float(preds["hit"].mean() * 100),
-        "dhr": float(preds["direction_hit"].mean() * 100),
+        "bhr": bhr,
+        "dhr": dhr,
         "fi": feature_importance,
         "preds": preds,
         "feat_cols": feat_cols,
-        "model_c": final_center,
-        "target_bounds": target_bounds,
-        "ewy_fx_correction": ewy_fx_correction,
+        "model_c": None,
+        "target_bounds": {},
+        "ewy_fx_correction": final_core_params,
+        "residual_artifact": final_residual_artifact,
+        "kospi_mapping": final_mapping_artifact,
+        "model_dataset": model_dataset,
     }
 
 
@@ -1293,6 +1963,54 @@ def compute_live_return_pct(
     return (current_value / previous_close - 1) * 100
 
 
+def compute_live_model_feature_change(
+    name: str,
+    live_market: dict[str, pd.DataFrame],
+    history_market: dict[str, pd.DataFrame],
+    baseline_session_date: str | None = None,
+    live_overrides: dict[str, dict] | None = None,
+) -> float | None:
+    live_frame = live_market.get(name, pd.DataFrame())
+    live_series = live_frame["Close"].dropna() if "Close" in live_frame else pd.Series(dtype=float)
+    if live_series.empty:
+        return None
+
+    if live_overrides and name in live_overrides:
+        override = live_overrides[name]
+        if override.get("is_live_night") and override.get("previous_close"):
+            current_value = float(override["price"])
+            baseline_value = float(override["previous_close"])
+            if baseline_value == 0:
+                return None
+            if name == "us10y":
+                return current_value - baseline_value
+            return float(np.log(current_value / baseline_value) * 100)
+
+    current_value = float(live_series.iloc[-1])
+    baseline_value, _ = resolve_value_at_krx_sync_baseline(live_series, baseline_session_date)
+
+    if baseline_value is None:
+        if "PrevClose" in live_frame and not live_frame["PrevClose"].dropna().empty:
+            baseline_value = float(live_frame["PrevClose"].dropna().iloc[-1])
+        else:
+            latest_ts = as_utc_datetime(pd.Timestamp(live_series.index[-1]))
+            history_frame = history_market.get(name, pd.DataFrame())
+            history_series = history_frame["Close"].dropna() if "Close" in history_frame else pd.Series(dtype=float)
+            baseline_value = resolve_previous_close(history_series, latest_ts)
+            if baseline_value is None and len(live_series) >= 2:
+                baseline_value = float(live_series.iloc[0])
+
+    if baseline_value is None:
+        return None
+
+    baseline_float = float(baseline_value)
+    if name == "us10y":
+        return current_value - baseline_float
+    if baseline_float == 0:
+        return None
+    return float(np.log(current_value / baseline_float) * 100)
+
+
 def compute_ewy_fx_core_change(
     returns: dict[str, float],
     correction_params: dict[str, float | int] | None = None,
@@ -1359,6 +2077,89 @@ def compute_auxiliary_anchor_change(
         return core_change
 
     return core_change * (1 - AUXILIARY_SIGNAL_BLEND) + aux_change * AUXILIARY_SIGNAL_BLEND
+
+
+def resolve_anchor_for_phase(
+    core_anchor_change: float | None,
+    auxiliary_anchor_change: float | None,
+    bridge_anchor_change: float | None,
+    prediction_phase: str,
+) -> tuple[float | None, str]:
+    normalized_phase = prediction_phase if prediction_phase in {"bridge", "session"} else "session"
+
+    if normalized_phase == "bridge":
+        if bridge_anchor_change is not None:
+            if core_anchor_change is None:
+                return float(bridge_anchor_change), "bridge"
+            blended = float(bridge_anchor_change) * 0.8 + float(core_anchor_change) * 0.2
+            return blended, "bridge"
+        if auxiliary_anchor_change is not None:
+            return float(auxiliary_anchor_change), "auxiliary-fallback"
+        if core_anchor_change is not None:
+            return float(core_anchor_change), "core-fallback"
+        return None, "missing"
+
+    if core_anchor_change is not None:
+        return float(core_anchor_change), "core"
+    if bridge_anchor_change is not None:
+        return float(bridge_anchor_change), "bridge-fallback"
+    if auxiliary_anchor_change is not None:
+        return float(auxiliary_anchor_change), "auxiliary-fallback"
+    return None, "missing"
+
+
+def combine_phase_prediction(
+    core_anchor_change: float | None,
+    raw_residual_change: float,
+    auxiliary_anchor_change: float | None,
+    bridge_anchor_change: float | None,
+    returns: dict[str, float],
+    prediction_phase: str,
+) -> tuple[float, dict[str, float | str | None]]:
+    anchor_change, anchor_source = resolve_anchor_for_phase(
+        core_anchor_change=core_anchor_change,
+        auxiliary_anchor_change=auxiliary_anchor_change,
+        bridge_anchor_change=bridge_anchor_change,
+        prediction_phase=prediction_phase,
+    )
+    base_anchor = float(anchor_change) if anchor_change is not None else 0.0
+
+    residual_cap = float(
+        np.clip(
+            max(RESIDUAL_MODEL_CAP_MIN_PCT, abs(base_anchor) * RESIDUAL_MODEL_CAP_SHARE),
+            RESIDUAL_MODEL_CAP_MIN_PCT,
+            RESIDUAL_MODEL_CAP_MAX_PCT,
+        )
+    )
+    residual_adjust = float(np.clip(raw_residual_change, -residual_cap, residual_cap))
+
+    anchor_bias = 0.0
+    if auxiliary_anchor_change is not None and anchor_change is not None:
+        aux_gap = float(auxiliary_anchor_change - anchor_change)
+        anchor_bias = float(np.clip(aux_gap * ANCHOR_BIAS_BLEND, -ANCHOR_BIAS_CAP_PCT, ANCHOR_BIAS_CAP_PCT))
+
+    regime_adjustment = compute_regime_adjustment(anchor_change, returns)
+    provisional = base_anchor + residual_adjust + anchor_bias + regime_adjustment
+
+    guard_band = (
+        max(BRIDGE_GUARD_BAND_MIN_PCT, abs(base_anchor) * BRIDGE_GUARD_BAND_SHARE)
+        if prediction_phase == "bridge"
+        else max(SESSION_GUARD_BAND_MIN_PCT, abs(base_anchor) * SESSION_GUARD_BAND_SHARE)
+    )
+    guarded = float(np.clip(provisional, base_anchor - guard_band, base_anchor + guard_band))
+
+    return guarded, {
+        "anchor": base_anchor,
+        "anchor_source": anchor_source,
+        "aux_anchor": auxiliary_anchor_change,
+        "bridge_anchor": bridge_anchor_change,
+        "raw_residual": raw_residual_change,
+        "residual_adjust": residual_adjust,
+        "anchor_bias": anchor_bias,
+        "regime_adjustment": regime_adjustment,
+        "guard_band": guard_band,
+        "phase": prediction_phase,
+    }
 
 
 def compute_night_centered_change(
@@ -1500,13 +2301,66 @@ def apply_ewy_alignment_guard(predicted_change: float, ewy_change: float | None)
     return predicted_change
 
 
+def is_us_extended_session_window(now_utc: datetime) -> bool:
+    now_et = now_utc.astimezone(US_ET)
+    if now_et.weekday() >= 5:
+        return False
+    return US_PREMARKET_OPEN_ET <= now_et.time() < US_SESSION_END_ET
+
+
+def resolve_live_prediction_phase(
+    now_utc: datetime,
+    live_market: dict[str, pd.DataFrame],
+) -> str:
+    if not is_us_extended_session_window(now_utc):
+        return "bridge"
+
+    ewy_frame = live_market.get("ewy", pd.DataFrame())
+    ewy_series = ewy_frame["Close"].dropna() if "Close" in ewy_frame else pd.Series(dtype=float)
+    if ewy_series.empty:
+        return "bridge"
+
+    latest_ewy_ts = as_utc_datetime(pd.Timestamp(ewy_series.index[-1]))
+    age_minutes = (now_utc - latest_ewy_ts).total_seconds() / 60
+    if age_minutes > EWY_LIVE_STALE_MINUTES:
+        return "bridge"
+    return "session"
+
+
+def build_model_feature_row(
+    returns: dict[str, float],
+    core_anchor_change: float | None,
+    auxiliary_anchor_change: float | None,
+    bridge_anchor_change: float | None,
+) -> dict[str, float]:
+    feature_row = {f"{name}_return": float(value) for name, value in returns.items()}
+    feature_row["us_equity_factor"] = compute_us_equity_factor(returns) or 0.0
+    feature_row["bridge_anchor_return"] = bridge_anchor_change or 0.0
+    feature_row["aux_core_gap"] = (
+        float(auxiliary_anchor_change - core_anchor_change)
+        if auxiliary_anchor_change is not None and core_anchor_change is not None
+        else 0.0
+    )
+    feature_row["bridge_core_gap"] = (
+        float(bridge_anchor_change - core_anchor_change)
+        if bridge_anchor_change is not None and core_anchor_change is not None
+        else 0.0
+    )
+    feature_row["macro_shock_flag"] = 1.0 if is_macro_shock_regime(returns) else 0.0
+    feature_row["risk_off_flag"] = 1.0 if is_risk_off_regime(returns) else 0.0
+    feature_row["regime_adjustment_hint"] = compute_regime_adjustment(core_anchor_change, returns)
+    return feature_row
+
+
 def build_latest(
     live_market: dict[str, pd.DataFrame],
     result: dict,
     history_market: dict[str, pd.DataFrame],
     live_overrides: dict[str, dict],
 ) -> dict:
-    returns: dict[str, float] = {}
+    now_utc = datetime.now(timezone.utc)
+    display_returns: dict[str, float] = {}
+    model_returns: dict[str, float] = {}
     vix = 20.0
 
     prev_kospi_series = history_market["kospi"]["Close"] if "kospi" in history_market else pd.Series(dtype=float)
@@ -1518,20 +2372,30 @@ def build_latest(
     prev_close_change = ((prev_close / prior_close - 1) * 100) if prior_close else 0.0
 
     for name in ALL_FEATURES:
-        change_pct = compute_live_return_pct(
+        display_change_pct = compute_live_return_pct(
             name,
             live_market,
             history_market,
             baseline_session_date=latest_record_date,
             live_overrides=live_overrides,
         )
-        if change_pct is None:
-            continue
-        returns[name] = change_pct
+        if display_change_pct is not None:
+            display_returns[name] = display_change_pct
         if name == "vix":
             live_series = live_market[name]["Close"].dropna()
             if not live_series.empty:
                 vix = float(live_series.iloc[-1])
+
+    for name in MODEL_SIGNAL_KEYS:
+        model_change = compute_live_model_feature_change(
+            name,
+            live_market,
+            history_market,
+            baseline_session_date=latest_record_date,
+            live_overrides=live_overrides,
+        )
+        if model_change is not None:
+            model_returns[name] = model_change
 
     night_futures_change = compute_live_return_pct(
         "k200f",
@@ -1550,35 +2414,21 @@ def build_latest(
         futures_day_close = None
     futures_day_close_date = k200f_override.get("day_close_date")
 
-    feature_vector = np.array(
-        [[returns.get(column.replace("_return", ""), 0.0) for column in result["feat_cols"]]],
-        dtype=np.float64,
-    )
-    raw_ml_change = float(result["model_c"].predict(feature_vector)[0])
     ewy_fx_correction = result.get("ewy_fx_correction", {})
-    ewy_fx_core_change = compute_ewy_fx_core_change(returns, ewy_fx_correction)
-    auxiliary_anchor_change = compute_auxiliary_anchor_change(returns, ewy_fx_correction)
-    night_centered_change, blend_debug = compute_night_centered_change(
-        raw_ml_change=raw_ml_change,
-        night_futures_change=None,
-        auxiliary_anchor_change=auxiliary_anchor_change,
+    residual_artifact = result.get("residual_artifact", {})
+    kospi_mapping = result.get("kospi_mapping", {})
+    components = compute_prediction_components(
+        model_returns,
+        core_params=ewy_fx_correction,
+        residual_artifact=residual_artifact,
+        mapping_artifact=kospi_mapping,
     )
 
-    damped_change = apply_mean_reversion_damping(night_centered_change, prev_close_change)
-    guarded_change = apply_anchor_guardrail(
-        predicted_change=damped_change,
-        anchor_change=blend_debug.get("anchor"),
-        guard_band=blend_debug.get("guard_band"),
-    )
-    bounds = result.get("target_bounds", {})
-    lower, upper = compute_adaptive_bounds(bounds, prev_close_change, blend_debug.get("anchor"))
-    if lower is not None and upper is not None:
-        predicted_change = float(np.clip(guarded_change, lower, upper))
-    else:
-        predicted_change = guarded_change
-    predicted_change = apply_ewy_alignment_guard(predicted_change, ewy_fx_core_change)
-
-    point_prediction = prev_close * (1 + predicted_change / 100)
+    predicted_kospi_return = components.get("predicted_kospi_return")
+    if predicted_kospi_return is None:
+        predicted_kospi_return = 0.0
+    point_prediction = price_from_log_return(prev_close, float(predicted_kospi_return))
+    predicted_change = log_return_pct_to_simple_return_pct(float(predicted_kospi_return)) or 0.0
     night_futures_simple_point = (
         prev_close * (1 + float(night_futures_change) / 100) if night_futures_change is not None else None
     )
@@ -1591,22 +2441,33 @@ def build_latest(
         "pred_c": predicted_change,
         "night_futures_simple_point": night_futures_simple_point,
         "night_futures_change_c": night_futures_change,
-        "raw_pred_c": raw_ml_change,
-        "core_anchor_c": ewy_fx_core_change,
+        "raw_pred_c": components.get("predicted_kospi_simple_pct_pre_guard"),
+        "raw_residual_c": log_return_pct_to_simple_return_pct(
+            float(components.get("residual_adj_k200_return") or 0.0) * float(kospi_mapping.get("beta", 1.0))
+        ),
+        "core_anchor_c": log_return_pct_to_simple_return_pct(components.get("core_kospi_return")),
         "night_anchor_c": None,
-        "aux_anchor_c": blend_debug.get("aux_anchor"),
-        "ml_residual_adj_c": blend_debug.get("ml_adjust"),
-        "aux_residual_adj_c": blend_debug.get("aux_adjust"),
-        "night_guard_band_c": blend_debug.get("guard_band"),
-        "pre_damping_pred_c": night_centered_change,
+        "aux_anchor_c": None,
+        "bridge_anchor_c": None,
+        "ml_residual_adj_c": log_return_pct_to_simple_return_pct(components.get("residual_adj_k200_return")),
+        "aux_residual_adj_c": None,
+        "regime_adjustment_c": None,
+        "night_guard_band_c": log_return_pct_to_simple_return_pct(components.get("residual_cap_k200_return")),
+        "pre_damping_pred_c": components.get("predicted_kospi_simple_pct_pre_guard"),
         "prev_close_change_c": prev_close_change,
+        "prediction_phase": "session",
+        "anchor_source": "ewy_synthetic_k200",
         "vix": vix,
-        "returns": returns,
+        "returns": display_returns,
+        "model_returns": model_returns,
         "prev_close": prev_close,
         "latest_record_date": latest_record_date,
         "futures_day_close": futures_day_close,
         "futures_day_close_date": futures_day_close_date,
         "ewy_fx_correction": ewy_fx_correction,
+        "residual_artifact": residual_artifact,
+        "kospi_mapping": kospi_mapping,
+        "prediction_components": components,
     }
 
 
@@ -1683,10 +2544,10 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
         "latestRecordDate": latest_record_date,
         "mae30d": round(result["mae"], 2),
         "model": {
-            "engine": "LightGBM",
+            "engine": "EWY Synthetic K200 Ridge",
             "vix": round(latest["vix"], 2),
             "lgbmRmse": round(result["rmse"], 2),
-            "calculationMode": "EWYCore+AuxSignals+NoNightFutures(KRXCloseSync)",
+            "calculationMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(NoNightFutures)",
             "nightFuturesExcluded": True,
             "nightFuturesAnchorPct": (
                 round(float(latest["night_anchor_c"]), 2) if latest.get("night_anchor_c") is not None else None
@@ -1694,8 +2555,14 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "auxiliaryAnchorPct": (
                 round(float(latest["aux_anchor_c"]), 2) if latest.get("aux_anchor_c") is not None else None
             ),
+            "bridgeAnchorPct": (
+                round(float(latest["bridge_anchor_c"]), 2) if latest.get("bridge_anchor_c") is not None else None
+            ),
             "coreAnchorPct": round(float(latest["core_anchor_c"]), 2) if latest["core_anchor_c"] is not None else None,
-            "rawModelPct": round(float(latest["raw_pred_c"]), 2),
+            "rawModelPct": round(float(latest["raw_pred_c"]), 2) if latest.get("raw_pred_c") is not None else None,
+            "rawResidualPct": (
+                round(float(latest["raw_residual_c"]), 2) if latest.get("raw_residual_c") is not None else None
+            ),
             "ewyFxIntercept": round(float(latest.get("ewy_fx_correction", {}).get("intercept", 0.0)), 4),
             "ewyFxEwyCoef": round(float(latest.get("ewy_fx_correction", {}).get("ewy_coef", 1.0)), 4),
             "ewyFxKrwCoef": round(float(latest.get("ewy_fx_correction", {}).get("krw_coef", 1.0)), 4),
@@ -1708,8 +2575,43 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "auxResidualAdjPct": (
                 round(float(latest["aux_residual_adj_c"]), 2) if latest.get("aux_residual_adj_c") is not None else None
             ),
+            "regimeAdjustmentPct": None,
+            "regimeState": None,
             "prevCloseChangePct": round(float(latest["prev_close_change_c"]), 2),
             "krxBaselineDate": latest_record_date,
+            "predictionPhase": latest.get("prediction_phase"),
+            "anchorSource": latest.get("anchor_source"),
+            "residualModel": {
+                "intercept": round(float(latest.get("residual_artifact", {}).get("intercept", 0.0)), 6),
+                "coefficients": {
+                    key: round(float(value), 6)
+                    for key, value in (latest.get("residual_artifact", {}).get("coefficients", {}) or {}).items()
+                },
+                "means": {
+                    key: round(float(value), 6)
+                    for key, value in (latest.get("residual_artifact", {}).get("means", {}) or {}).items()
+                },
+                "stds": {
+                    key: round(float(value), 6)
+                    for key, value in (latest.get("residual_artifact", {}).get("stds", {}) or {}).items()
+                },
+                "broadPcaComponents": [
+                    round(float(value), 6)
+                    for value in (latest.get("residual_artifact", {}).get("broad_pca_components", []) or [])
+                ],
+                "soxNdxBeta": round(float(latest.get("residual_artifact", {}).get("sox_ndx_beta", 1.0)), 6),
+                "basisEwma": round(float(latest.get("residual_artifact", {}).get("basis_ewma", 0.0)), 6),
+                "weight": round(float(latest.get("residual_artifact", {}).get("weight", 0.0)), 6),
+                "sampleSize": int(latest.get("residual_artifact", {}).get("sample_size", 0) or 0),
+                "mae": round(float(latest.get("residual_artifact", {}).get("mae", 0.0)), 6),
+                "coreMae": round(float(latest.get("residual_artifact", {}).get("core_mae", 0.0)), 6),
+                "fullMae": round(float(latest.get("residual_artifact", {}).get("full_mae", 0.0)), 6),
+            },
+            "k200Mapping": {
+                "intercept": round(float(latest.get("kospi_mapping", {}).get("intercept", 0.0)), 6),
+                "beta": round(float(latest.get("kospi_mapping", {}).get("beta", 1.0)), 6),
+                "sampleSize": int(latest.get("kospi_mapping", {}).get("sample_size", 0) or 0),
+            },
         },
         "yesterday": {
             "predictionLow": round(float(yesterday_row["low"]), 2) if yesterday_row is not None else 0,
@@ -1842,6 +2744,9 @@ def write_diagnostics_json(result: dict) -> None:
         "mae": round(result["mae"], 4),
         "featureImportance": result["fi"],
         "ewyFxCorrection": result.get("ewy_fx_correction", {}),
+        "residualModel": result.get("residual_artifact", {}),
+        "k200Mapping": result.get("kospi_mapping", {}),
+        "modelMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping",
         "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
     write_output_json("backtest_diagnostics.json", payload)
@@ -1982,14 +2887,15 @@ def _estimate_history_row_from_dataset(
             "is_synthetic": True,
         }
 
-    if dataset.empty:
+    model_dataset = result.get("model_dataset", dataset)
+    if not isinstance(model_dataset, pd.DataFrame) or model_dataset.empty:
         return build_fallback_row()
 
     target_ts = pd.Timestamp(target_date)
-    if target_ts not in dataset.index:
+    if target_ts not in model_dataset.index:
         return build_fallback_row()
 
-    row = dataset.loc[target_ts]
+    row = model_dataset.loc[target_ts]
     if isinstance(row, pd.DataFrame):
         row = row.iloc[-1]
 
@@ -1999,14 +2905,17 @@ def _estimate_history_row_from_dataset(
     else:
         prev_close_value = float(row_prev_close)
 
-    feature_values: list[float] = []
-    for feature_name in result["feat_cols"]:
-        value = row.get(feature_name, 0.0)
-        feature_values.append(0.0 if pd.isna(value) else float(value))
-
-    feature_vector = np.array([feature_values], dtype=np.float64)
-    predicted_change = float(result["model_c"].predict(feature_vector)[0])
-    point_open = prev_close_value * (1 + predicted_change / 100)
+    returns = extract_feature_returns_from_row(row)
+    components = compute_prediction_components(
+        returns,
+        core_params=result.get("ewy_fx_correction", {}),
+        residual_artifact=result.get("residual_artifact", {}),
+        mapping_artifact=result.get("kospi_mapping", {}),
+    )
+    predicted_kospi_return = components.get("predicted_kospi_return")
+    if predicted_kospi_return is None:
+        return build_fallback_row()
+    point_open = price_from_log_return(prev_close_value, float(predicted_kospi_return))
 
     vix_level = row.get("vix_level", 20.0)
     vix_float = 20.0 if pd.isna(vix_level) else float(vix_level)

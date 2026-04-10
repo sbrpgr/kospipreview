@@ -1,39 +1,80 @@
 {
   "selectedFeatures": [
-    "ewy_return",
-    "koru_return",
-    "sp500_return",
-    "nasdaq_return",
-    "dow_return",
-    "vix_return",
-    "wti_return",
-    "gold_return",
-    "us10y_return",
-    "sox_return",
-    "krw_return"
+    "broad_factor",
+    "tech_factor",
+    "semi_factor",
+    "wti_z",
+    "gold_z",
+    "us10y_z"
   ],
-  "rmse": 36.7907,
-  "mae": 18.5985,
+  "rmse": 40.208,
+  "mae": 21.3248,
   "featureImportance": {
-    "ewy_return": 797,
-    "koru_return": 723,
-    "sp500_return": 553,
-    "nasdaq_return": 656,
-    "dow_return": 790,
-    "vix_return": 1149,
-    "wti_return": 956,
-    "gold_return": 952,
-    "us10y_return": 752,
-    "sox_return": 869,
-    "krw_return": 803
+    "ewy_core": 0.361836,
+    "krw_core": 0.2,
+    "broad_factor": 0.006564,
+    "tech_factor": 0.132644,
+    "semi_factor": 0.261486,
+    "wti_z": 0.502703,
+    "gold_z": 0.233008,
+    "us10y_z": 0.41957,
+    "basis_ewma": 0.0,
+    "k200_to_kospi_beta": 0.344188
   },
   "ewyFxCorrection": {
-    "intercept": 0.2006605010712867,
-    "ewy_coef": 0.40975447864451137,
+    "intercept": 0.17061833061830656,
+    "ewy_coef": 0.36183567251323795,
     "krw_coef": 0.2,
-    "sample_size": 160,
-    "r2": 0.2753828621695529,
-    "mae": 0.9696931425231753
+    "sample_size": 180,
+    "r2": 0.23409726366531391,
+    "mae": 1.0175328992476296
   },
-  "generatedAt": "2026-04-10T01:04:36.893426+00:00"
+  "residualModel": {
+    "intercept": -0.09308107883086872,
+    "coefficients": {
+      "broad_factor": -0.006563791898852427,
+      "tech_factor": -0.13264351201313704,
+      "semi_factor": -0.2614864400087431,
+      "wti_z": 0.5027029596516278,
+      "gold_z": -0.23300783456668642,
+      "us10y_z": 0.4195701044128385
+    },
+    "means": {
+      "sp500": 0.033298737248907445,
+      "nasdaq": 0.033800057623126434,
+      "dow": 0.039106163012362326,
+      "sox": 0.28149093601615616,
+      "wti": 0.5018781942693246,
+      "gold": 0.10954388476482076,
+      "us10y": 0.0022571741882902526
+    },
+    "stds": {
+      "sp500": 0.9233923909220706,
+      "nasdaq": 1.1923330240226926,
+      "dow": 0.9179236042241412,
+      "sox": 2.4045476095360674,
+      "wti": 4.354596202578949,
+      "gold": 2.230921133972749,
+      "us10y": 0.041779821366867885
+    },
+    "broad_pca_components": [
+      0.5966410532491092,
+      0.5849833385334433,
+      0.5493759616292472
+    ],
+    "sox_ndx_beta": 0.8778784735880423,
+    "basis_ewma": 0.0,
+    "weight": 0.0,
+    "sample_size": 180,
+    "mae": 1.5111830297512685,
+    "core_mae": 1.7363298333329364,
+    "full_mae": 1.5111830297512685
+  },
+  "k200Mapping": {
+    "intercept": 0.16114747780836267,
+    "beta": 0.34418838821533804,
+    "sample_size": 240
+  },
+  "modelMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping",
+  "generatedAt": "2026-04-10T02:26:44.148188+00:00"
 }

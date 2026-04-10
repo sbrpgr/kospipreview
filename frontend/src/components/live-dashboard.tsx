@@ -358,7 +358,8 @@ export function LiveDashboard({
   const futuresDayClose =
     hasLiveSnapshot && typeof prediction.futuresDayClose === "number" ? prediction.futuresDayClose : null;
   const futuresDayCloseDate = prediction.futuresDayCloseDate ?? "";
-  const isModelForecastReady = hasLiveSnapshot && nightSimplePoint !== null;
+  const isModelForecastReady =
+    hasLiveSnapshot && Number.isFinite(prediction.pointPrediction) && Number.isFinite(prediction.predictedChangePct);
 
   return (
     <div className="pageContainer">
@@ -396,7 +397,7 @@ export function LiveDashboard({
               </div>
             </div>
             <div className="heroForecastCard isModel">
-              <div className="heroForecastLabel">모델 예측</div>
+              <div className="heroForecastLabel">모델 예측 (야간 선물 지표 완전 미사용)</div>
               <div className="heroForecastValue">
                 {isModelForecastReady ? prediction.pointPrediction.toLocaleString("ko-KR") : "-"}
               </div>
@@ -419,11 +420,11 @@ export function LiveDashboard({
           </div>
 
           <div className="heroMessage">
-            {!hasLiveSnapshot
-              ? "최신 데이터 확인 중입니다."
-              : isModelForecastReady
-                ? prediction.signalSummary
-                : "모델 예측값은 야간선물 데이터가 수집되기 시작하면 표시됩니다."}
+              {!hasLiveSnapshot
+                ? "최신 데이터 확인 중입니다."
+                : isModelForecastReady
+                  ? prediction.signalSummary
+                  : "모델 예측값은 EWY·환율 기반 데이터가 준비되면 표시됩니다."}
           </div>
           <div className="heroFootnote">{statusMessage}</div>
         </section>
