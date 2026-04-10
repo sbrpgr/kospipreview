@@ -107,17 +107,38 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
   return baseRecords.sort((a, b) => compareDateDesc(a.date, b.date));
 }
 
-function computeRelativeAccuracyPct(nightError: number | null, modelError: number | null): number | null {
-  if (nightError === null || modelError === null) {
+function computeAbsoluteErrorRatePct(actualOpen: number | null, predictedOpen: number | null): number | null {
+  if (actualOpen === null || predictedOpen === null) {
     return null;
   }
 
-  const nightAbs = Math.abs(nightError);
-  if (nightAbs < 1e-8) {
+  if (Math.abs(actualOpen) < 1e-8) {
     return null;
   }
 
-  return ((nightAbs - Math.abs(modelError)) / nightAbs) * 100;
+  return (Math.abs(predictedOpen - actualOpen) / Math.abs(actualOpen)) * 100;
+}
+
+function getErrorColor(error: number | null) {
+  if (error === null) {
+    return "var(--text-secondary)";
+  }
+
+  return error >= 0 ? "var(--negative)" : "var(--positive)";
+}
+
+function getErrorRateColor(errorRatePct: number | null) {
+  if (errorRatePct === null) {
+    return "var(--text-secondary)";
+  }
+
+  if (errorRatePct <= 0.3) {
+    return "var(--positive)";
+  }
+  if (errorRatePct <= 0.8) {
+    return "var(--accent)";
+  }
+  return "var(--negative)";
 }
 
 export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
@@ -144,11 +165,11 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             <th>야간선물 오차</th>
             <th>모델 오차</th>
             <th style={{ textAlign: "center" }}>
-              상대정확도(%){" "}
+              모델 오차율(%){" "}
               <span
                 className="tableHintIcon"
-                title="야간선물 오차에 비해 얼마나 더 높은 정확도(%)를 보였는지 표시합니다."
-                aria-label="상대정확도 설명"
+                title="모델 예측치와 실제 시초가의 차이를 실제 시초가로 나눈 절대 오차율입니다."
+                aria-label="모델 오차율 설명"
               >
                 ?
               </span>
@@ -162,7 +183,7 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             const nightSimple = isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null;
             const nightError = actualOpenValue !== null && nightSimple !== null ? actualOpenValue - nightSimple : null;
             const modelError = actualOpenValue !== null && modelPrediction !== null ? actualOpenValue - modelPrediction : null;
-            const relativeAccuracyPct = computeRelativeAccuracyPct(nightError, modelError);
+            const modelErrorRatePct = computeAbsoluteErrorRatePct(actualOpenValue, modelPrediction);
 
             return (
               <tr key={record.date} className={record.isPredictionTarget ? "isPredictionTarget" : undefined}>
@@ -176,7 +197,7 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                 </td>
                 <td
                   style={{
-                    color: nightError === null ? "var(--text-secondary)" : nightError >= 0 ? "var(--negative)" : "var(--positive)",
+                    color: getErrorColor(nightError),
                     fontWeight: 700,
                   }}
                 >
@@ -184,8 +205,7 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                 </td>
                 <td
                   style={{
-                    color:
-                      modelError === null ? "var(--text-secondary)" : modelError >= 0 ? "var(--negative)" : "var(--positive)",
+                    color: getErrorColor(modelError),
                     fontWeight: 700,
                   }}
                 >
@@ -195,15 +215,10 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                   style={{
                     textAlign: "center",
                     fontWeight: 800,
-                    color:
-                      relativeAccuracyPct === null
-                        ? "var(--text-secondary)"
-                        : relativeAccuracyPct >= 0
-                          ? "var(--positive)"
-                          : "var(--negative)",
+                    color: getErrorRateColor(modelErrorRatePct),
                   }}
                 >
-                  {relativeAccuracyPct === null ? "-" : `${relativeAccuracyPct >= 0 ? "+" : ""}${relativeAccuracyPct.toFixed(1)}%`}
+                  {modelErrorRatePct === null ? "-" : `${modelErrorRatePct.toFixed(2)}%`}
                 </td>
               </tr>
             );
