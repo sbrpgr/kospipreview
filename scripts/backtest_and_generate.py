@@ -224,11 +224,18 @@ def main() -> None:
     prior_prediction_payload = load_prediction_payload()
     prediction_archive = load_prediction_archive()
     prediction_archive = merge_prediction_into_archive(prediction_archive, prior_prediction_payload)
+    prediction_archive = prune_premature_archive_entries(
+        prediction_archive, datetime.now(timezone.utc).astimezone(KST)
+    )
     print("Writing output JSON files...")
     history_df = build_history_df(result, market, live_market, dataset, prediction_archive)
     latest = build_latest(live_market, result, market, live_overrides)
     prediction_payload = write_prediction_json(latest, result, history_df)
+    history_df = overlay_prediction_on_history_df(history_df, prediction_payload)
     prediction_archive = merge_prediction_into_archive(prediction_archive, prediction_payload)
+    prediction_archive = prune_premature_archive_entries(
+        prediction_archive, datetime.now(timezone.utc).astimezone(KST)
+    )
     write_prediction_archive_json(prediction_archive)
     write_history_json(result, history_df)
     write_indicators_json(live_market, market, live_overrides)
@@ -261,6 +268,33 @@ def parse_prediction_target_date(value: object) -> str | None:
         return date(year, month, day).isoformat()
     except ValueError:
         return None
+
+
+def rollforward_business_day(target: date | datetime | pd.Timestamp) -> pd.Timestamp:
+    return pd.offsets.BDay().rollforward(pd.Timestamp(target).normalize())
+
+
+def resolve_prediction_target_timestamp(now_kst: datetime) -> pd.Timestamp:
+    today = pd.Timestamp(now_kst.date())
+    today_business = rollforward_business_day(today)
+    if today_business != today:
+        return today_business
+
+    if now_kst.time() >= KRX_SYNC_BASELINE_TIME:
+        return rollforward_business_day(today + pd.Timedelta(days=1))
+    return today
+
+
+def next_business_day_iso(session_date_value: object) -> str | None:
+    if not isinstance(session_date_value, str) or not session_date_value:
+        return None
+
+    try:
+        session_date = date.fromisoformat(session_date_value)
+    except ValueError:
+        return None
+
+    return rollforward_business_day(session_date + timedelta(days=1)).date().isoformat()
 
 
 def load_prediction_payload() -> dict | None:
@@ -369,6 +403,22 @@ def merge_prediction_into_archive(archive: list[dict], payload: dict | None) -> 
         reverse=True,
     )[:PREDICTION_ARCHIVE_MAX_RECORDS]
     return merged
+
+
+def prune_premature_archive_entries(archive: list[dict], now_kst: datetime) -> list[dict]:
+    current_target_ts = resolve_prediction_target_timestamp(now_kst)
+    if current_target_ts.date() != now_kst.date():
+        return archive
+
+    current_target_iso = current_target_ts.date().isoformat()
+    pruned: list[dict] = []
+    for row in archive:
+        prediction_date_iso = parse_prediction_target_date(
+            row.get("predictionDateIso") if isinstance(row, dict) else None
+        )
+        if prediction_date_iso is None or prediction_date_iso <= current_target_iso:
+            pruned.append(row)
+    return pruned
 
 
 def write_prediction_archive_json(archive: list[dict]) -> None:
@@ -738,6 +788,57 @@ def apply_day_futures_reference(
     price = float(quote.get("price", day_close))
     quote["change_pct"] = (price / day_close - 1) * 100
     return quote
+
+
+def resolve_night_futures_target_date_iso(
+    quote: dict | None,
+    day_close_quote: dict | None = None,
+) -> str | None:
+    if not isinstance(quote, dict):
+        return None
+
+    session_date = quote.get("day_close_date")
+    if (not isinstance(session_date, str) or not session_date) and isinstance(day_close_quote, dict):
+        session_date = day_close_quote.get("session_date")
+
+    next_session_date = next_business_day_iso(session_date)
+    if next_session_date:
+        return next_session_date
+
+    updated_at = parse_iso_datetime_utc(quote.get("updated_at"))
+    if updated_at is None:
+        return None
+    return updated_at.astimezone(KST).date().isoformat()
+
+
+def resolve_night_futures_change_for_target(
+    target_date_iso: str | None,
+    quote: dict | None,
+    day_close_quote: dict | None = None,
+) -> float | None:
+    if not isinstance(target_date_iso, str) or not target_date_iso or not isinstance(quote, dict):
+        return None
+
+    normalized_quote = apply_day_futures_reference(dict(quote), day_close_quote)
+    if resolve_night_futures_target_date_iso(normalized_quote, day_close_quote) != target_date_iso:
+        return None
+
+    change_pct = normalized_quote.get("change_pct")
+    if change_pct is not None:
+        try:
+            return float(change_pct)
+        except (TypeError, ValueError):
+            pass
+
+    try:
+        price = float(normalized_quote.get("price"))
+        previous_close = float(normalized_quote.get("previous_close"))
+    except (TypeError, ValueError):
+        return None
+
+    if previous_close == 0:
+        return None
+    return (price / previous_close - 1) * 100
 
 
 def parse_iso_datetime_utc(value: object) -> datetime | None:
@@ -2359,6 +2460,8 @@ def build_latest(
     live_overrides: dict[str, dict],
 ) -> dict:
     now_utc = datetime.now(timezone.utc)
+    now_kst = now_utc.astimezone(KST)
+    prediction_target_date_iso = next_prediction_date_iso(now_kst)
     display_returns: dict[str, float] = {}
     model_returns: dict[str, float] = {}
     vix = 20.0
@@ -2397,14 +2500,8 @@ def build_latest(
         if model_change is not None:
             model_returns[name] = model_change
 
-    night_futures_change = compute_live_return_pct(
-        "k200f",
-        live_market,
-        history_market,
-        baseline_session_date=latest_record_date,
-        live_overrides=live_overrides,
-    )
     k200f_override = live_overrides.get("k200f", {})
+    night_futures_change = resolve_night_futures_change_for_target(prediction_target_date_iso, k200f_override)
     futures_day_close_raw = k200f_override.get("day_close")
     try:
         futures_day_close = float(futures_day_close_raw) if futures_day_close_raw is not None else None
@@ -2495,18 +2592,12 @@ def _build_signal_summary(returns: dict[str, float]) -> str:
 
 
 def next_prediction_date_label(now_kst: datetime) -> str:
-    if now_kst.hour < 9:
-        target_date = pd.Timestamp(now_kst.date())
-    else:
-        target_date = pd.Timestamp(now_kst.date()) + pd.offsets.BDay(1)
+    target_date = resolve_prediction_target_timestamp(now_kst)
     return pd.Timestamp(target_date).strftime("%Y년 %m월 %d일")
 
 
 def next_prediction_date_iso(now_kst: datetime) -> str:
-    if now_kst.hour < 9:
-        target_date = pd.Timestamp(now_kst.date())
-    else:
-        target_date = pd.Timestamp(now_kst.date()) + pd.offsets.BDay(1)
+    target_date = resolve_prediction_target_timestamp(now_kst)
     return pd.Timestamp(target_date).date().isoformat()
 
 
@@ -3059,6 +3150,54 @@ def build_history_df(
     if {"low", "high", "actual_open"}.issubset(df.columns):
         df[["low", "high", "actual_open"]] = df[["low", "high", "actual_open"]].round(2)
     return df.sort_values("date", ascending=False).head(HISTORY_RECORDS).reset_index(drop=True)
+
+
+def overlay_prediction_on_history_df(history_df: pd.DataFrame, prediction_payload: dict | None) -> pd.DataFrame:
+    if not isinstance(prediction_payload, dict) or history_df.empty:
+        return history_df
+
+    prediction_date_iso = parse_prediction_target_date(
+        prediction_payload.get("predictionDateIso") or prediction_payload.get("predictionDate")
+    )
+    if not prediction_date_iso:
+        return history_df
+
+    row_mask = history_df["date"].astype(str) == prediction_date_iso
+    if not bool(row_mask.any()):
+        return history_df
+
+    patched = history_df.copy()
+
+    def to_float_or_none(value: object) -> float | None:
+        try:
+            if value is None or pd.isna(value):
+                return None
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    point = to_float_or_none(prediction_payload.get("pointPrediction"))
+    low = to_float_or_none(prediction_payload.get("rangeLow"))
+    high = to_float_or_none(prediction_payload.get("rangeHigh"))
+    night_simple = to_float_or_none(prediction_payload.get("nightFuturesSimplePoint"))
+
+    if point is not None:
+        patched.loc[row_mask, "pred_open"] = point
+    if low is not None:
+        patched.loc[row_mask, "low"] = low
+    if high is not None:
+        patched.loc[row_mask, "high"] = high
+    if night_simple is not None:
+        patched.loc[row_mask, "night_simple_open"] = night_simple
+
+    if point is not None and "actual_open" in patched.columns:
+        actual_open = pd.to_numeric(patched.loc[row_mask, "actual_open"], errors="coerce")
+        patched.loc[row_mask, "error"] = point - actual_open
+        low_bound = pd.to_numeric(patched.loc[row_mask, "low"], errors="coerce")
+        high_bound = pd.to_numeric(patched.loc[row_mask, "high"], errors="coerce")
+        patched.loc[row_mask, "hit"] = (low_bound <= actual_open) & (actual_open <= high_bound)
+
+    return patched
 
 
 def write_history_json(result: dict, history_df: pd.DataFrame) -> None:

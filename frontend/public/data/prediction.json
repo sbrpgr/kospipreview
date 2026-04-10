@@ -1,18 +1,18 @@
 {
-  "generatedAt": "2026-04-10T02:26:31.860909+00:00",
-  "predictionDate": "2026년 04월 13일",
-  "predictionDateIso": "2026-04-13",
-  "pointPrediction": 5835.29,
-  "nightFuturesSimplePoint": null,
-  "nightFuturesSimpleChangePct": null,
+  "generatedAt": "2026-04-10T02:43:44.087550+00:00",
+  "predictionDate": "2026년 04월 10일",
+  "predictionDateIso": "2026-04-10",
+  "pointPrediction": 5834.55,
+  "nightFuturesSimplePoint": 5897.96,
+  "nightFuturesSimpleChangePct": 2.08,
   "futuresDayClose": 867.05,
   "futuresDayCloseDate": "2026-04-09",
-  "rangeLow": 5813.96,
-  "rangeHigh": 5856.61,
-  "predictedChangePct": 0.99,
+  "rangeLow": 5813.23,
+  "rangeHigh": 5855.88,
+  "predictedChangePct": 0.98,
   "prevClose": 5778.01,
   "signalSummary": "EWY 상승 · S&P 500 상승 · VIX 하락(안정) · NASDAQ 100 상승 · USD/KRW 보합",
-  "lastCalculatedAt": "2026-04-10T02:26:31.860909+00:00",
+  "lastCalculatedAt": "2026-04-10T02:43:44.087550+00:00",
   "latestRecordDate": "2026-04-09",
   "mae30d": 21.32,
   "model": {
@@ -24,8 +24,8 @@
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,
-    "coreAnchorPct": 0.99,
-    "rawModelPct": 0.99,
+    "coreAnchorPct": 0.98,
+    "rawModelPct": 0.98,
     "rawResidualPct": 0.0,
     "ewyFxIntercept": 0.1706,
     "ewyFxEwyCoef": 0.3618,
@@ -37,27 +37,27 @@
     "auxResidualAdjPct": null,
     "regimeAdjustmentPct": null,
     "regimeState": null,
-    "prevCloseChangePct": -1.85,
+    "prevCloseChangePct": -1.77,
     "krxBaselineDate": "2026-04-09",
     "predictionPhase": "session",
     "anchorSource": "ewy_synthetic_k200",
     "residualModel": {
       "intercept": -0.093081,
       "coefficients": {
-        "broad_factor": -0.006841,
-        "tech_factor": -0.133371,
-        "semi_factor": -0.262043,
-        "wti_z": 0.502311,
-        "gold_z": -0.230897,
-        "us10y_z": 0.419943
+        "broad_factor": -0.005785,
+        "tech_factor": -0.130867,
+        "semi_factor": -0.260036,
+        "wti_z": 0.504455,
+        "gold_z": -0.238221,
+        "us10y_z": 0.418434
       },
       "means": {
         "sp500": 0.033299,
         "nasdaq": 0.0338,
         "dow": 0.039106,
         "sox": 0.281491,
-        "wti": 0.50139,
-        "gold": 0.110888,
+        "wti": 0.503992,
+        "gold": 0.106212,
         "us10y": 0.002257
       },
       "stds": {
@@ -65,8 +65,8 @@
         "nasdaq": 1.192333,
         "dow": 0.917924,
         "sox": 2.404548,
-        "wti": 4.354156,
-        "gold": 2.231206,
+        "wti": 4.356541,
+        "gold": 2.230428,
         "us10y": 0.04178
       },
       "broadPcaComponents": [
@@ -87,14 +87,14 @@
       "beta": 0.344188,
       "sampleSize": 240
     },
-    "liveRefreshGuardBandPct": 0.91,
+    "liveRefreshGuardBandPct": 0.9,
     "liveEwyChangePct": 2.88,
-    "liveKrwChangePct": -0.09,
-    "liveRefreshUpdatedAt": "2026-04-10T02:26:31.860909+00:00"
+    "liveKrwChangePct": -0.14,
+    "liveRefreshUpdatedAt": "2026-04-10T02:43:44.087550+00:00"
   },
   "yesterday": {
-    "predictionLow": 5737.24,
-    "predictionHigh": 5775.62,
+    "predictionLow": 5813.87,
+    "predictionHigh": 5856.52,
     "actualOpen": 5876.12,
     "hit": false
   }

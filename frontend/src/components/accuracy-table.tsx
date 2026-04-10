@@ -87,10 +87,11 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
     const existing = baseRecords[targetIndex];
     baseRecords[targetIndex] = {
       ...existing,
-      modelPrediction: existing.modelPrediction ?? (isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : null),
+      modelPrediction: isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : existing.modelPrediction,
       nightFuturesSimpleOpen:
-        existing.nightFuturesSimpleOpen ??
-        (isFiniteNumber(prediction.nightFuturesSimplePoint) ? prediction.nightFuturesSimplePoint : null),
+        isFiniteNumber(prediction.nightFuturesSimplePoint)
+          ? prediction.nightFuturesSimplePoint
+          : existing.nightFuturesSimpleOpen,
       isPredictionTarget: true,
     };
   } else {

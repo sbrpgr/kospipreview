@@ -19,7 +19,9 @@ if str(SCRIPT_DIR) not in sys.path:
 from backtest_and_generate import (  # noqa: E402
     compute_prediction_components as compute_model_prediction_components,
     log_return_pct_to_simple_return_pct,
+    parse_prediction_target_date,
     price_from_log_return,
+    resolve_night_futures_change_for_target,
     simple_return_pct_to_log_return_pct,
 )
 
@@ -1379,11 +1381,14 @@ def update_prediction_night_fields(
     now_utc: datetime,
 ) -> dict:
     prev_close = to_float(payload.get("prevClose"))
+    prediction_target_date_iso = parse_prediction_target_date(
+        payload.get("predictionDateIso") or payload.get("predictionDate")
+    )
+    night_futures_change = resolve_night_futures_change_for_target(prediction_target_date_iso, quote, day_close_quote)
 
-    if quote and quote.get("is_live_night") and prev_close and prev_close != 0:
-        change_pct = float(quote.get("change_pct", 0.0))
-        payload["nightFuturesSimpleChangePct"] = round(change_pct, 2)
-        payload["nightFuturesSimplePoint"] = round(prev_close * (1 + change_pct / 100), 2)
+    if night_futures_change is not None and prev_close and prev_close != 0:
+        payload["nightFuturesSimpleChangePct"] = round(float(night_futures_change), 2)
+        payload["nightFuturesSimplePoint"] = round(prev_close * (1 + float(night_futures_change) / 100), 2)
     else:
         payload["nightFuturesSimpleChangePct"] = None
         payload["nightFuturesSimplePoint"] = None
