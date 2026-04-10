@@ -384,12 +384,7 @@ export function LiveDashboard({
 
   return (
     <div className="pageContainer">
-      <SiteHeader
-        status={freshness.status}
-        isSyncing={isSyncing}
-        operationState={marketOperation.state}
-        operationLabel={marketOperation.headerLabel}
-      />
+      <SiteHeader status={freshness.status} isSyncing={isSyncing} />
 
       <main>
         <section className="card heroSection">
