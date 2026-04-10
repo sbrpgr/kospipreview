@@ -3,45 +3,45 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$139.00",
-      "changePct": -0.76,
-      "updatedAt": "2026-04-09T23:59:00+00:00",
+      "value": "$137.59",
+      "changePct": -1.22,
+      "updatedAt": "2026-04-10T09:19:37+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,486.35원",
-      "changePct": 0.59,
-      "updatedAt": "2026-04-10T07:59:00+00:00",
+      "value": "1,482.88원",
+      "changePct": 0.36,
+      "updatedAt": "2026-04-10T09:19:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$99.82",
-      "changePct": 1.99,
-      "updatedAt": "2026-04-10T07:49:00+00:00",
+      "value": "$100.01",
+      "changePct": 2.19,
+      "updatedAt": "2026-04-10T09:09:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "sp500",
       "label": "S&P 500",
       "value": "6,824.66",
       "changePct": 0.62,
-      "updatedAt": "2026-04-09T20:20:00+00:00",
+      "updatedAt": "2026-04-09T20:39:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EGSPC",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(장 시작전)",
       "isPremarket": false
     }
   ],
@@ -51,43 +51,43 @@
       "label": "NASDAQ 100",
       "value": "25,082.09",
       "changePct": 0.72,
-      "updatedAt": "2026-04-09T21:15:00+00:00",
+      "updatedAt": "2026-04-09T21:16:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(장 시작전)",
       "isPremarket": false
     },
     {
       "key": "vix",
       "label": "VIX",
-      "value": "19.61",
-      "changePct": 0.62,
-      "updatedAt": "2026-04-10T07:44:00+00:00",
+      "value": "19.68",
+      "changePct": 0.97,
+      "updatedAt": "2026-04-10T09:04:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$397.07",
-      "changePct": -1.96,
-      "updatedAt": "2026-04-09T23:59:00+00:00",
+      "value": "$383.20",
+      "changePct": -4.08,
+      "updatedAt": "2026-04-10T09:19:26+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "k200f",
       "label": "KOSPI 200 야간선물",
-      "value": "N/A",
-      "changePct": 0,
-      "updatedAt": "",
+      "value": "883.30",
+      "changePct": -0.02,
+      "updatedAt": "2026-04-10T09:19:49+00:00",
       "sourceUrl": "",
       "dataSource": "실시간 수집",
-      "displayTag": "(장 시작전)",
+      "displayTag": "(야간)",
       "isPremarket": false,
       "referenceLabel": "주간선물 종가",
       "referenceValue": "883.50",
@@ -101,19 +101,19 @@
       "updatedAt": "2026-04-09T20:43:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EDJI",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(장 시작전)",
       "isPremarket": false
     },
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,776.80",
-      "changePct": -0.32,
-      "updatedAt": "2026-04-10T07:49:00+00:00",
+      "value": "$4,764.70",
+      "changePct": -0.57,
+      "updatedAt": "2026-04-10T09:09:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "us10y",
@@ -134,10 +134,10 @@
       "updatedAt": "2026-04-09T21:15:00+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ESOX",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(장 시작전)",
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-10T07:59:54.666490+00:00",
-  "isUsPremarketNow": false
+  "generatedAt": "2026-04-10T09:19:52.042913+00:00",
+  "isUsPremarketNow": true
 }
