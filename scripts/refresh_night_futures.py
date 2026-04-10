@@ -55,6 +55,9 @@ NIGHT_OPERATION_START = time(18, 0)
 NIGHT_OPERATION_END = time(6, 30)
 NIGHT_FUTURES_STALE_MINUTES = 180
 NIGHT_FUTURES_SOURCE_MIN_REFRESH_SECONDS = 30
+US_REGULAR_OPEN_ET = time(9, 30)
+PREMARKET_TRACK_KEYS = {"ewy", "koru", "sp500", "nasdaq", "dow", "sox"}
+PREMARKET_STALE_MINUTES = 45
 
 DISPLAY_TICKER_BY_KEY = {
     "ewy": "EWY",
@@ -178,6 +181,20 @@ def is_night_operation_window(now_utc: datetime) -> bool:
     start = NIGHT_OPERATION_START.hour * 60 + NIGHT_OPERATION_START.minute
     end = NIGHT_OPERATION_END.hour * 60 + NIGHT_OPERATION_END.minute
     return current >= start or current <= end
+
+
+def is_us_premarket_window(now_utc: datetime) -> bool:
+    now_et = now_utc.astimezone(US_ET)
+    if now_et.weekday() >= 5:
+        return False
+    return US_PREMARKET_OPEN_ET <= now_et.time() < US_REGULAR_OPEN_ET
+
+
+def is_timestamp_in_us_premarket(ts_utc: datetime) -> bool:
+    ts_et = ts_utc.astimezone(US_ET)
+    if ts_et.weekday() >= 5:
+        return False
+    return US_PREMARKET_OPEN_ET <= ts_et.time() < US_REGULAR_OPEN_ET
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
@@ -1361,6 +1378,7 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
         secondary = []
 
     snapshots: dict[str, dict | None] = {}
+    in_us_premarket_now = is_us_premarket_window(now_utc)
 
     def apply_rows(rows: list) -> None:
         for row in rows:
@@ -1369,6 +1387,9 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
             key = str(row.get("key") or "")
             if key == "k200f":
                 continue
+
+            row["displayTag"] = "(장 시작전)" if in_us_premarket_now and key in PREMARKET_TRACK_KEYS else ""
+            row["isPremarket"] = False
 
             ticker = DISPLAY_TICKER_BY_KEY.get(key)
             if not ticker:
@@ -1386,10 +1407,23 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
             if value is None or change_pct is None or not isinstance(updated_at, str):
                 continue
 
+            updated_dt = parse_iso_datetime_utc(updated_at)
+            is_premarket_quote = updated_dt is not None and is_timestamp_in_us_premarket(updated_dt)
+            age_minutes = (
+                (now_utc - updated_dt).total_seconds() / 60 if updated_dt is not None else float("inf")
+            )
+            premarket_untracked = (
+                in_us_premarket_now
+                and key in PREMARKET_TRACK_KEYS
+                and (not is_premarket_quote or age_minutes > PREMARKET_STALE_MINUTES)
+            )
+
             row["value"] = format_indicator_value(key, value)
             row["changePct"] = round(change_pct, 2)
             row["updatedAt"] = updated_at
             row["dataSource"] = "Yahoo Finance"
+            row["displayTag"] = "(장 시작전)" if premarket_untracked else ""
+            row["isPremarket"] = is_premarket_quote
 
     apply_rows(primary)
     apply_rows(secondary)
@@ -1397,6 +1431,7 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
     payload["primary"] = primary
     payload["secondary"] = secondary
     payload["generatedAt"] = now_utc.isoformat()
+    payload["isUsPremarketNow"] = in_us_premarket_now
     return payload
 
 
