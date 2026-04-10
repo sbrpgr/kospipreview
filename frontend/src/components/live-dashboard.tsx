@@ -30,6 +30,7 @@ const NIGHT_OPERATION_END_MINUTES = 9 * 60;
 
 type MarketOperationInfo = {
   hoursLabel: string;
+  state: "operating" | "closed" | "holiday";
   statusLabel: string;
 };
 
@@ -50,6 +51,7 @@ function getMarketOperationInfo(now: Date = new Date()): MarketOperationInfo {
   if (weekday === "Sat" || weekday === "Sun") {
     return {
       hoursLabel: NIGHT_OPERATION_HOURS_LABEL,
+      state: "holiday",
       statusLabel: "휴장",
     };
   }
@@ -59,7 +61,8 @@ function getMarketOperationInfo(now: Date = new Date()): MarketOperationInfo {
 
   return {
     hoursLabel: NIGHT_OPERATION_HOURS_LABEL,
-    statusLabel: isNightOperationWindow ? "운영 중" : "운영 대기",
+    state: isNightOperationWindow ? "operating" : "closed",
+    statusLabel: isNightOperationWindow ? "운영중" : "운영 종료",
   };
 }
 
@@ -363,7 +366,12 @@ export function LiveDashboard({
 
   return (
     <div className="pageContainer">
-      <SiteHeader status={freshness.status} isSyncing={isSyncing} />
+      <SiteHeader
+        status={freshness.status}
+        isSyncing={isSyncing}
+        operationState={marketOperation.state}
+        operationLabel={marketOperation.statusLabel}
+      />
 
       <main>
         <section className="card heroSection">

@@ -190,14 +190,38 @@ p {
   border: 1px solid rgba(49, 130, 246, 0.22);
 }
 
+.statusLabel.isOperating {
+  background: rgba(19, 174, 92, 0.1);
+  color: #0f8a4a;
+  border-color: rgba(15, 138, 74, 0.24);
+}
+
+.statusLabel.isClosed {
+  background: rgba(148, 163, 184, 0.12);
+  color: #4b5563;
+  border-color: rgba(100, 116, 139, 0.22);
+}
+
+.statusLabel.isHoliday {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.24);
+}
+
+.statusLabel.isSubtle {
+  background: #ffffff;
+}
+
 .statusLabel.isAging {
   background: var(--gold-bg);
   color: var(--gold);
+  border-color: rgba(217, 119, 6, 0.18);
 }
 
 .statusLabel.isStale {
   background: var(--negative-bg);
   color: var(--negative);
+  border-color: rgba(217, 54, 62, 0.18);
 }
 
 .statusDot {
