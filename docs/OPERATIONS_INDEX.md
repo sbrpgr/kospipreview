@@ -20,6 +20,7 @@
 - 인프라/구성 문서: `ARCHITECTURE.md`
 - 데이터 소스 문서: `DATA_SOURCES.md`
 - 배포/광고/분석 가이드: `FIREBASE_CLOUDFLARE_GA4_ADSENSE_2026.md`
+- Cloud Run 실시간 갱신 가이드: `CLOUD_RUN_LIVE_REFRESH.md`
 
 ## 운영 원칙
 

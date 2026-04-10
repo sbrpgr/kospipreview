@@ -8,6 +8,16 @@
     ],
     "cleanUrls": true,
     "trailingSlash": false,
+    "rewrites": [
+      {
+        "source": "/api/live/**",
+        "run": {
+          "serviceId": "kospi-live-data",
+          "region": "asia-northeast3",
+          "pinTag": true
+        }
+      }
+    ],
     "headers": [
       {
         "source": "**",

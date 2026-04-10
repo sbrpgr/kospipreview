@@ -6,7 +6,8 @@ import { ChartSection } from "@/components/chart-section";
 import { IndicatorList } from "@/components/indicator-list";
 import { NoticeContent } from "@/components/notice-content";
 import { SiteHeader } from "@/components/site-header";
-import type { HistoryData, IndicatorData, PredictionData } from "@/lib/data";
+import { getClientDataUrl, getStaticDataUrl } from "@/lib/data-paths";
+import { type HistoryData, type IndicatorData, type PredictionData } from "@/lib/data";
 
 type FreshnessData = {
   status: "fresh" | "aging" | "stale";
@@ -177,14 +178,24 @@ function getIndicatorsVersion(indicators: IndicatorData) {
   return [indicators.generatedAt ?? "", getLatestIndicatorUpdate(indicators), indicatorFingerprint].join("|");
 }
 
-async function fetchJson<T>(path: string) {
-  const response = await fetch(`${path}?t=${Date.now()}`, {
+async function fetchJson<T>(path: string, fallbackPath?: string) {
+  let response = await fetch(path, {
     cache: "no-store",
     headers: {
       pragma: "no-cache",
       "cache-control": "no-cache",
     },
   });
+
+  if (!response.ok && fallbackPath) {
+    response = await fetch(fallbackPath, {
+      cache: "no-store",
+      headers: {
+        pragma: "no-cache",
+        "cache-control": "no-cache",
+      },
+    });
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to fetch ${path}`);
@@ -194,7 +205,10 @@ async function fetchJson<T>(path: string) {
 }
 
 async function fetchIndicatorsPayload() {
-  const indicators = await fetchJson<IndicatorData>("/data/indicators.json");
+  const indicators = await fetchJson<IndicatorData>(
+    getClientDataUrl("indicators.json"),
+    getStaticDataUrl("indicators.json"),
+  );
   return {
     indicators,
     indicatorsVersion: getIndicatorsVersion(indicators),
@@ -203,8 +217,8 @@ async function fetchIndicatorsPayload() {
 
 async function fetchDashboardPayload(indicators: IndicatorData) {
   const [prediction, history] = await Promise.all([
-    fetchJson<PredictionData>("/data/prediction.json"),
-    fetchJson<HistoryData>("/data/history.json"),
+    fetchJson<PredictionData>(getClientDataUrl("prediction.json"), getStaticDataUrl("prediction.json")),
+    fetchJson<HistoryData>(getClientDataUrl("history.json"), getStaticDataUrl("history.json")),
   ]);
 
   const timestamps = [

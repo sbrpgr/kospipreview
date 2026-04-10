@@ -1,11 +1,4 @@
-const DATA_FILES = [
-  "prediction.json",
-  "indicators.json",
-  "history.json",
-  "backtest_diagnostics.json",
-] as const;
-
-type DataFileName = (typeof DATA_FILES)[number];
+import { getClientDataUrl, getStaticDataUrl, isLiveDataFile, type DataFileName } from "@/lib/data-paths";
 
 async function fetchJson<T>(fileName: DataFileName): Promise<T> {
   const isServer = typeof window === "undefined";
@@ -18,10 +11,16 @@ async function fetchJson<T>(fileName: DataFileName): Promise<T> {
     return JSON.parse(content) as T;
   }
 
-  const url = `/data/${fileName}?t=${Date.now()}`;
-  const res = await fetch(url, { cache: "no-store" });
+  const preferredUrl = getClientDataUrl(fileName);
+  let res = await fetch(preferredUrl, { cache: "no-store" });
+
+  if (!res.ok && isLiveDataFile(fileName)) {
+    const fallbackUrl = getStaticDataUrl(fileName);
+    res = await fetch(fallbackUrl, { cache: "no-store" });
+  }
+
   if (!res.ok) {
-    throw new Error(`Failed to fetch ${url}`);
+    throw new Error(`Failed to fetch ${preferredUrl}`);
   }
   return res.json() as Promise<T>;
 }
