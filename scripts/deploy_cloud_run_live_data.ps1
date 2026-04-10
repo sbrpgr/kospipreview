@@ -9,11 +9,24 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$env:CLOUDSDK_CORE_DISABLE_PROMPTS = "1"
 
 function Require-Command {
   param([string]$Name)
   if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
     throw "$Name is required but was not found in PATH."
+  }
+}
+
+function Invoke-Gcloud {
+  param(
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Arguments
+  )
+
+  & gcloud @Arguments
+  if ($LASTEXITCODE -ne 0) {
+    throw "gcloud command failed: gcloud $($Arguments -join ' ')"
   }
 }
 
@@ -31,9 +44,9 @@ Write-Host "Using region: $Region"
 Write-Host "Using bucket: gs://$BucketName"
 Write-Host "Using service: $ServiceName"
 
-gcloud config set project $ProjectId | Out-Null
+Invoke-Gcloud config set project $ProjectId | Out-Null
 
-gcloud services enable `
+Invoke-Gcloud services enable `
   run.googleapis.com `
   cloudscheduler.googleapis.com `
   cloudbuild.googleapis.com `
@@ -42,54 +55,60 @@ gcloud services enable `
 
 $bucketExists = $false
 try {
-  gcloud storage buckets describe "gs://$BucketName" | Out-Null
+  Invoke-Gcloud storage buckets describe "gs://$BucketName" | Out-Null
   $bucketExists = $true
 } catch {
   $bucketExists = $false
 }
 
 if (-not $bucketExists) {
-  gcloud storage buckets create "gs://$BucketName" --location=$Region --uniform-bucket-level-access
+  Invoke-Gcloud storage buckets create "gs://$BucketName" --location=$Region --uniform-bucket-level-access | Out-Null
 }
 
-gcloud storage cp frontend/public/data/*.json "gs://$BucketName/"
+Invoke-Gcloud storage cp frontend/public/data/*.json "gs://$BucketName/"
 
-gcloud run deploy $ServiceName `
+Invoke-Gcloud run deploy $ServiceName `
   --source . `
   --region $Region `
   --allow-unauthenticated `
   --set-env-vars "LIVE_DATA_BUCKET=$BucketName,REFRESH_BEARER_TOKEN=$RefreshToken"
 
 $serviceUrl = gcloud run services describe $ServiceName --region $Region --format="value(status.url)"
+if ($LASTEXITCODE -ne 0) {
+  throw "Failed to describe Cloud Run service."
+}
 if (-not $serviceUrl) {
   throw "Failed to resolve Cloud Run service URL."
 }
 
 $jobExists = $false
 try {
-  gcloud scheduler jobs describe $SchedulerJobName --location=$Region | Out-Null
+  Invoke-Gcloud scheduler jobs describe $SchedulerJobName --location=$Region | Out-Null
   $jobExists = $true
 } catch {
   $jobExists = $false
 }
 
-$schedulerArgs = @(
-  $SchedulerJobName,
-  "--location=$Region",
-  "--schedule=$Schedule",
-  "--uri=$serviceUrl/api/tasks/refresh",
-  "--http-method=POST",
-  "--headers=Authorization=Bearer $RefreshToken"
-)
-
 if ($jobExists) {
-  gcloud scheduler jobs update http @schedulerArgs
+  Invoke-Gcloud scheduler jobs update http `
+    $SchedulerJobName `
+    "--location=$Region" `
+    "--schedule=$Schedule" `
+    "--uri=$serviceUrl/api/tasks/refresh" `
+    "--http-method=POST" `
+    "--update-headers=Authorization=Bearer $RefreshToken"
 } else {
-  gcloud scheduler jobs create http @schedulerArgs
+  Invoke-Gcloud scheduler jobs create http `
+    $SchedulerJobName `
+    "--location=$Region" `
+    "--schedule=$Schedule" `
+    "--uri=$serviceUrl/api/tasks/refresh" `
+    "--http-method=POST" `
+    "--headers=Authorization=Bearer $RefreshToken"
 }
 
 Write-Host ""
 Write-Host "Cloud Run live data service deployed."
 Write-Host "Service URL: $serviceUrl"
 Write-Host "Scheduler job: $SchedulerJobName"
-Write-Host "Refresh token (store securely): $RefreshToken"
+Write-Host "Refresh token: configured"

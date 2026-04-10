@@ -7,11 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       loop:
-        description: "Keep chaining this workflow continuously after each successful run"
+        description: "Keep chaining this fallback workflow continuously after each successful run"
         required: false
-        default: "on"
-  schedule:
-    - cron: "* * * * 1-5"
+        default: "off"
 
 concurrency:
   group: refresh-night-futures-${{ github.ref }}
