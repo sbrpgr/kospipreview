@@ -813,6 +813,45 @@ p {
   line-height: 1.72;
 }
 
+.noticeFormula,
+.noticeListBlock {
+  margin-top: 14px;
+}
+
+.noticeFormulaTitle,
+.noticeListTitle {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.noticeFormulaPre {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+}
+
+.noticeBulletList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.72;
+}
+
+.noticeBulletList li + li {
+  margin-top: 6px;
+}
+
 .footer {
   margin-top: 54px;
   padding-top: 24px;
