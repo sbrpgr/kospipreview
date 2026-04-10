@@ -505,6 +505,7 @@ export function LiveDashboard({
         <div className="footerLinks">
           <a href="/history">최근 예측 기록</a>
           <a href="/about">모델 설명</a>
+          <a href="/terms">이용약관</a>
           <a href="/privacy">개인정보처리방침</a>
           <a href="/disclaimer">면책 및 광고 고지</a>
           <a href="/contact">문의</a>
