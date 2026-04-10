@@ -25,11 +25,13 @@ type LiveDashboardProps = {
 const POLL_INTERVAL_MS = 30_000;
 const OPERATION_STATUS_INTERVAL_MS = 30_000;
 const NIGHT_OPERATION_HOURS_LABEL = "18:00~09:00";
+const NIGHT_OPERATION_REOPEN_LABEL = "18:00~";
 const NIGHT_OPERATION_START_MINUTES = 18 * 60;
 const NIGHT_OPERATION_END_MINUTES = 9 * 60;
 
 type MarketOperationInfo = {
   hoursLabel: string;
+  headerLabel: string;
   state: "operating" | "closed" | "holiday";
   statusLabel: string;
 };
@@ -51,6 +53,7 @@ function getMarketOperationInfo(now: Date = new Date()): MarketOperationInfo {
   if (weekday === "Sat" || weekday === "Sun") {
     return {
       hoursLabel: NIGHT_OPERATION_HOURS_LABEL,
+      headerLabel: "휴장",
       state: "holiday",
       statusLabel: "휴장",
     };
@@ -61,8 +64,9 @@ function getMarketOperationInfo(now: Date = new Date()): MarketOperationInfo {
 
   return {
     hoursLabel: NIGHT_OPERATION_HOURS_LABEL,
+    headerLabel: isNightOperationWindow ? "플랫폼 운영중" : `플랫폼 운영 대기 중 (${NIGHT_OPERATION_REOPEN_LABEL})`,
     state: isNightOperationWindow ? "operating" : "closed",
-    statusLabel: isNightOperationWindow ? "운영중" : "운영 종료",
+    statusLabel: isNightOperationWindow ? "플랫폼 운영중" : "플랫폼 운영 대기 중",
   };
 }
 
@@ -370,7 +374,7 @@ export function LiveDashboard({
         status={freshness.status}
         isSyncing={isSyncing}
         operationState={marketOperation.state}
-        operationLabel={marketOperation.statusLabel}
+        operationLabel={marketOperation.headerLabel}
       />
 
       <main>

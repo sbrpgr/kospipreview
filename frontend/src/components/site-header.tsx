@@ -19,8 +19,8 @@ const STATUS_META = {
 } as const;
 
 const OPERATION_META = {
-  operating: { label: "운영중", className: "isOperating" },
-  closed: { label: "운영 종료", className: "isClosed" },
+  operating: { label: "플랫폼 운영중", className: "isOperating" },
+  closed: { label: "플랫폼 운영 대기 중 (18:00~)", className: "isClosed" },
   holiday: { label: "휴장", className: "isHoliday" },
 } as const;
 
@@ -38,7 +38,7 @@ export function SiteHeader({
   operationLabel,
 }: SiteHeaderProps) {
   const operationMeta = OPERATION_META[operationState] ?? {
-    label: "운영 종료",
+    label: "플랫폼 운영 대기 중 (18:00~)",
     className: "isClosed",
   };
   const freshnessMeta = STATUS_META[status as keyof typeof STATUS_META] ?? {
