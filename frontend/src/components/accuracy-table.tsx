@@ -107,7 +107,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
   return baseRecords.sort((a, b) => compareDateDesc(a.date, b.date));
 }
 
-function computeAbsoluteErrorRatePct(actualOpen: number | null, predictedOpen: number | null): number | null {
+function computeModelMatchRatePct(actualOpen: number | null, predictedOpen: number | null): number | null {
   if (actualOpen === null || predictedOpen === null) {
     return null;
   }
@@ -116,7 +116,8 @@ function computeAbsoluteErrorRatePct(actualOpen: number | null, predictedOpen: n
     return null;
   }
 
-  return (Math.abs(predictedOpen - actualOpen) / Math.abs(actualOpen)) * 100;
+  const errorRatePct = (Math.abs(predictedOpen - actualOpen) / Math.abs(actualOpen)) * 100;
+  return Math.max(0, 100 - errorRatePct);
 }
 
 function getErrorColor(error: number | null) {
@@ -127,15 +128,15 @@ function getErrorColor(error: number | null) {
   return error >= 0 ? "var(--negative)" : "var(--positive)";
 }
 
-function getErrorRateColor(errorRatePct: number | null) {
-  if (errorRatePct === null) {
+function getMatchRateColor(matchRatePct: number | null) {
+  if (matchRatePct === null) {
     return "var(--text-secondary)";
   }
 
-  if (errorRatePct <= 0.3) {
+  if (matchRatePct >= 99.7) {
     return "var(--positive)";
   }
-  if (errorRatePct <= 0.8) {
+  if (matchRatePct >= 99.2) {
     return "var(--accent)";
   }
   return "var(--negative)";
@@ -165,11 +166,11 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             <th>야간선물 오차</th>
             <th>모델 오차</th>
             <th style={{ textAlign: "center" }}>
-              모델 오차율(%){" "}
+              모델 일치율(%){" "}
               <span
                 className="tableHintIcon"
-                title="모델 예측치와 실제 시초가의 차이를 실제 시초가로 나눈 절대 오차율입니다."
-                aria-label="모델 오차율 설명"
+                title="모델 예측치가 실제 시초가와 얼마나 가깝게 맞았는지 보여줍니다. 실제 시초가 대비 절대 오차율을 100에서 뺀 값입니다."
+                aria-label="모델 일치율 설명"
               >
                 ?
               </span>
@@ -183,7 +184,7 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             const nightSimple = isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null;
             const nightError = actualOpenValue !== null && nightSimple !== null ? actualOpenValue - nightSimple : null;
             const modelError = actualOpenValue !== null && modelPrediction !== null ? actualOpenValue - modelPrediction : null;
-            const modelErrorRatePct = computeAbsoluteErrorRatePct(actualOpenValue, modelPrediction);
+            const modelMatchRatePct = computeModelMatchRatePct(actualOpenValue, modelPrediction);
 
             return (
               <tr key={record.date} className={record.isPredictionTarget ? "isPredictionTarget" : undefined}>
@@ -215,10 +216,10 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                   style={{
                     textAlign: "center",
                     fontWeight: 800,
-                    color: getErrorRateColor(modelErrorRatePct),
+                    color: getMatchRateColor(modelMatchRatePct),
                   }}
                 >
-                  {modelErrorRatePct === null ? "-" : `${modelErrorRatePct.toFixed(2)}%`}
+                  {modelMatchRatePct === null ? "-" : `${modelMatchRatePct.toFixed(2)}%`}
                 </td>
               </tr>
             );
