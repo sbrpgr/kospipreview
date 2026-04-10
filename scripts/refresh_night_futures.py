@@ -305,9 +305,6 @@ def fetch_yahoo_market_display_snapshot(symbol: str) -> dict | None:
         latest_ts_utc = ts_utc
         latest_value = close_value
 
-    if latest_ts_utc is None or latest_value is None:
-        return None
-
     meta = first.get("meta")
     if not isinstance(meta, dict):
         return None
@@ -320,10 +317,38 @@ def fetch_yahoo_market_display_snapshot(symbol: str) -> dict | None:
     if previous_close is None:
         return None
 
+    freshest_ts_utc = latest_ts_utc
+    freshest_value = latest_value
+
+    def consider_meta_price(time_key: str, price_key: str) -> None:
+        nonlocal freshest_ts_utc, freshest_value
+
+        raw_ts = meta.get(time_key)
+        raw_price = meta.get(price_key)
+        price_value = to_float(raw_price)
+        if price_value is None:
+            return
+
+        try:
+            ts_utc = datetime.fromtimestamp(int(raw_ts), tz=timezone.utc)
+        except (TypeError, ValueError):
+            return
+
+        if freshest_ts_utc is None or ts_utc > freshest_ts_utc:
+            freshest_ts_utc = ts_utc
+            freshest_value = price_value
+
+    consider_meta_price("regularMarketTime", "regularMarketPrice")
+    consider_meta_price("preMarketTime", "preMarketPrice")
+    consider_meta_price("postMarketTime", "postMarketPrice")
+
+    if freshest_ts_utc is None or freshest_value is None:
+        return None
+
     return {
-        "value": latest_value,
-        "change_pct": (latest_value / previous_close - 1) * 100,
-        "updated_at": latest_ts_utc.isoformat(),
+        "value": freshest_value,
+        "change_pct": (freshest_value / previous_close - 1) * 100,
+        "updated_at": freshest_ts_utc.isoformat(),
     }
 
 
