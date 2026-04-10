@@ -29,6 +29,32 @@ const NOTICE_ITEMS: NoticeItem[] = [
     ],
   },
   {
+    title: "현재 메인 예측모델 · 야간선물 없이 작동하는 독립형 예측 엔진",
+    blocks: [
+      {
+        kind: "paragraph",
+        text: "현재 화면에 표시되는 메인 예측값은 야간선물 지표를 직접 입력값으로 사용하지 않는 모델입니다. 즉 '야간선물이 몇 % 올랐으니 코스피도 그만큼 오른다'는 단순 추종 구조가 아니라, EWY와 USD/KRW를 중심으로 한국장 마감 이후 누적된 해외 정보를 다시 계산해 다음 날 개장가를 추정하는 독립형 예측 엔진입니다.",
+      },
+      {
+        kind: "paragraph",
+        text: "야간선물은 비교용 기준선으로만 남아 있습니다. 이는 메인 모델의 직접 입력값이 아니라, '기존 직접 지표'와 '현재 연구 모델'을 같은 화면에서 비교 검증하기 위한 공개 벤치마크입니다. 따라서 사이트의 핵심 산출물은 야간선물 환산치가 아니라, 야간선물 없이도 설명력을 확보하려는 EWY 코어 기반 예측모델입니다.",
+      },
+      {
+        kind: "formula",
+        title: "현재 메인 모델의 기본 구조",
+        lines: [
+          "Core signal = EWY + USD/KRW sync-adjusted return",
+          "Residual layer = SOX + U.S. broad factor + US10Y + WTI + Gold",
+          "Final prediction = Core signal + residual correction + stability guardrail",
+        ],
+      },
+      {
+        kind: "paragraph",
+        text: "왜 굳이 야간선물을 빼고 이런 구조를 쓰느냐가 중요합니다. 연구 목적은 단순히 야간선물을 따라가는 것이 아니라, 야간선물 접근이 제한되거나 세션 종료 이후 정보 공백이 생기는 구간에서도 독립적인 fair-value nowcast를 만들 수 있는지를 검증하는 데 있기 때문입니다. 다시 말해 이 플랫폼은 야간선물 복제기가 아니라, 야간선물 없이도 작동하는 퀀트형 개장가 예측모델을 실험하는 공개 연구환경입니다.",
+      },
+    ],
+  },
+  {
     title: "EWY 기반 합성 KOSPI200 야간 환산지수 · 코어 설계와 핵심 수식",
     blocks: [
       {
@@ -207,8 +233,9 @@ export function NoticeContent() {
         <h2 className="sectionTitle">공지 및 안내</h2>
       </div>
       <p className="sectionSubtext noticeLead">
-        본 플랫폼은 퀀트투자모델 개발과 검증을 위한 연구환경입니다. 화면의 예측값과 야간선물 단순환산은 모두 연구·비교
-        목적의 참고 자료이며, 최종 투자 판단과 책임은 사용자 본인에게 있습니다.
+        본 플랫폼은 퀀트투자모델 개발과 검증을 위한 연구환경입니다. 메인 예측값은 야간선물을 직접 입력하지 않는 독립형
+        연구모델이며, 화면의 예측값과 야간선물 단순환산은 모두 연구·비교 목적의 참고 자료입니다. 최종 투자 판단과 책임은
+        사용자 본인에게 있습니다.
       </p>
       <div className="noticeList">
         {NOTICE_ITEMS.map((item) => (
