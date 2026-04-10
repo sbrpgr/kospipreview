@@ -12,28 +12,28 @@
     "sox_return",
     "krw_return"
   ],
-  "rmse": 36.4892,
-  "mae": 18.4592,
+  "rmse": 36.7907,
+  "mae": 18.5985,
   "featureImportance": {
-    "ewy_return": 787,
-    "koru_return": 706,
-    "sp500_return": 555,
-    "nasdaq_return": 652,
-    "dow_return": 785,
-    "vix_return": 1124,
-    "wti_return": 954,
-    "gold_return": 969,
-    "us10y_return": 736,
-    "sox_return": 892,
-    "krw_return": 840
+    "ewy_return": 797,
+    "koru_return": 723,
+    "sp500_return": 553,
+    "nasdaq_return": 656,
+    "dow_return": 790,
+    "vix_return": 1149,
+    "wti_return": 956,
+    "gold_return": 952,
+    "us10y_return": 752,
+    "sox_return": 869,
+    "krw_return": 803
   },
   "ewyFxCorrection": {
-    "intercept": 0.20309453331417598,
-    "ewy_coef": 0.41025201161958746,
+    "intercept": 0.2006605010712867,
+    "ewy_coef": 0.40975447864451137,
     "krw_coef": 0.2,
     "sample_size": 160,
-    "r2": 0.27737048394219754,
-    "mae": 0.9730691427312081
+    "r2": 0.2753828621695529,
+    "mae": 0.9696931425231753
   },
-  "generatedAt": "2026-04-09T23:42:59.447734+00:00"
+  "generatedAt": "2026-04-10T01:04:36.893426+00:00"
 }
