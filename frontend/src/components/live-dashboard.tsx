@@ -473,6 +473,9 @@ export function LiveDashboard({
       <footer className="footer">
         <div>© 2026 KOSPI Dawn. Forecast dashboard for KOSPI opening range.</div>
         <div className="footerAdNotice">본 사이트에는 서비스 운영을 위한 광고가 포함될 수 있습니다.</div>
+        <div className="footerContactNotice">
+          문의 이메일: <a href="mailto:ytbtheguy@gmail.com">ytbtheguy@gmail.com</a>
+        </div>
         <div className="footerLinks">
           <a href="/history">최근 예측 기록</a>
           <a href="/about">모델 설명</a>
