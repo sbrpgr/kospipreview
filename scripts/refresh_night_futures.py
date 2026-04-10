@@ -1378,7 +1378,32 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
         secondary = []
 
     snapshots: dict[str, dict | None] = {}
+
+    def get_snapshot(key: str) -> dict | None:
+        ticker = DISPLAY_TICKER_BY_KEY.get(key)
+        if not ticker:
+            return None
+        if key not in snapshots:
+            snapshots[key] = fetch_yahoo_market_display_snapshot(ticker)
+        return snapshots[key]
+
+    live_cash_index_keys = ("sp500", "nasdaq", "dow", "sox")
+    has_fresh_cash_index_quote = False
+    for key in live_cash_index_keys:
+        snapshot = get_snapshot(key)
+        if not snapshot:
+            continue
+        updated_dt = parse_iso_datetime_utc(snapshot.get("updated_at"))
+        if updated_dt is None:
+            continue
+        age_minutes = (now_utc - updated_dt).total_seconds() / 60
+        if age_minutes <= PREMARKET_STALE_MINUTES:
+            has_fresh_cash_index_quote = True
+            break
+
     in_us_premarket_now = is_us_premarket_window(now_utc)
+    if has_fresh_cash_index_quote:
+        in_us_premarket_now = False
 
     def apply_rows(rows: list) -> None:
         for row in rows:
@@ -1391,13 +1416,7 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
             row["displayTag"] = "(장 시작전)" if in_us_premarket_now and key in PREMARKET_TRACK_KEYS else ""
             row["isPremarket"] = False
 
-            ticker = DISPLAY_TICKER_BY_KEY.get(key)
-            if not ticker:
-                continue
-
-            if key not in snapshots:
-                snapshots[key] = fetch_yahoo_market_display_snapshot(ticker)
-            snapshot = snapshots[key]
+            snapshot = get_snapshot(key)
             if not snapshot:
                 continue
 
@@ -1408,7 +1427,11 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
                 continue
 
             updated_dt = parse_iso_datetime_utc(updated_at)
-            is_premarket_quote = updated_dt is not None and is_timestamp_in_us_premarket(updated_dt)
+            is_premarket_quote = (
+                not has_fresh_cash_index_quote
+                and updated_dt is not None
+                and is_timestamp_in_us_premarket(updated_dt)
+            )
             age_minutes = (
                 (now_utc - updated_dt).total_seconds() / 60 if updated_dt is not None else float("inf")
             )
