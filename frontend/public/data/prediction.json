@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-10T23:50:15.532037+00:00",
+  "generatedAt": "2026-04-11T01:03:37.463247+00:00",
   "predictionDate": "2026년 04월 13일",
   "predictionDateIso": "2026-04-13",
   "pointPrediction": 5882.7,
@@ -12,7 +12,7 @@
   "predictedChangePct": 0.41,
   "prevClose": 5858.87,
   "signalSummary": "EWY 상승 · S&P 500 하락 · VIX 하락(안정) · NASDAQ 100 보합 · USD/KRW 보합",
-  "lastCalculatedAt": "2026-04-10T23:50:15.532037+00:00",
+  "lastCalculatedAt": "2026-04-11T01:03:37.463247+00:00",
   "latestRecordDate": "2026-04-10",
   "mae30d": 21.33,
   "model": {
