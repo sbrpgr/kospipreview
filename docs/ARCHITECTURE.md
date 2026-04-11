@@ -77,9 +77,46 @@ instead of:
   - `prediction.json`
   - `indicators.json`
   - `history.json`
+  - `live_prediction_series.json`
 - Static files remain as the cold-start / fallback baseline
 - Cache headers are intentionally strict for HTML and `/data/**`
 - Immutable caching is only used for `/_next/static/**`
+
+## Live Prediction Trend Layer
+
+The homepage now includes a live prediction trend chart below the hero forecast cards.
+
+Purpose:
+
+- show how the current prediction target evolves over time
+- compare model prediction against night-futures simple conversion
+- make intraday / overnight changes visible without relying only on the latest number
+
+Data source:
+
+- `/api/live/live_prediction_series.json`
+- static fallback: `/data/live_prediction_series.json`
+
+Writer:
+
+- `scripts/refresh_night_futures.py`
+
+Reader:
+
+- `frontend/src/components/prediction-trend-chart.tsx`
+- `frontend/src/components/live-dashboard.tsx`
+
+Retention behavior:
+
+- one observation per minute-level `observedAt`
+- duplicate minute observations are replaced
+- only records matching the active `predictionDateIso` are retained
+- max retained observations: `1080`
+
+Chart lines:
+
+- `모델 예측`
+- `야간선물 단순환산`
 
 ## Current Model / Data Layers
 
@@ -115,6 +152,7 @@ instead of:
 - `scripts/backtest_and_generate.py`
 - `scripts/refresh_night_futures.py`
 - `cloudrun/live_data_service.py`
+- `frontend/src/components/prediction-trend-chart.tsx`
 - `docs/CLOUD_RUN_LIVE_REFRESH.md`
 - `docs/SECURITY_OPERATIONS_RUNBOOK.md`
 

@@ -27,6 +27,7 @@ Primary goal:
 - `/api/live/prediction.json`
 - `/api/live/indicators.json`
 - `/api/live/history.json`
+- `/api/live/live_prediction_series.json`
 
 These are served through Firebase Hosting rewrite to Cloud Run.
 
@@ -52,6 +53,29 @@ These remain important for:
 5. refreshed JSON is uploaded back to Cloud Storage
 6. browser fetches new values through `/api/live/*.json`
 
+## Live Prediction Series
+
+`live_prediction_series.json` is the minute-level observation log used by the homepage `예측 추이` chart.
+
+It stores snapshots for the active prediction date:
+
+- `predictionDateIso`
+- `observedAt`
+- `kstTime`
+- `pointPrediction`
+- `nightFuturesSimplePoint`
+- `predictedChangePct`
+- `nightFuturesSimpleChangePct`
+
+Rules:
+
+- one row per minute-level `observedAt`
+- if the same minute is refreshed more than once, the latest row replaces the old one
+- when the prediction target rolls to a new date, prior target rows are dropped from the live series
+- maximum retained rows: `1080`
+
+The chart is not a historical backtest chart. It is a live nowcast trace for the currently active prediction target.
+
 ## Why No Database
 
 The platform intentionally uses JSON object storage instead of a DB.
@@ -74,6 +98,7 @@ Responsible for:
 
 - minute-level live indicator refresh
 - minute-level model prediction refresh
+- minute-level model-vs-night-futures trend series update
 - faster dashboard freshness without full Hosting redeploy
 
 ### GitHub Actions `retrain-model`
@@ -132,7 +157,8 @@ When live refresh looks stale, check in this order:
 2. Cloud Run service health and recent logs
 3. Cloud Storage object updated timestamps
 4. browser `/api/live/*.json` response timestamps
-5. source market data freshness by symbol
+5. `/api/live/live_prediction_series.json` record count and latest `observedAt`
+6. source market data freshness by symbol
 
 ## Practical Boundaries
 
@@ -140,6 +166,7 @@ When live refresh looks stale, check in this order:
 - browser polling can be shorter, but source refresh is still 1 minute
 - some market symbols update slower than others even when our pipeline is healthy
 - live refresh does not replace full retraining or static export updates
+- trend chart cadence follows Cloud Scheduler / Cloud Run refresh cadence, not browser polling cadence
 
 ## Recovery Notes
 

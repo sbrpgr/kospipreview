@@ -2,6 +2,21 @@
 
 ## 2026-04-11
 
+- Live prediction trend chart
+  - Added homepage `예측 추이` chart below the hero forecast area.
+  - New live JSON artifact:
+    - `live_prediction_series.json`
+  - New live endpoint:
+    - `/api/live/live_prediction_series.json`
+  - The series records the active prediction date only and compares:
+    - model prediction
+    - night-futures simple conversion
+  - `scripts/refresh_night_futures.py` now appends / replaces one minute-level observation on each refresh.
+  - `cloudrun/live_data_service.py` now serves and syncs `live_prediction_series.json`.
+  - Frontend polling updates the trend chart alongside `prediction.json`, `indicators.json`, and `history.json`.
+  - Cloud Run redeployed to revision `kospi-live-data-00009-bdw`.
+  - Firebase Hosting redeployed after Cloud Run so `/api/live/**` pins the latest Cloud Run revision.
+
 - Operations documentation refresh
   - Rewrote `docs/ARCHITECTURE.md` to reflect the current split production shape:
     - Firebase Hosting for static frontend

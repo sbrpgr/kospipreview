@@ -116,8 +116,9 @@ Verification:
 1. confirm homepage loads
 2. confirm `/api/live/prediction.json` freshness
 3. confirm `/api/live/indicators.json` freshness
-4. confirm `/data/*.json` still serves valid fallback payloads
-5. confirm Cloudflare proxy / DNS is still correct
+4. confirm `/api/live/live_prediction_series.json` returns records for the active `predictionDateIso`
+5. confirm `/data/*.json` still serves valid fallback payloads
+6. confirm Cloudflare proxy / DNS is still correct
 
 ## Failure Triage
 
@@ -127,15 +128,33 @@ Check:
 
 1. `/api/live/prediction.json`
 2. `/api/live/indicators.json`
-3. Cloud Scheduler last run
-4. Cloud Run logs
-5. source symbol freshness
+3. `/api/live/live_prediction_series.json`
+4. Cloud Scheduler last run
+5. Cloud Run logs
+6. source symbol freshness
 
 Likely causes:
 
 - Cloud Scheduler auth issue
 - Cloud Run refresh failure
 - source market data lag
+
+### A-1. Prediction trend chart is empty or stale
+
+Check:
+
+1. `/api/live/live_prediction_series.json`
+2. latest `records[-1].observedAt`
+3. Cloud Storage object `live_prediction_series.json`
+4. Cloud Run revision includes `cloudrun/live_data_service.py` with `live_prediction_series.json` in `SERVE_FILE_NAMES`
+5. `scripts/refresh_night_futures.py` can write `live_prediction_series.json`
+
+Likely causes:
+
+- Cloud Run was not redeployed after adding a new live JSON file
+- Firebase Hosting rewrite still pins an older Cloud Run revision
+- refresh job is running but prediction payload is missing valid `pointPrediction`
+- current prediction date rolled and the new series has only just started accumulating
 
 ### B. Static pages are behind
 

@@ -22,6 +22,10 @@ If work resumes in a later chat or from another machine, start here and then ope
 - Current prediction engine: `EWY Synthetic K200 Ridge`
 - Current live rewrite:
   - `/api/live/** -> Cloud Run service kospi-live-data (asia-northeast3)`
+- Current live chart data:
+  - `/api/live/live_prediction_series.json`
+  - Stores minute-level snapshots for the active prediction date
+  - Used by the homepage `예측 추이` chart to compare model prediction vs night-futures simple conversion
 
 ## Current Model Rules
 
@@ -37,6 +41,7 @@ Related code:
 - `scripts/refresh_night_futures.py`
 - `cloudrun/live_data_service.py`
 - `frontend/src/lib/data.ts`
+- `frontend/src/components/prediction-trend-chart.tsx`
 
 ## Current Operations Docs
 
@@ -59,6 +64,25 @@ Related code:
   - add `roles/run.developer`
 - Verification:
   - next scheduled run `24250747384` succeeded
+
+## Latest Feature Handoff
+
+- Added live prediction trend chart on the homepage
+- Data file:
+  - `live_prediction_series.json`
+- Live endpoint:
+  - `/api/live/live_prediction_series.json`
+- Update behavior:
+  - every Cloud Scheduler refresh appends / replaces one minute-level observation
+  - duplicate `observedAt` minute values are collapsed
+  - only the active `predictionDateIso` series is retained
+  - max retained points: `1080`
+- Chart lines:
+  - `모델 예측`
+  - `야간선물 단순환산`
+- Deployment note:
+  - Cloud Run must be redeployed when `cloudrun/live_data_service.py` serving list changes
+  - Firebase Hosting must be redeployed after Cloud Run so `pinTag: true` pins the latest revision
 
 ## Operating Principles
 
