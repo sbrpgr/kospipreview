@@ -30,6 +30,7 @@ DATA_DIR = Path(os.environ.get("KOSPI_DAWN_DATA_DIR", ROOT / "frontend" / "publi
 OUT_DATA_DIR = Path(os.environ.get("KOSPI_DAWN_OUT_DATA_DIR", ROOT / "frontend" / "out" / "data"))
 INDICATORS_FILE = DATA_DIR / "indicators.json"
 PREDICTION_FILE = DATA_DIR / "prediction.json"
+LIVE_PREDICTION_SERIES_FILE = DATA_DIR / "live_prediction_series.json"
 DAY_FUTURES_CLOSE_CACHE_FILE = DATA_DIR / "day_futures_close_cache.json"
 NIGHT_FUTURES_SOURCE_CACHE_FILE = DATA_DIR / "night_futures_source_cache.json"
 
@@ -141,6 +142,7 @@ YAHOO_CHART_URL_TEMPLATE = (
 KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 KRX_SYNC_MAX_FORWARD_HOURS = 12
+LIVE_PREDICTION_SERIES_MAX_RECORDS = 1080
 
 
 def read_json(path: Path) -> dict | None:
@@ -206,6 +208,78 @@ def to_float(value: object) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def load_live_prediction_series() -> dict:
+    payload = read_json(LIVE_PREDICTION_SERIES_FILE)
+    if not isinstance(payload, dict):
+        return {"records": []}
+
+    records = payload.get("records")
+    if not isinstance(records, list):
+        payload["records"] = []
+    return payload
+
+
+def build_live_prediction_series_entry(payload: dict, now_utc: datetime) -> dict | None:
+    prediction_date_iso = parse_prediction_target_date(
+        payload.get("predictionDateIso") or payload.get("predictionDate")
+    )
+    if not prediction_date_iso:
+        return None
+
+    point_prediction = to_float(payload.get("pointPrediction"))
+    if point_prediction is None:
+        return None
+
+    observed_at = now_utc.replace(second=0, microsecond=0)
+    observed_at_kst = observed_at.astimezone(KST)
+    night_simple = to_float(payload.get("nightFuturesSimplePoint"))
+    predicted_change = to_float(payload.get("predictedChangePct"))
+    night_change = to_float(payload.get("nightFuturesSimpleChangePct"))
+
+    return {
+        "predictionDateIso": prediction_date_iso,
+        "predictionDate": payload.get("predictionDate"),
+        "observedAt": observed_at.isoformat(),
+        "kstTime": observed_at_kst.strftime("%H:%M"),
+        "pointPrediction": round(point_prediction, 2),
+        "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
+        "predictedChangePct": round(predicted_change, 2) if predicted_change is not None else None,
+        "nightFuturesSimpleChangePct": round(night_change, 2) if night_change is not None else None,
+    }
+
+
+def update_live_prediction_series(payload: dict, now_utc: datetime) -> dict:
+    entry = build_live_prediction_series_entry(payload, now_utc)
+    if entry is None:
+        return load_live_prediction_series()
+
+    series_payload = load_live_prediction_series()
+    target_date = entry["predictionDateIso"]
+    records = [
+        row
+        for row in series_payload.get("records", [])
+        if isinstance(row, dict)
+        and row.get("predictionDateIso") == target_date
+        and isinstance(row.get("observedAt"), str)
+    ]
+
+    by_observed_at: dict[str, dict] = {}
+    for row in records:
+        by_observed_at[str(row["observedAt"])] = row
+    by_observed_at[entry["observedAt"]] = entry
+
+    next_records = sorted(by_observed_at.values(), key=lambda row: str(row.get("observedAt", "")))
+    if len(next_records) > LIVE_PREDICTION_SERIES_MAX_RECORDS:
+        next_records = next_records[-LIVE_PREDICTION_SERIES_MAX_RECORDS:]
+
+    return {
+        "generatedAt": now_utc.isoformat(),
+        "predictionDateIso": target_date,
+        "predictionDate": entry.get("predictionDate"),
+        "records": next_records,
+    }
 
 
 def fetch_yahoo_chart_points(symbol: str) -> list[tuple[datetime, float]]:
@@ -1610,6 +1684,8 @@ def main() -> None:
     if prediction_payload:
         prediction_payload = update_prediction_night_fields(prediction_payload, night_quote, day_close_quote, now_utc)
         write_output_json("prediction.json", prediction_payload)
+        live_prediction_series_payload = update_live_prediction_series(prediction_payload, now_utc)
+        write_output_json("live_prediction_series.json", live_prediction_series_payload)
 
     status = "live" if night_quote and night_quote.get("is_live_night") else "standby"
     updated_at = night_quote.get("updated_at") if night_quote else "-"

@@ -28,6 +28,7 @@ async function fetchJson<T>(fileName: DataFileName): Promise<T> {
 export type PredictionData = Awaited<ReturnType<typeof getPredictionData>>;
 export type IndicatorData = Awaited<ReturnType<typeof getIndicatorData>>;
 export type HistoryData = Awaited<ReturnType<typeof getHistoryData>>;
+export type LivePredictionSeriesData = Awaited<ReturnType<typeof getLivePredictionSeriesData>>;
 export type BacktestDiagnosticsData = Awaited<ReturnType<typeof getBacktestDiagnosticsData>>;
 
 export async function getPredictionData() {
@@ -113,6 +114,24 @@ export async function getHistoryData() {
       hit: boolean;
     }>;
   }>("history.json");
+}
+
+export async function getLivePredictionSeriesData() {
+  return fetchJson<{
+    generatedAt?: string;
+    predictionDateIso?: string;
+    predictionDate?: string;
+    records: Array<{
+      predictionDateIso: string;
+      predictionDate?: string;
+      observedAt: string;
+      kstTime?: string;
+      pointPrediction?: number | null;
+      nightFuturesSimplePoint?: number | null;
+      predictedChangePct?: number | null;
+      nightFuturesSimpleChangePct?: number | null;
+    }>;
+  }>("live_prediction_series.json");
 }
 
 export async function getBacktestDiagnosticsData() {

@@ -499,6 +499,62 @@ p {
   width: 100%;
 }
 
+.predictionTrendCard {
+  margin-top: -4px;
+}
+
+.predictionTrendHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.predictionTrendTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.predictionTrendSubtext {
+  color: var(--text-dim);
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.predictionTrendBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(49, 130, 246, 0.2);
+  background: var(--brand-bg);
+  color: var(--brand-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.predictionTrendChart {
+  height: 280px;
+  width: 100%;
+}
+
+.predictionTrendEmpty {
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--border-hover);
+  border-radius: var(--radius-md);
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 20px;
+}
+
 .indicatorGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));

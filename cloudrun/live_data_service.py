@@ -20,6 +20,7 @@ SERVE_FILE_NAMES = {
     "prediction.json",
     "indicators.json",
     "history.json",
+    "live_prediction_series.json",
     "backtest_diagnostics.json",
 }
 SYNC_FILE_NAMES = SERVE_FILE_NAMES | {
@@ -186,6 +187,7 @@ def root() -> Response:
                 "prediction": "/api/live/prediction.json",
                 "indicators": "/api/live/indicators.json",
                 "history": "/api/live/history.json",
+                "livePredictionSeries": "/api/live/live_prediction_series.json",
             },
         }
     )

@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-04-11T11:04:34.793729+00:00",
+  "predictionDateIso": "2026-04-13",
+  "predictionDate": "2026년 04월 13일",
+  "records": [
+    {
+      "predictionDateIso": "2026-04-13",
+      "predictionDate": "2026년 04월 13일",
+      "observedAt": "2026-04-11T11:04:00+00:00",
+      "kstTime": "20:04",
+      "pointPrediction": 5882.3,
+      "nightFuturesSimplePoint": 5891.7,
+      "predictedChangePct": 0.4,
+      "nightFuturesSimpleChangePct": 0.56
+    }
+  ]
+}

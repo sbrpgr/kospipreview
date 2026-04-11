@@ -5,9 +5,15 @@ import { AccuracyTable } from "@/components/accuracy-table";
 import { ChartSection } from "@/components/chart-section";
 import { IndicatorList } from "@/components/indicator-list";
 import { NoticeContent } from "@/components/notice-content";
+import { PredictionTrendChart } from "@/components/prediction-trend-chart";
 import { SiteHeader } from "@/components/site-header";
 import { getClientDataUrl, getStaticDataUrl } from "@/lib/data-paths";
-import { type HistoryData, type IndicatorData, type PredictionData } from "@/lib/data";
+import {
+  type HistoryData,
+  type IndicatorData,
+  type LivePredictionSeriesData,
+  type PredictionData,
+} from "@/lib/data";
 
 type FreshnessData = {
   status: "fresh" | "aging" | "stale";
@@ -20,6 +26,7 @@ type LiveDashboardProps = {
   initialPrediction: PredictionData;
   initialIndicators: IndicatorData;
   initialHistory: HistoryData;
+  initialLivePredictionSeries: LivePredictionSeriesData;
   initialFreshness: FreshnessData;
 };
 
@@ -127,6 +134,7 @@ function getDashboardVersion(
   prediction: PredictionData,
   indicators: IndicatorData,
   history: HistoryData,
+  livePredictionSeries: LivePredictionSeriesData,
   freshness: FreshnessData,
 ) {
   const historyFingerprint = history.records
@@ -139,6 +147,16 @@ function getDashboardVersion(
         record.high,
         record.actualOpen,
         record.hit ? "1" : "0",
+      ].join("~"),
+    )
+    .join(";");
+  const trendFingerprint = livePredictionSeries.records
+    .map((record) =>
+      [
+        record.predictionDateIso,
+        record.observedAt,
+        record.pointPrediction ?? "",
+        record.nightFuturesSimplePoint ?? "",
       ].join("~"),
     )
     .join(";");
@@ -155,6 +173,8 @@ function getDashboardVersion(
     getIndicatorsVersion(indicators),
     history.generatedAt ?? "",
     historyFingerprint,
+    livePredictionSeries.generatedAt ?? "",
+    trendFingerprint,
     freshness.newestModifiedAt,
   ].join("|");
 }
@@ -216,9 +236,13 @@ async function fetchIndicatorsPayload() {
 }
 
 async function fetchDashboardPayload(indicators: IndicatorData) {
-  const [prediction, history] = await Promise.all([
+  const [prediction, history, livePredictionSeries] = await Promise.all([
     fetchJson<PredictionData>(getClientDataUrl("prediction.json"), getStaticDataUrl("prediction.json")),
     fetchJson<HistoryData>(getClientDataUrl("history.json"), getStaticDataUrl("history.json")),
+    fetchJson<LivePredictionSeriesData>(
+      getClientDataUrl("live_prediction_series.json"),
+      getStaticDataUrl("live_prediction_series.json"),
+    ),
   ]);
 
   const timestamps = [
@@ -258,8 +282,9 @@ async function fetchDashboardPayload(indicators: IndicatorData) {
     prediction,
     indicators,
     history,
+    livePredictionSeries,
     freshness,
-    version: getDashboardVersion(prediction, indicators, history, freshness),
+    version: getDashboardVersion(prediction, indicators, history, livePredictionSeries, freshness),
   };
 }
 
@@ -267,18 +292,22 @@ export function LiveDashboard({
   initialPrediction,
   initialIndicators,
   initialHistory,
+  initialLivePredictionSeries,
   initialFreshness,
 }: LiveDashboardProps) {
   const [prediction, setPrediction] = useState(initialPrediction);
   const [indicators, setIndicators] = useState(initialIndicators);
   const [history, setHistory] = useState(initialHistory);
+  const [livePredictionSeries, setLivePredictionSeries] = useState(initialLivePredictionSeries);
   const [freshness, setFreshness] = useState(initialFreshness);
   const [hasSyncedOnce, setHasSyncedOnce] = useState(false);
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
   const [isSyncing, setIsSyncing] = useState(false);
   const [marketOperation, setMarketOperation] = useState<MarketOperationInfo>(() => getMarketOperationInfo());
-  const versionRef = useRef(getDashboardVersion(initialPrediction, initialIndicators, initialHistory, initialFreshness));
+  const versionRef = useRef(
+    getDashboardVersion(initialPrediction, initialIndicators, initialHistory, initialLivePredictionSeries, initialFreshness),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -307,6 +336,7 @@ export function LiveDashboard({
           setPrediction(next.prediction);
           setIndicators(next.indicators);
           setHistory(next.history);
+          setLivePredictionSeries(next.livePredictionSeries);
           setFreshness(next.freshness);
           setLastChangedAt(next.freshness.newestModifiedAt);
         }
@@ -449,6 +479,8 @@ export function LiveDashboard({
           </div>
           <div className="heroFootnote">{statusMessage}</div>
         </section>
+
+        <PredictionTrendChart prediction={prediction} series={livePredictionSeries} />
 
         <div className="sectionTitleRow">
           <h2 className="sectionTitle">시장 지표 (야후 파이낸스)</h2>

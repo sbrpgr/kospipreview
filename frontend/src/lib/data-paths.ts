@@ -1,9 +1,10 @@
-const LIVE_DATA_FILES = new Set(["prediction.json", "indicators.json", "history.json"]);
+const LIVE_DATA_FILES = new Set(["prediction.json", "indicators.json", "history.json", "live_prediction_series.json"]);
 
 export const DATA_FILES = [
   "prediction.json",
   "indicators.json",
   "history.json",
+  "live_prediction_series.json",
   "backtest_diagnostics.json",
 ] as const;
 

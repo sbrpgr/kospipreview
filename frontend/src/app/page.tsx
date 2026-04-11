@@ -4,6 +4,7 @@ import {
   getDataFreshness,
   getHistoryData,
   getIndicatorData,
+  getLivePredictionSeriesData,
   getPredictionData,
 } from "@/lib/data";
 import {
@@ -69,10 +70,11 @@ const FAQ_ITEMS = [
 ] as const;
 
 export default async function Home() {
-  const [prediction, indicators, history, freshness] = await Promise.all([
+  const [prediction, indicators, history, livePredictionSeries, freshness] = await Promise.all([
     getPredictionData(),
     getIndicatorData(),
     getHistoryData(),
+    getLivePredictionSeriesData(),
     getDataFreshness(),
   ]);
 
@@ -163,6 +165,7 @@ export default async function Home() {
         initialPrediction={prediction}
         initialIndicators={indicators}
         initialHistory={history}
+        initialLivePredictionSeries={livePredictionSeries}
         initialFreshness={freshness}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
