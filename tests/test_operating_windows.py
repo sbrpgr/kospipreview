@@ -113,6 +113,41 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(snapshot["value"], 101.0)
         self.assertEqual(snapshot["market_session"], "post")
 
+    def test_market_display_snapshot_reuses_run_cache(self):
+        original_chart = refresh_night_futures.fetch_yahoo_chart_market_display_snapshot
+        original_quote = refresh_night_futures.fetch_yahoo_quote_page_snapshot
+        calls = {"chart": 0, "quote": 0}
+        try:
+            def fake_chart(symbol):
+                calls["chart"] += 1
+                return {
+                    "value": 100.0,
+                    "change_pct": 0.1,
+                    "updated_at": "2026-04-13T05:00:00+00:00",
+                }
+
+            def fake_quote(symbol):
+                calls["quote"] += 1
+                return {
+                    "value": 101.0,
+                    "change_pct": 1.1,
+                    "updated_at": "2026-04-13T05:02:00+00:00",
+                    "market_session": "post",
+                }
+
+            refresh_night_futures.fetch_yahoo_chart_market_display_snapshot = fake_chart
+            refresh_night_futures.fetch_yahoo_quote_page_snapshot = fake_quote
+
+            cache = {}
+            first = refresh_night_futures.fetch_yahoo_market_display_snapshot("^GSPC", cache)
+            second = refresh_night_futures.fetch_yahoo_market_display_snapshot("^GSPC", cache)
+        finally:
+            refresh_night_futures.fetch_yahoo_chart_market_display_snapshot = original_chart
+            refresh_night_futures.fetch_yahoo_quote_page_snapshot = original_quote
+
+        self.assertEqual(first, second)
+        self.assertEqual(calls, {"chart": 1, "quote": 1})
+
     def test_market_display_snapshot_prefers_session_metadata_on_tie(self):
         chart = {
             "value": 100.0,

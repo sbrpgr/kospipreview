@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-13T17:56:39.366750+00:00",
+  "generatedAt": "2026-04-13T20:01:36.326821+00:00",
   "predictionDateIso": "2026-04-14",
   "predictionDate": "2026년 04월 14일",
   "records": [
@@ -165,6 +165,71 @@
       "predictedChangePct": 0.97,
       "nightFuturesSimpleChangePct": 2.68,
       "ewyFxSimpleChangePct": 2.7
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T19:54:00+00:00",
+      "kstTime": "04:54",
+      "pointPrediction": 5875.79,
+      "nightFuturesSimplePoint": 6001.13,
+      "ewyFxSimplePoint": 6001.09,
+      "nightFuturesClose": 900.9,
+      "predictedChangePct": 1.16,
+      "nightFuturesSimpleChangePct": 3.31,
+      "ewyFxSimpleChangePct": 3.31
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T19:55:00+00:00",
+      "kstTime": "04:55",
+      "pointPrediction": 5874.0,
+      "nightFuturesSimplePoint": 6002.46,
+      "ewyFxSimplePoint": 5994.99,
+      "nightFuturesClose": 901.1,
+      "predictedChangePct": 1.13,
+      "nightFuturesSimpleChangePct": 3.34,
+      "ewyFxSimpleChangePct": 3.21
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T19:58:00+00:00",
+      "kstTime": "04:58",
+      "pointPrediction": 5875.51,
+      "nightFuturesSimplePoint": 6000.13,
+      "ewyFxSimplePoint": 6000.84,
+      "nightFuturesClose": 900.75,
+      "predictedChangePct": 1.15,
+      "nightFuturesSimpleChangePct": 3.3,
+      "ewyFxSimpleChangePct": 3.31
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T19:59:00+00:00",
+      "kstTime": "04:59",
+      "pointPrediction": 5873.94,
+      "nightFuturesSimplePoint": 5999.47,
+      "ewyFxSimplePoint": 5994.9,
+      "nightFuturesClose": 900.65,
+      "predictedChangePct": 1.12,
+      "nightFuturesSimpleChangePct": 3.29,
+      "ewyFxSimpleChangePct": 3.21
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T20:01:00+00:00",
+      "kstTime": "05:01",
+      "pointPrediction": 5874.22,
+      "nightFuturesSimplePoint": 5995.47,
+      "ewyFxSimplePoint": 5996.36,
+      "nightFuturesClose": 900.05,
+      "predictedChangePct": 1.13,
+      "nightFuturesSimpleChangePct": 3.22,
+      "ewyFxSimpleChangePct": 3.23
     }
   ]
 }

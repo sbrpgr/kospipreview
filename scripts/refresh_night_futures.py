@@ -8,6 +8,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -52,6 +53,7 @@ NAVER_KOSPI_INDEX_URL = "https://polling.finance.naver.com/api/realtime/domestic
 NAVER_FINANCE_REFERER = "https://finance.naver.com/"
 ESIGNAL_DAY_SYMBOL = "A0166"
 ESIGNAL_REQUEST_TIMEOUT = 10
+YAHOO_FETCH_WORKERS = max(1, int(os.environ.get("YAHOO_FETCH_WORKERS", "6")))
 ESIGNAL_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
@@ -1134,10 +1136,20 @@ def select_latest_market_snapshot(*snapshots: dict | None) -> dict | None:
     return dict(snapshot)
 
 
-def fetch_yahoo_market_display_snapshot(symbol: str) -> dict | None:
+def fetch_yahoo_market_display_snapshot(
+    symbol: str,
+    snapshot_cache: dict[str, dict | None] | None = None,
+) -> dict | None:
+    if snapshot_cache is not None and symbol in snapshot_cache:
+        cached = snapshot_cache[symbol]
+        return dict(cached) if isinstance(cached, dict) else None
+
     chart_snapshot = fetch_yahoo_chart_market_display_snapshot(symbol)
     quote_page_snapshot = fetch_yahoo_quote_page_snapshot(symbol)
-    return select_latest_market_snapshot(chart_snapshot, quote_page_snapshot)
+    snapshot = select_latest_market_snapshot(chart_snapshot, quote_page_snapshot)
+    if snapshot_cache is not None:
+        snapshot_cache[symbol] = dict(snapshot) if isinstance(snapshot, dict) else None
+    return snapshot
 
 
 def format_indicator_value(key: str, value: float) -> str:
@@ -1596,6 +1608,7 @@ def resolve_live_prediction_phase(now_utc: datetime, live_returns: dict[str, flo
 def fetch_live_prediction_inputs(
     baseline_session_date: str | None,
     correction_params: dict[str, float] | None = None,
+    market_snapshot_cache: dict[str, dict | None] | None = None,
 ) -> tuple[dict[str, float], dict[str, float]]:
     ticker_map = {
         "ewy": "EWY",
@@ -1611,8 +1624,13 @@ def fetch_live_prediction_inputs(
     }
     display_returns: dict[str, float] = {}
     model_returns: dict[str, float] = {}
-    for key, ticker in ticker_map.items():
-        snapshot = fetch_yahoo_market_display_snapshot(ticker)
+
+    def fetch_one(key: str, ticker: str) -> tuple[str, float | None, float | None]:
+        snapshot = (
+            fetch_yahoo_market_display_snapshot(ticker, market_snapshot_cache)
+            if market_snapshot_cache is not None
+            else fetch_yahoo_market_display_snapshot(ticker)
+        )
 
         # Live model inputs are anchored to the KOSPI close sync point.
         # Yahoo's displayed pre/after-market change is versus the prior US close,
@@ -1620,8 +1638,6 @@ def fetch_live_prediction_inputs(
         display_value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date)
         if display_value is None:
             display_value = to_float(snapshot.get("change_pct")) if isinstance(snapshot, dict) else None
-        if display_value is not None:
-            display_returns[key] = display_value
 
         model_value = fetch_yahoo_intraday_model_change(
             ticker,
@@ -1630,8 +1646,26 @@ def fetch_live_prediction_inputs(
         )
         if model_value is None:
             model_value = market_snapshot_change_for_model(snapshot, diff_mode=(key == "us10y"))
+        return key, display_value, model_value
+
+    items = list(ticker_map.items())
+    if len(items) > 1 and YAHOO_FETCH_WORKERS > 1:
+        with ThreadPoolExecutor(max_workers=min(YAHOO_FETCH_WORKERS, len(items))) as executor:
+            futures = [executor.submit(fetch_one, key, ticker) for key, ticker in items]
+            for future in as_completed(futures):
+                key, display_value, model_value = future.result()
+                if display_value is not None:
+                    display_returns[key] = display_value
+                if model_value is not None:
+                    model_returns[key] = model_value
+        return display_returns, model_returns
+
+    for key, ticker in items:
+        key, display_value, model_value = fetch_one(key, ticker)
         if model_value is not None:
             model_returns[key] = model_value
+        if display_value is not None:
+            display_returns[key] = display_value
 
     return display_returns, model_returns
 
@@ -2248,7 +2282,11 @@ def update_k200f_in_indicators(payload: dict, k200f_indicator: dict, now_utc: da
     return payload
 
 
-def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -> dict:
+def update_display_changes_from_market_quote(
+    payload: dict,
+    now_utc: datetime,
+    market_snapshot_cache: dict[str, dict | None] | None = None,
+) -> dict:
     primary = payload.get("primary")
     if not isinstance(primary, list):
         primary = []
@@ -2263,10 +2301,46 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
         if not ticker:
             return None
         if key not in snapshots:
-            snapshots[key] = fetch_yahoo_market_display_snapshot(ticker)
+            snapshots[key] = (
+                fetch_yahoo_market_display_snapshot(ticker, market_snapshot_cache)
+                if market_snapshot_cache is not None
+                else fetch_yahoo_market_display_snapshot(ticker)
+            )
         return snapshots[key]
 
+    def collect_display_keys(rows: list) -> list[str]:
+        keys: list[str] = []
+        seen: set[str] = set()
+        for key in live_cash_index_keys:
+            if key in DISPLAY_TICKER_BY_KEY and key not in seen:
+                keys.append(key)
+                seen.add(key)
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            key = str(row.get("key") or "")
+            if key == "k200f" or key not in DISPLAY_TICKER_BY_KEY or key in seen:
+                continue
+            keys.append(key)
+            seen.add(key)
+        return keys
+
     live_cash_index_keys = ("sp500", "nasdaq", "dow", "sox")
+    display_keys = collect_display_keys([*primary, *secondary])
+    if market_snapshot_cache is not None and len(display_keys) > 1 and YAHOO_FETCH_WORKERS > 1:
+        with ThreadPoolExecutor(max_workers=min(YAHOO_FETCH_WORKERS, len(display_keys))) as executor:
+            future_by_key = {
+                executor.submit(
+                    fetch_yahoo_market_display_snapshot,
+                    DISPLAY_TICKER_BY_KEY[key],
+                    market_snapshot_cache,
+                ): key
+                for key in display_keys
+            }
+            for future in as_completed(future_by_key):
+                key = future_by_key[future]
+                snapshots[key] = future.result()
+
     has_fresh_cash_index_quote = False
     for key in live_cash_index_keys:
         snapshot = get_snapshot(key)
@@ -2391,6 +2465,7 @@ def update_prediction_night_fields(
     quote: dict | None,
     day_close_quote: dict | None,
     now_utc: datetime,
+    market_snapshot_cache: dict[str, dict | None] | None = None,
 ) -> dict:
     payload = ensure_prediction_target_rollover(payload, now_utc)
     is_active_prediction_window = is_prediction_operation_window(now_utc)
@@ -2472,9 +2547,14 @@ def update_prediction_night_fields(
         residual_artifact = resolve_residual_model_artifact(model_payload)
         mapping_artifact = resolve_k200_mapping_artifact(model_payload)
 
-        live_display_returns, live_model_returns = fetch_live_prediction_inputs(
-            baseline_session_date, correction_params
-        )
+        if market_snapshot_cache is not None:
+            live_display_returns, live_model_returns = fetch_live_prediction_inputs(
+                baseline_session_date, correction_params, market_snapshot_cache
+            )
+        else:
+            live_display_returns, live_model_returns = fetch_live_prediction_inputs(
+                baseline_session_date, correction_params
+            )
         ewy_fx_simple_return = compute_ewy_fx_simple_log_return(live_model_returns, live_display_returns)
         if ewy_fx_simple_return is not None:
             ewy_fx_simple_change = log_return_pct_to_simple_return_pct(ewy_fx_simple_return)
@@ -2604,6 +2684,7 @@ def main() -> None:
     history_payload = read_json(HISTORY_FILE) or {"summary": {}, "records": []}
     live_prediction_series_payload = load_live_prediction_series()
     prediction_archive = load_prediction_archive()
+    market_snapshot_cache: dict[str, dict | None] = {}
 
     if prediction_payload and should_archive_prediction_snapshot(prediction_payload, now_utc):
         prediction_archive = merge_prediction_into_archive(prediction_archive, prediction_payload)
@@ -2612,7 +2693,7 @@ def main() -> None:
     day_close_quote = resolve_day_futures_close_quote()
     night_quote = fetch_esignal_kospi_night_quote(day_close_quote)
 
-    indicators_payload = update_display_changes_from_market_quote(indicators_payload, now_utc)
+    indicators_payload = update_display_changes_from_market_quote(indicators_payload, now_utc, market_snapshot_cache)
     k200f_indicator = build_k200f_indicator(night_quote, day_close_quote)
     indicators_payload = update_k200f_in_indicators(indicators_payload, k200f_indicator, now_utc)
     write_output_json("indicators.json", indicators_payload)
@@ -2629,7 +2710,13 @@ def main() -> None:
         )
         write_output_json("history.json", history_payload)
 
-        prediction_payload = update_prediction_night_fields(prediction_payload, night_quote, day_close_quote, now_utc)
+        prediction_payload = update_prediction_night_fields(
+            prediction_payload,
+            night_quote,
+            day_close_quote,
+            now_utc,
+            market_snapshot_cache,
+        )
         write_output_json("prediction.json", prediction_payload)
         if should_archive_prediction_snapshot(prediction_payload, now_utc):
             prediction_archive = merge_prediction_into_archive(prediction_archive, prediction_payload)
