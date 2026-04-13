@@ -2,16 +2,15 @@
   "summary": {
     "mae30d": 21.45
   },
-  "generatedAt": "2026-04-13T10:21:29.169065+00:00",
+  "generatedAt": "2026-04-13T10:59:10.546042+00:00",
   "records": [
     {
       "date": "2026-04-13",
-      "modelPrediction": 5882.3,
+      "modelPrediction": 5884.52,
       "nightFuturesSimpleOpen": 5891.7,
-      "low": 5860.84,
-      "high": 5903.76,
+      "low": 5863.06,
+      "high": 5905.98,
       "actualOpen": 5737.28,
-      "actualClose": 5808.62,
       "hit": false,
       "isSynthetic": false
     },
