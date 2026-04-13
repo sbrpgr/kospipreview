@@ -32,9 +32,9 @@ type LiveDashboardProps = {
 
 const POLL_INTERVAL_MS = 30_000;
 const OPERATION_STATUS_INTERVAL_MS = 30_000;
-const NIGHT_OPERATION_HOURS_LABEL = "18:00~09:00";
-const NIGHT_OPERATION_REOPEN_LABEL = "18:00~";
-const NIGHT_OPERATION_START_MINUTES = 18 * 60;
+const NIGHT_OPERATION_HOURS_LABEL = "15:30~09:00";
+const NIGHT_OPERATION_REOPEN_LABEL = "15:30~";
+const NIGHT_OPERATION_START_MINUTES = 15 * 60 + 30;
 const NIGHT_OPERATION_END_MINUTES = 9 * 60;
 
 type MarketOperationInfo = {
@@ -81,7 +81,7 @@ function getMarketOperationInfo(now: Date = new Date()): MarketOperationInfo {
 function getLatestIndicatorUpdate(indicators: IndicatorData) {
   return (
     [...indicators.primary, ...indicators.secondary]
-      .map((indicator) => indicator.updatedAt)
+      .map((indicator) => indicator.checkedAt || indicator.updatedAt)
       .filter(Boolean)
       .sort()
       .at(-1) ?? indicators.generatedAt ?? new Date().toISOString()

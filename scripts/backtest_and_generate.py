@@ -91,8 +91,9 @@ KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 KRX_SYNC_MAX_FORWARD_HOURS = 12
 PREDICTION_TARGET_ROLLOVER_TIME = time(9, 0)
-PREDICTION_OPERATION_START = time(18, 0)
+PREDICTION_OPERATION_START = time(15, 30)
 PREDICTION_OPERATION_END = time(9, 0)
+PREDICTION_OPERATION_HOURS_LABEL = "15:30~09:00"
 
 NIGHT_FUTURES_PRIMARY_SCALE = 1.0
 AUXILIARY_SIGNAL_WEIGHTS = {
@@ -197,7 +198,7 @@ ESIGNAL_USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 )
 KOSPI_DAY_FUTURES_SESSION_OPEN = time(8, 45)
-KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 45)
+KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 30)
 
 CORE_MODEL_LOOKBACK_DAYS = 180
 RESIDUAL_MODEL_LOOKBACK_DAYS = 180
@@ -2510,7 +2511,11 @@ def build_latest(
             model_returns[name] = model_change
 
     k200f_override = live_overrides.get("k200f", {})
-    night_futures_change = resolve_night_futures_change_for_target(prediction_target_date_iso, k200f_override)
+    night_futures_change = (
+        resolve_night_futures_change_for_target(prediction_target_date_iso, k200f_override)
+        if k200f_override.get("is_live_night")
+        else None
+    )
     futures_day_close_raw = k200f_override.get("day_close")
     try:
         futures_day_close = float(futures_day_close_raw) if futures_day_close_raw is not None else None
@@ -2645,7 +2650,7 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
         "signalSummary": (
             _build_signal_summary(latest["returns"])
             if is_active_prediction_window
-            else "예측 운영 시간은 18:00~09:00입니다. 다음 운영 구간부터 모델 예측이 갱신됩니다."
+            else f"예측 운영 시간은 {PREDICTION_OPERATION_HOURS_LABEL}입니다. 다음 운영 구간부터 모델 예측이 갱신됩니다."
         ),
         "lastCalculatedAt": now_utc.isoformat() if is_active_prediction_window else None,
         "latestRecordDate": latest_record_date,
@@ -2657,7 +2662,7 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "calculationMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(NoNightFutures)",
             "nightFuturesExcluded": True,
             "isOperationWindow": is_active_prediction_window,
-            "operationHours": "18:00~09:00",
+            "operationHours": PREDICTION_OPERATION_HOURS_LABEL,
             "nightFuturesAnchorPct": (
                 round(float(latest["night_anchor_c"]), 2) if latest.get("night_anchor_c") is not None else None
             ),
@@ -2766,6 +2771,7 @@ def write_indicators_json(
                     "value": format_value(name, price),
                     "changePct": round(change_pct, 2),
                     "updatedAt": updated_at.isoformat(),
+                    "checkedAt": now_utc.isoformat(),
                     "sourceUrl": "",
                     "dataSource": "실시간 수집",
                     "displayTag": "(야간)",
@@ -2781,6 +2787,7 @@ def write_indicators_json(
                 "value": "N/A",
                 "changePct": 0,
                 "updatedAt": "",
+                "checkedAt": now_utc.isoformat(),
                 "sourceUrl": "",
                 "dataSource": "실시간 수집",
                 "displayTag": "(장 시작전)",
@@ -2799,6 +2806,7 @@ def write_indicators_json(
                 "value": "N/A",
                 "changePct": 0,
                 "updatedAt": "",
+                "checkedAt": now_utc.isoformat(),
                 "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
                 "dataSource": "Yahoo Finance",
                 "displayTag": "(장 시작전)" if in_us_premarket_now and name in PREMARKET_TRACK_KEYS else "",
@@ -2831,6 +2839,7 @@ def write_indicators_json(
             "value": format_value(name, current_value),
             "changePct": round(change_pct, 2),
             "updatedAt": latest_ts.isoformat(),
+            "checkedAt": now_utc.isoformat(),
             "sourceUrl": INDICATOR_SOURCE_URLS.get(name, ""),
             "dataSource": "Yahoo Finance",
             "displayTag": "(장 시작전)" if premarket_untracked else "",

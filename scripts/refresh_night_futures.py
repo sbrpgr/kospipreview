@@ -53,11 +53,15 @@ ESIGNAL_USER_AGENT = (
 )
 
 KOSPI_DAY_FUTURES_SESSION_OPEN = time(8, 45)
-KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 45)
+KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 30)
 KOSPI_OPEN_FIX_TIME = time(9, 0)
 PREDICTION_TARGET_ROLLOVER_TIME = time(9, 0)
-PREDICTION_OPERATION_START = time(18, 0)
+PREDICTION_OPERATION_START = time(15, 30)
 PREDICTION_OPERATION_END = time(9, 0)
+PREDICTION_OPERATION_HOURS_LABEL = "15:30~09:00"
+PREDICTION_TREND_OPERATION_START = time(18, 0)
+PREDICTION_TREND_OPERATION_END = time(9, 0)
+PREDICTION_TREND_OPERATION_HOURS_LABEL = "18:00~09:00"
 NIGHT_OPERATION_START = time(18, 0)
 NIGHT_OPERATION_END = time(6, 30)
 NIGHT_FUTURES_STALE_MINUTES = 180
@@ -248,6 +252,11 @@ def is_prediction_operation_window(now_utc: datetime) -> bool:
     return current >= PREDICTION_OPERATION_START or current < PREDICTION_OPERATION_END
 
 
+def is_prediction_trend_operation_window(now_utc: datetime) -> bool:
+    current = now_utc.astimezone(KST).time()
+    return current >= PREDICTION_TREND_OPERATION_START or current < PREDICTION_TREND_OPERATION_END
+
+
 def load_live_prediction_series() -> dict:
     payload = read_json(LIVE_PREDICTION_SERIES_FILE)
     if not isinstance(payload, dict):
@@ -289,7 +298,7 @@ def build_live_prediction_series_entry(payload: dict, now_utc: datetime) -> dict
 
 
 def update_live_prediction_series(payload: dict, now_utc: datetime) -> dict:
-    if not is_prediction_operation_window(now_utc):
+    if not is_prediction_trend_operation_window(now_utc):
         return load_live_prediction_series()
 
     entry = build_live_prediction_series_entry(payload, now_utc)
@@ -1191,6 +1200,30 @@ def fetch_live_prediction_inputs(
     return display_returns, model_returns
 
 
+def resolve_prediction_baseline_session_date(payload: dict, day_close_quote: dict | None) -> str | None:
+    candidates: list[str] = []
+
+    latest_record_date = payload.get("latestRecordDate")
+    if isinstance(latest_record_date, str) and latest_record_date:
+        candidates.append(latest_record_date)
+
+    if isinstance(day_close_quote, dict):
+        day_close_date = day_close_quote.get("session_date")
+        if isinstance(day_close_date, str) and day_close_date:
+            candidates.append(day_close_date)
+
+    valid_dates: list[date] = []
+    for candidate in candidates:
+        try:
+            valid_dates.append(date.fromisoformat(candidate))
+        except ValueError:
+            continue
+
+    if not valid_dates:
+        return None
+    return max(valid_dates).isoformat()
+
+
 def apply_ewy_alignment_guard(predicted_change: float, ewy_change: float | None) -> float:
     if ewy_change is None:
         return predicted_change
@@ -1796,6 +1829,7 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
             if key == "k200f":
                 continue
 
+            row["checkedAt"] = now_utc.isoformat()
             row["displayTag"] = "(장 시작전)" if in_us_premarket_now and key in PREMARKET_TRACK_KEYS else ""
             row["isPremarket"] = False
 
@@ -1853,11 +1887,11 @@ def apply_prediction_pending_state(payload: dict, now_utc: datetime) -> dict:
     payload["rangeLow"] = None
     payload["rangeHigh"] = None
     payload["predictedChangePct"] = None
-    payload["signalSummary"] = "예측 운영 시간은 18:00~09:00입니다. 다음 운영 구간부터 모델 예측이 갱신됩니다."
+    payload["signalSummary"] = f"예측 운영 시간은 {PREDICTION_OPERATION_HOURS_LABEL}입니다. 다음 운영 구간부터 모델 예측이 갱신됩니다."
     payload["lastCalculatedAt"] = None
     payload["generatedAt"] = now_utc.isoformat()
     model_payload["isOperationWindow"] = False
-    model_payload["operationHours"] = "18:00~09:00"
+    model_payload["operationHours"] = PREDICTION_OPERATION_HOURS_LABEL
     model_payload["predictionPhase"] = "standby"
     model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()
     return payload
@@ -1896,9 +1930,16 @@ def update_prediction_night_fields(
         model_payload = {}
         payload["model"] = model_payload
     model_payload["isOperationWindow"] = is_active_prediction_window
-    model_payload["operationHours"] = "18:00~09:00"
+    model_payload["operationHours"] = PREDICTION_OPERATION_HOURS_LABEL
 
-    if is_active_prediction_window and night_futures_change is not None and prev_close and prev_close != 0:
+    if (
+        is_active_prediction_window
+        and isinstance(quote, dict)
+        and quote.get("is_live_night")
+        and night_futures_change is not None
+        and prev_close
+        and prev_close != 0
+    ):
         payload["nightFuturesSimpleChangePct"] = round(float(night_futures_change), 2)
         payload["nightFuturesSimplePoint"] = round(prev_close * (1 + float(night_futures_change) / 100), 2)
     else:
@@ -1921,14 +1962,7 @@ def update_prediction_night_fields(
         residual_artifact = resolve_residual_model_artifact(model_payload)
         mapping_artifact = resolve_k200_mapping_artifact(model_payload)
 
-        baseline_session_date: str | None = None
-        latest_record_date = payload.get("latestRecordDate")
-        if isinstance(latest_record_date, str) and latest_record_date:
-            baseline_session_date = latest_record_date
-        elif day_close_quote:
-            day_close_date = day_close_quote.get("session_date")
-            if isinstance(day_close_date, str) and day_close_date:
-                baseline_session_date = day_close_date
+        baseline_session_date = resolve_prediction_baseline_session_date(payload, day_close_quote)
 
         live_display_returns, live_model_returns = fetch_live_prediction_inputs(
             baseline_session_date, correction_params

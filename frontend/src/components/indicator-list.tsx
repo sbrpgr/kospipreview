@@ -56,10 +56,15 @@ export function IndicatorList({ indicators }: { indicators: IndicatorData }) {
         const hasSourceUrl = Boolean(indicator.sourceUrl?.trim());
         const isSourceHidden = indicator.key === "k200f";
         const isClickable = hasSourceUrl && !isSourceHidden;
+        const checkedAt = indicator.checkedAt?.trim() || indicators.generatedAt || "";
+        const checkedText =
+          checkedAt && checkedAt !== indicator.updatedAt ? ` · 조회 ${formatUpdatedAt(checkedAt)} KST` : "";
         const sourceText =
           indicator.key === "k200f"
             ? "지연 데이터 표시 (실시간 아님 · 투자 참고용)"
-            : `기준 시각 ${formatUpdatedAt(indicator.updatedAt)} KST · ${indicator.dataSource ?? "Yahoo Finance"}`;
+            : `기준 시각 ${formatUpdatedAt(indicator.updatedAt)} KST${checkedText} · ${
+                indicator.dataSource ?? "Yahoo Finance"
+              }`;
         const cardClassName = `indCard${isClickable ? "" : " isStatic"}`;
         const cardContent = (
           <>

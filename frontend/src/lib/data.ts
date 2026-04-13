@@ -71,6 +71,7 @@ export async function getIndicatorData() {
       value: string;
       changePct: number;
       updatedAt: string;
+      checkedAt?: string;
       sourceUrl?: string;
       dataSource?: string;
       displayTag?: string;
@@ -85,6 +86,7 @@ export async function getIndicatorData() {
       value: string;
       changePct: number;
       updatedAt: string;
+      checkedAt?: string;
       sourceUrl?: string;
       dataSource?: string;
       displayTag?: string;
@@ -146,7 +148,7 @@ export async function getBacktestDiagnosticsData() {
 
 function latestIndicatorTimestamp(indicators: Awaited<ReturnType<typeof getIndicatorData>>) {
   return [...indicators.primary, ...indicators.secondary]
-    .map((item) => item.updatedAt)
+    .map((item) => item.checkedAt || item.updatedAt)
     .filter(Boolean)
     .map((value) => new Date(value).getTime())
     .filter((value) => !Number.isNaN(value))
