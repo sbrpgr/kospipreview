@@ -1569,21 +1569,23 @@ def fetch_live_prediction_inputs(
     model_returns: dict[str, float] = {}
     for key, ticker in ticker_map.items():
         snapshot = fetch_yahoo_market_display_snapshot(ticker)
-        snapshot_change = to_float(snapshot.get("change_pct")) if isinstance(snapshot, dict) else None
 
-        display_value = snapshot_change
+        # Live model inputs are anchored to the KOSPI close sync point.
+        # Yahoo's displayed pre/after-market change is versus the prior US close,
+        # so use it only when the intraday KRX-baseline series is unavailable.
+        display_value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date)
         if display_value is None:
-            display_value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date)
+            display_value = to_float(snapshot.get("change_pct")) if isinstance(snapshot, dict) else None
         if display_value is not None:
             display_returns[key] = display_value
 
-        model_value = market_snapshot_change_for_model(snapshot, diff_mode=(key == "us10y"))
+        model_value = fetch_yahoo_intraday_model_change(
+            ticker,
+            baseline_session_date,
+            diff_mode=(key == "us10y"),
+        )
         if model_value is None:
-            model_value = fetch_yahoo_intraday_model_change(
-                ticker,
-                baseline_session_date,
-                diff_mode=(key == "us10y"),
-            )
+            model_value = market_snapshot_change_for_model(snapshot, diff_mode=(key == "us10y"))
         if model_value is not None:
             model_returns[key] = model_value
 

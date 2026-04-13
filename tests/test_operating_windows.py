@@ -321,7 +321,38 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(resolved["close"], 872.0)
         self.assertEqual(saved["close"], 872.0)
 
-    def test_live_prediction_inputs_prefer_session_change_snapshot(self):
+    def test_live_prediction_inputs_prefer_kospi_close_baseline_over_snapshot(self):
+        original_snapshot = refresh_night_futures.fetch_yahoo_market_display_snapshot
+        original_display = refresh_night_futures.fetch_yahoo_intraday_return_pct
+        original_model = refresh_night_futures.fetch_yahoo_intraday_model_change
+        try:
+            refresh_night_futures.fetch_yahoo_market_display_snapshot = (
+                lambda symbol: {
+                    "value": 135.7,
+                    "change_pct": -2.21,
+                    "updated_at": "2026-04-13T10:43:00+00:00",
+                    "market_session": "pre",
+                }
+                if symbol == "EWY"
+                else None
+            )
+            refresh_night_futures.fetch_yahoo_intraday_return_pct = (
+                lambda symbol, baseline: 0.31 if symbol == "EWY" else None
+            )
+            refresh_night_futures.fetch_yahoo_intraday_model_change = (
+                lambda symbol, baseline, diff_mode=False: 0.309 if symbol == "EWY" else None
+            )
+
+            display_returns, model_returns = refresh_night_futures.fetch_live_prediction_inputs("2026-04-13")
+        finally:
+            refresh_night_futures.fetch_yahoo_market_display_snapshot = original_snapshot
+            refresh_night_futures.fetch_yahoo_intraday_return_pct = original_display
+            refresh_night_futures.fetch_yahoo_intraday_model_change = original_model
+
+        self.assertEqual(display_returns["ewy"], 0.31)
+        self.assertEqual(model_returns["ewy"], 0.309)
+
+    def test_live_prediction_inputs_use_session_snapshot_as_fallback(self):
         original_snapshot = refresh_night_futures.fetch_yahoo_market_display_snapshot
         original_display = refresh_night_futures.fetch_yahoo_intraday_return_pct
         original_model = refresh_night_futures.fetch_yahoo_intraday_model_change

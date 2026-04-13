@@ -1,18 +1,18 @@
 {
-  "generatedAt": "2026-04-13T11:12:53.810678+00:00",
+  "generatedAt": "2026-04-13T11:31:30.601483+00:00",
   "predictionDate": "2026년 04월 14일",
   "predictionDateIso": "2026-04-14",
-  "pointPrediction": 5788.01,
-  "nightFuturesSimplePoint": 5809.62,
-  "nightFuturesSimpleChangePct": 0.02,
+  "pointPrediction": 5812.53,
+  "nightFuturesSimplePoint": 5806.62,
+  "nightFuturesSimpleChangePct": -0.03,
   "futuresDayClose": 872.0,
   "futuresDayCloseDate": "2026-04-13",
-  "rangeLow": 5760.13,
-  "rangeHigh": 5815.9,
-  "predictedChangePct": -0.35,
+  "rangeLow": 5784.65,
+  "rangeHigh": 5840.42,
+  "predictedChangePct": 0.07,
   "prevClose": 5808.62,
   "signalSummary": "EWY 보합 · S&P 500 보합 · VIX 상승(불안) · NASDAQ 100 보합 · USD/KRW 보합",
-  "lastCalculatedAt": "2026-04-13T11:12:53.810678+00:00",
+  "lastCalculatedAt": "2026-04-13T11:31:30.601483+00:00",
   "latestRecordDate": "2026-04-13",
   "mae30d": 21.45,
   "model": {
@@ -26,8 +26,8 @@
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,
-    "coreAnchorPct": -0.38,
-    "rawModelPct": -0.38,
+    "coreAnchorPct": 0.09,
+    "rawModelPct": 0.09,
     "rawResidualPct": 0.0,
     "ewyFxIntercept": 0.1278,
     "ewyFxEwyCoef": 0.3646,
@@ -91,10 +91,10 @@
     },
     "kospiCloseSource": "naver-index",
     "kospiCloseUpdatedAt": "2026-04-13T09:59:00+00:00",
-    "liveRefreshGuardBandPct": 0.56,
-    "liveEwyChangePct": -2.0,
-    "liveKrwChangePct": 0.07,
-    "liveRefreshUpdatedAt": "2026-04-13T11:12:53.810678+00:00"
+    "liveRefreshGuardBandPct": 0.18,
+    "liveEwyChangePct": -0.09,
+    "liveKrwChangePct": -0.13,
+    "liveRefreshUpdatedAt": "2026-04-13T11:31:30.601483+00:00"
   },
   "yesterday": {
     "predictionLow": 5863.06,
@@ -103,6 +103,6 @@
     "hit": false
   },
   "prevCloseDate": "2026-04-13",
-  "nightFuturesClose": 872.15,
-  "nightFuturesCloseUpdatedAt": "2026-04-13T11:12:27+00:00"
+  "nightFuturesClose": 871.7,
+  "nightFuturesCloseUpdatedAt": "2026-04-13T11:31:07+00:00"
 }
