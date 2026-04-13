@@ -56,6 +56,9 @@ All times are Asia/Seoul.
 - Night futures are excluded from the model path.
 - Night futures remain comparison and validation data only.
 - `model.nightFuturesExcluded` should be `true`.
+- Night futures simple conversion should carry forward the last observed quote
+  from the target night session through `09:00 KST`; session close alone must
+  not blank the target operating day's displayed/simple-record value.
 
 ## Settlement And Actual Record Rules
 
@@ -65,6 +68,8 @@ All times are Asia/Seoul.
   - current KOSPI close;
   - final day futures close;
   - live night futures close.
+- After night futures trading closes, the same conversion uses the last quote
+  observed inside that target night session until the `09:00 KST` rollover.
 - EWY + FX simple conversion uses:
   - current KOSPI close;
   - KRX-close-synchronized EWY return;

@@ -2098,6 +2098,38 @@ def apply_day_futures_reference(quote: dict, day_close_quote: dict | None) -> di
     return merged
 
 
+def is_observed_target_night_session_quote(
+    quote: dict | None,
+    target_date_iso: str | None,
+    day_close_quote: dict | None = None,
+) -> bool:
+    if not isinstance(quote, dict) or not isinstance(target_date_iso, str) or not target_date_iso:
+        return False
+
+    if resolve_night_futures_target_date_iso(quote, day_close_quote) != target_date_iso:
+        return False
+
+    session_date_raw = quote.get("day_close_date")
+    if (not isinstance(session_date_raw, str) or not session_date_raw) and isinstance(day_close_quote, dict):
+        session_date_raw = day_close_quote.get("session_date")
+    if not isinstance(session_date_raw, str) or not session_date_raw:
+        return bool(quote.get("is_live_night"))
+
+    try:
+        session_date = date.fromisoformat(session_date_raw)
+    except ValueError:
+        return bool(quote.get("is_live_night"))
+
+    updated_at = parse_iso_datetime_utc(quote.get("updated_at"))
+    if updated_at is None:
+        return bool(quote.get("is_live_night"))
+
+    updated_at_kst = updated_at.astimezone(KST)
+    session_start = datetime.combine(session_date, NIGHT_OPERATION_START, tzinfo=KST)
+    session_end = datetime.combine(session_date + timedelta(days=1), NIGHT_OPERATION_END, tzinfo=KST)
+    return session_start <= updated_at_kst <= session_end
+
+
 def load_night_futures_source_cache() -> dict | None:
     payload = read_json(NIGHT_FUTURES_SOURCE_CACHE_FILE)
     if payload is None:
@@ -2506,10 +2538,14 @@ def update_prediction_night_fields(
             if close_change_pct is not None:
                 model_payload["prevCloseChangePct"] = round(close_change_pct, 2)
 
+    has_target_night_quote = is_observed_target_night_session_quote(
+        quote,
+        prediction_target_date_iso,
+        day_close_quote,
+    )
     if (
         is_active_prediction_window
-        and isinstance(quote, dict)
-        and quote.get("is_live_night")
+        and has_target_night_quote
         and night_futures_change is not None
         and prev_close
         and prev_close != 0

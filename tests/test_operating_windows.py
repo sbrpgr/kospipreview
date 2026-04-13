@@ -328,6 +328,113 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(updated["futuresDayClose"], 872.0)
         self.assertEqual(updated["nightFuturesClose"], 871.75)
 
+    def test_night_futures_simple_persists_after_night_session_close(self):
+        payload = {
+            "generatedAt": "2026-04-13T21:46:00+00:00",
+            "predictionDateIso": "2026-04-14",
+            "predictionDate": "2026-04-14",
+            "pointPrediction": 5870.0,
+            "rangeLow": 5850.0,
+            "rangeHigh": 5890.0,
+            "predictedChangePct": 1.0,
+            "prevClose": 5808.62,
+            "latestRecordDate": "2026-04-13",
+            "mae30d": 20.0,
+            "model": {},
+        }
+        now_utc = datetime(2026, 4, 13, 21, 47, tzinfo=timezone.utc)  # 06:47 KST, after night close
+        day_close_quote = {
+            "close": 872.0,
+            "updated_at": "2026-04-13T06:45:00+00:00",
+            "session_date": "2026-04-13",
+        }
+        quote = {
+            "price": 900.2,
+            "previous_close": 872.0,
+            "change_pct": (900.2 / 872.0 - 1) * 100,
+            "updated_at": "2026-04-13T20:01:53+00:00",
+            "day_close_date": "2026-04-13",
+            "is_live_night": False,
+        }
+
+        original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
+        original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
+        try:
+            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: ({}, {})
+            refresh_night_futures.fetch_kospi_actual_close_quote = lambda target_date: {
+                "close": 5808.62,
+                "updated_at": "2026-04-13T06:30:00+00:00",
+                "session_date": "2026-04-13",
+                "provider": "test",
+            }
+            updated = refresh_night_futures.update_prediction_night_fields(
+                payload,
+                quote,
+                day_close_quote,
+                now_utc,
+            )
+        finally:
+            refresh_night_futures.fetch_live_prediction_inputs = original_fetch_inputs
+            refresh_night_futures.fetch_kospi_actual_close_quote = original_fetch_close_quote
+
+        expected_simple = 5808.62 * (900.2 / 872.0)
+        self.assertAlmostEqual(updated["nightFuturesSimplePoint"], round(expected_simple, 2))
+        self.assertEqual(updated["nightFuturesClose"], 900.2)
+        self.assertEqual(updated["nightFuturesCloseUpdatedAt"], "2026-04-13T20:01:53+00:00")
+
+    def test_night_futures_simple_does_not_reuse_old_session_before_new_night_open(self):
+        payload = {
+            "generatedAt": "2026-04-14T06:39:00+00:00",
+            "predictionDateIso": "2026-04-15",
+            "predictionDate": "2026-04-15",
+            "pointPrediction": 5870.0,
+            "rangeLow": 5850.0,
+            "rangeHigh": 5890.0,
+            "predictedChangePct": 1.0,
+            "prevClose": 5820.0,
+            "latestRecordDate": "2026-04-14",
+            "mae30d": 20.0,
+            "model": {},
+        }
+        now_utc = datetime(2026, 4, 14, 6, 40, tzinfo=timezone.utc)  # 15:40 KST, before night open
+        day_close_quote = {
+            "close": 880.0,
+            "updated_at": "2026-04-14T06:40:00+00:00",
+            "session_date": "2026-04-14",
+        }
+        stale_quote = {
+            "price": 900.2,
+            "previous_close": 880.0,
+            "change_pct": (900.2 / 880.0 - 1) * 100,
+            "updated_at": "2026-04-13T20:01:53+00:00",
+            "day_close_date": "2026-04-14",
+            "is_live_night": False,
+        }
+
+        original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
+        original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
+        try:
+            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: ({}, {})
+            refresh_night_futures.fetch_kospi_actual_close_quote = lambda target_date: {
+                "close": 5820.0,
+                "updated_at": "2026-04-14T06:40:00+00:00",
+                "session_date": "2026-04-14",
+                "provider": "test",
+            }
+            updated = refresh_night_futures.update_prediction_night_fields(
+                payload,
+                stale_quote,
+                day_close_quote,
+                now_utc,
+            )
+        finally:
+            refresh_night_futures.fetch_live_prediction_inputs = original_fetch_inputs
+            refresh_night_futures.fetch_kospi_actual_close_quote = original_fetch_close_quote
+
+        self.assertIsNone(updated["nightFuturesSimplePoint"])
+        self.assertIsNone(updated["nightFuturesSimpleChangePct"])
+        self.assertIsNone(updated["nightFuturesClose"])
+
     def test_ewy_fx_simple_conversion_uses_ewy_and_krw_without_mapping(self):
         payload = {
             "generatedAt": "2026-04-13T09:56:00+00:00",

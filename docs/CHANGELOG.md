@@ -2,6 +2,11 @@
 
 ## 2026-04-14
 
+- Night futures simple conversion carry-forward
+  - `nightFuturesSimplePoint`, `nightFuturesSimpleChangePct`, and `nightFuturesClose` now remain populated after the night futures session closes when the quote belongs to the active target night session.
+  - The guard checks the actual target night-session observation window, preventing the previous session's stale quote from being reused during the next day's `15:30~18:00 KST` gap.
+  - This preserves the value that recent actual records should fix at the operating-date boundary.
+
 - Live refresh performance fix
   - Yahoo quote/display fetches now use per-run snapshot reuse plus bounded parallel fetching.
   - Local refresh runtime improved from about `61.8s` before optimization to about `9.2s` after optimization.

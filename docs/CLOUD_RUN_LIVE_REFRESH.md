@@ -127,6 +127,21 @@ Expected behavior:
 - records keep only the active `predictionDateIso`;
 - chart compares `pointPrediction`, `nightFuturesSimplePoint`, and `ewyFxSimplePoint`.
 
+### Night futures session close carry-forward
+
+The KOSPI 200 night futures simple conversion is tied to the prediction
+operating date, not only to whether the night market is still live at the exact
+refresh moment.
+
+Expected behavior:
+
+- when a quote was observed during the target night session, keep using that
+  last observed value through `09:00 KST`;
+- do not clear `nightFuturesSimplePoint`, `nightFuturesSimpleChangePct`, or
+  `nightFuturesClose` only because the night futures session has closed;
+- do not reuse a previous night-session quote for the next prediction target
+  during the `15:30~18:00 KST` gap before the new night session starts.
+
 ## Recent Actual Record Updates
 
 `history.json` is updated during refresh once actual data is available.

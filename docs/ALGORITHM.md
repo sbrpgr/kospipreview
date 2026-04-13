@@ -111,6 +111,11 @@ Tracked fields:
 - fixed pre-open `nightFuturesSimpleOpen`
 - fixed pre-open `ewyFxSimpleOpen`
 
+Night futures simple values must be fixed from the last valid observation for
+the target night session. The value should not disappear just because the
+night futures market has closed before `09:00 KST`; only quotes outside the
+target night-session window should be rejected.
+
 Day/night futures close fields are tracked only for recent actual rows dated
 `2026-04-14` or later. The `2026-04-13` row remains blank for both fields.
 
