@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-04-13
+
+- Live operating schedule and settlement rules finalized
+  - Prediction target rolls to the next business day at `09:00 KST`.
+  - Live prediction operation runs `15:30~09:00 KST`.
+  - Live prediction trend observations are recorded only during `18:00~09:00 KST`.
+  - KOSPI close after `15:30 KST` is used as the prediction `prevClose`.
+  - KOSPI 200 day futures close is treated as final only from eSignal socket settlement at or after `15:45 KST`.
+
+- EWY live model input basis corrected
+  - Model inputs now prefer the KRX `15:30 KST` sync basis.
+  - Yahoo EWY premarket displayed change versus prior U.S. close is now fallback only.
+  - This prevents the model from reading a large U.S.-session EWY display decline as Korean-close decline.
+
+- Recent actual record tracking expanded
+  - `history.json` tracks `actualClose`.
+  - `history.json` tracks `dayFuturesClose`.
+  - `history.json` tracks `nightFuturesClose`.
+  - Frontend accuracy table displays actual close, day futures close, and night futures close.
+
+- Day futures provisional close guard added
+  - Same-day socket close around `15:30 KST` is provisional.
+  - `scripts/refresh_night_futures.py` and `scripts/backtest_and_generate.py` both require final settlement after `15:45 KST`.
+  - Regression tests cover provisional `874.05` being replaced by final `872.0`.
+
+- Production deployment verified
+  - Git commit: `524ec64`.
+  - GitHub Actions `deploy-production`: success.
+  - Cloud Run latest revision: `kospi-live-data-00019-tg2`.
+  - Cloud Scheduler: enabled, weekday every minute.
+  - Live API: bucket source with no-store headers.
+
 ## 2026-04-11
 
 - Live prediction trend chart

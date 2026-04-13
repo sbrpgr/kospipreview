@@ -1,14 +1,17 @@
 # Cloud Run Live Refresh
 
+Baseline date: 2026-04-13
+
 ## Purpose
 
-This document describes the production live-refresh path introduced to replace slow and unreliable GitHub schedule driven data refresh.
+Cloud Run is the primary minute-level live JSON refresh path.
 
-Primary goal:
+Goals:
 
-- keep Firebase Hosting as the static frontend
-- move minute-level live JSON refresh into GCP managed runtime
-- avoid introducing a database
+- keep Firebase Hosting as the static frontend;
+- refresh live data every weekday minute without redeploying Hosting;
+- avoid a database for current product scale;
+- keep live JSON recoverable through Cloud Storage objects and bundled fallbacks.
 
 ## Deployed Resources
 
@@ -19,161 +22,135 @@ Primary goal:
   - `/api/live/**`
   - service `kospi-live-data`
   - region `asia-northeast3`
+  - pinned tag created during Firebase deploy
 
-## What Is Live And What Is Static
+## Runtime Flow
 
-### Live path
+1. Cloud Scheduler calls `POST /api/tasks/refresh`.
+2. Cloud Run validates the bearer token.
+3. Cloud Run creates a temporary workspace.
+4. Cloud Run seeds JSON files from Cloud Storage, falling back to repo-bundled JSON.
+5. `scripts/refresh_night_futures.py` runs.
+6. Refreshed JSON is uploaded back to Cloud Storage.
+7. Public reads use `/api/live/*.json`.
+
+## Served Live Files
 
 - `/api/live/prediction.json`
 - `/api/live/indicators.json`
 - `/api/live/history.json`
 - `/api/live/live_prediction_series.json`
+- `/api/live/backtest_diagnostics.json`
 
-These are served through Firebase Hosting rewrite to Cloud Run.
+All should respond with:
 
-### Static path
+- `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+- `X-Kospi-Live-Source: bucket` when Cloud Storage is being used
 
-- `/data/*.json`
-- exported pages in `frontend/out`
+## Synced State Files
 
-These remain important for:
+The refresh worker also syncs internal state files:
 
-- cold start fallback
-- SEO / static rendering
-- model rebuild snapshots
+- `prediction_archive.json`
+- `day_futures_close_cache.json`
+- `night_futures_source_cache.json`
 
-## Runtime Flow
+These files are needed for rollover, settlement, fallback, and actual-record continuity.
 
-1. Cloud Scheduler calls `POST /api/tasks/refresh`
-2. Cloud Run validates bearer token
-3. Cloud Run seeds a temp workspace from:
-   - current Cloud Storage objects when available
-   - repo-bundled JSON fallback when live objects are missing
-4. `scripts/refresh_night_futures.py` runs in that workspace
-5. refreshed JSON is uploaded back to Cloud Storage
-6. browser fetches new values through `/api/live/*.json`
+## Operating Rules
 
-## Live Prediction Series
+All times are Asia/Seoul.
 
-`live_prediction_series.json` is the minute-level observation log used by the homepage `예측 추이` chart.
+### 09:00 target rollover
 
-It stores snapshots for the active prediction date:
+At or after `09:00 KST`, the prediction target rolls to the next business day.
 
-- `predictionDateIso`
-- `observedAt`
-- `kstTime`
-- `pointPrediction`
-- `nightFuturesSimplePoint`
-- `predictedChangePct`
-- `nightFuturesSimpleChangePct`
+Expected behavior:
 
-Rules:
+- `predictionDateIso` becomes the next business day;
+- active prediction fields are cleared when outside the operation window;
+- pending state remains until `15:30 KST`.
 
-- one row per minute-level `observedAt`
-- if the same minute is refreshed more than once, the latest row replaces the old one
-- when the prediction target rolls to a new date, prior target rows are dropped from the live series
-- maximum retained rows: `1080`
+### 15:30 prediction operation
 
-The chart is not a historical backtest chart. It is a live nowcast trace for the currently active prediction target.
+At `15:30 KST`, the prediction window opens.
 
-## Why No Database
+Expected behavior:
 
-The platform intentionally uses JSON object storage instead of a DB.
+- KOSPI actual close becomes `prevClose`;
+- `prevCloseDate` and `latestRecordDate` become the current completed KOSPI session date;
+- model prediction can be published even if night futures are not live yet;
+- model input basis is the KRX `15:30 KST` sync baseline.
 
-Reasoning:
+### 15:45 day futures settlement
 
-- easier operations
-- lower cost
-- no schema migrations
-- easier manual recovery
-- fewer failure domains
+Same-day KOSPI 200 day futures close is final only after settlement.
 
-For this product stage, "latest JSON object state" is enough.
+Expected behavior:
 
-## Current Role Split
+- a `15:30` socket close is treated as provisional;
+- eSignal socket close at or after `15:45 KST` is final;
+- only final same-day socket settlement should be trusted as the final cached day futures close;
+- provisional same-day values must be refetched after settlement.
+
+### 18:00~09:00 trend series
+
+`live_prediction_series.json` is updated only from `18:00 KST` through `09:00 KST`.
+
+Expected behavior:
+
+- one row per minute-level `observedAt`;
+- records keep only the active `predictionDateIso`;
+- chart compares `pointPrediction` and `nightFuturesSimplePoint`.
+
+## Recent Actual Record Updates
+
+`history.json` is updated during refresh once actual data is available.
+
+The current actual trading day row should track:
+
+- `actualOpen`
+- `actualClose`
+- `dayFuturesClose`
+- `nightFuturesClose`
+- fixed pre-open `modelPrediction`
+- fixed pre-open `nightFuturesSimpleOpen`
+
+## Role Split
 
 ### Cloud Run + Cloud Scheduler
 
 Responsible for:
 
-- minute-level live indicator refresh
-- minute-level model prediction refresh
-- minute-level model-vs-night-futures trend series update
-- faster dashboard freshness without full Hosting redeploy
+- live indicators;
+- live prediction recalculation;
+- recent actual record updates;
+- day/night futures cache updates;
+- live trend series updates.
 
-### GitHub Actions `retrain-model`
+### `retrain-model`
 
-Still responsible for:
+Responsible for:
 
-- full model rebuild
-- static page regeneration
-- baseline JSON rebuild
-- Firebase Hosting deploy
+- full model rebuild;
+- diagnostics;
+- static fallback JSON;
+- static site publish.
 
-### GitHub Actions `refresh-night-futures`
+### `refresh-night-futures`
 
-Now treated as:
+Manual fallback only.
 
-- manual fallback workflow only
-- not primary production refresh
+Use it only when Cloud Run live refresh is degraded.
 
-## Security Model
+## Recovery Checklist
 
-- `GET /api/live/*`
-  - public read
-- `POST /api/tasks/refresh`
-  - protected by bearer token
-- token placement
-  - Cloud Run environment variable
-  - Cloud Scheduler authorization header
+When live values look stale:
 
-Recommended long-term upgrade:
-
-- move refresh token handling into Secret Manager if the current inline env/header setup grows
-
-## Required IAM Notes
-
-The Firebase deploy service account must have enough rights to deploy Hosting when `firebase.json` includes Cloud Run rewrites with `pinTag: true`.
-
-Required project roles for the deploy service account:
-
-- `roles/firebasehosting.admin`
-- `roles/run.developer`
-
-This mattered in production after the Hosting deploy failure on:
-
-- GitHub Actions run `24248400402`
-- GitHub Actions run `24246079902`
-
-Those failures were resolved by adding the missing roles to:
-
-- `firebase-adminsdk-fbsvc@kospipreview.iam.gserviceaccount.com`
-
-## Health Checks
-
-When live refresh looks stale, check in this order:
-
-1. Cloud Scheduler execution timestamps
-2. Cloud Run service health and recent logs
-3. Cloud Storage object updated timestamps
-4. browser `/api/live/*.json` response timestamps
-5. `/api/live/live_prediction_series.json` record count and latest `observedAt`
-6. source market data freshness by symbol
-
-## Practical Boundaries
-
-- server-side minimum cadence is 1 minute
-- browser polling can be shorter, but source refresh is still 1 minute
-- some market symbols update slower than others even when our pipeline is healthy
-- live refresh does not replace full retraining or static export updates
-- trend chart cadence follows Cloud Scheduler / Cloud Run refresh cadence, not browser polling cadence
-
-## Recovery Notes
-
-If Cloud Run live refresh fails:
-
-1. keep static Hosting online
-2. verify Cloud Run token and Scheduler auth
-3. verify Cloud Storage read/write
-4. if needed, run fallback workflow `refresh-night-futures` manually
-5. if live path is unstable, dashboard can still fall back to `/data/*.json`
+1. check `/api/live/prediction.json` `generatedAt`;
+2. check `/api/live/indicators.json` `generatedAt`;
+3. check `/api/live/live_prediction_series.json` latest `observedAt`;
+4. check Cloud Scheduler last attempt;
+5. check Cloud Run latest ready revision and logs;
+6. check Cloud Storage live object timestamps;
+7. check source market data freshness by symbol.

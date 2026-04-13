@@ -1,5 +1,7 @@
 # Backtest Results
 
+> Archive note: this file preserves an older experiment snapshot. It is not the current production model spec. For current operating rules, read `docs/ALGORITHM.md`, `docs/DATA_SOURCES.md`, and `docs/MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`.
+
 ## Dataset
 
 - rows: 1462

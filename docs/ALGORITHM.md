@@ -1,32 +1,92 @@
 # Algorithm
 
-## 운영 모델(2026-04-09 기준)
+## Current Operating Model
 
-- 예측 엔진: LightGBM 회귀(`scripts/backtest_and_generate.py`)
-- 출력값: 다음 영업일 코스피 시초가 포인트(`pointPrediction`)와 예측 밴드(`rangeLow`, `rangeHigh`)
-- 핵심 원칙: 야간선물 기반 앵커를 우선하고, 보조 지표는 제한된 보정으로만 반영
+Baseline date: 2026-04-13
 
-## 계산 단계
+The production prediction engine is `EWY Synthetic K200 Ridge`.
 
-1. 기준 종가 산출
-- 코스피 기준은 최신 완료 세션 종가를 사용한다.
-- 야간선물 변동률은 `KOSPI200 야간선물 / 주간선물 종가 - 1` 로 계산한다.
+The main model prediction does not use KOSPI 200 night futures as an input. Night futures are published as a comparison benchmark only.
 
-2. 야간선물 중심 앵커
-- 1차 앵커는 야간선물 변동률(`night_futures_change`)이다.
-- 야간선물 데이터가 없을 때만 보조 앵커+ML 기반 폴백 경로를 사용한다.
+Primary output:
 
-3. 보조 보정(가중 평균 + 캡)
-- 보조 입력: EWY, USD/KRW(원화강세 변환), S&P500, NASDAQ
-- 보조 앵커는 가중 평균 후 축소 스케일을 적용한다.
-- ML 잔차와 보조 앵커 잔차는 각각 별도 상한(cap) 내에서만 반영한다.
+- next KOSPI opening point prediction: `pointPrediction`
+- prediction band: `rangeLow`, `rangeHigh`
+- predicted change from the latest KOSPI close: `predictedChangePct`
+- comparison-only night futures simple conversion: `nightFuturesSimplePoint`
 
-4. 과도 예측 억제
-- 앵커 밴드 가드레일로 최종 예측치의 과도한 이탈을 제한한다.
-- 최근 급등락 구간은 mean-reversion damping을 적용한다.
-- 적응형 클립으로 히스토리 극단치를 넘어서는 예측을 제한한다.
+## Time Anchors
 
-## 의도된 동작
+All production time gates use Asia/Seoul time.
 
-- 야간선물이 +0.6% 수준일 때 모델이 +4%처럼 과도하게 튀는 현상을 억제한다.
-- 보조 지표는 방향성 보정용이며, 야간선물 대비 과대/과소평가를 줄이는 역할만 수행한다.
+- `09:00`: roll prediction target to the next business day and set pending state until the next operating window.
+- `15:30`: start live prediction operation for the next trading day.
+- `15:30`: use the completed KOSPI close as `prevClose`.
+- `15:45`: accept KOSPI 200 day futures close as final settlement only after this time.
+- `18:00~09:00`: append live prediction trend observations.
+
+## Model Input Basis
+
+Live model returns are anchored to the KRX close sync basis.
+
+For each live symbol, the refresh process uses:
+
+1. first same-day quote at or after `15:30 KST` when available;
+2. otherwise the latest quote before `15:30 KST` inside the allowed lookback window;
+3. Yahoo standard displayed change only as a fallback when no KRX-sync intraday basis is available.
+
+This is important for EWY. Yahoo may display EWY premarket change versus the previous U.S. regular close, but the model must compare EWY from the Korean close sync point.
+
+Indicator cards may still display standard market-session change values. That display basis must not be confused with model input basis.
+
+## Prediction Calculation
+
+1. Core signal
+   - EWY and USD/KRW are the core signals.
+   - The core layer estimates a synthetic KOSPI 200 overnight return.
+   - EWY and KRW coefficients are calibrated from recent data and blended with structural weights.
+
+2. Residual correction
+   - SOX, S&P 500, NASDAQ 100, Dow, WTI, Gold, and US 10Y are residual or auxiliary signals.
+   - Residual correction is capped.
+   - If recent validation does not improve accuracy, residual weight is reduced or disabled.
+
+3. KOSPI mapping
+   - Synthetic K200 return is mapped to KOSPI opening return through a Ridge mapping layer.
+
+4. Stabilization
+   - Prediction changes are guard-banded.
+   - Live refresh applies a small smoothing weight to reduce one-minute jump noise.
+   - The model must not force night-futures direction into `pointPrediction`.
+
+## Night Futures Simple Conversion
+
+Night futures simple conversion is separate from the model.
+
+Formula:
+
+```text
+nightFuturesSimplePoint = KOSPI_close(D) * (K200_night(t) / K200_day_close(D))
+nightFuturesSimpleChangePct = K200_night(t) / K200_day_close(D) - 1
+```
+
+Required basis:
+
+- `KOSPI_close(D)` is the current completed KOSPI close after `15:30 KST`.
+- `K200_day_close(D)` is the final KOSPI 200 day futures close.
+- Final day futures close is trusted only when the source is the eSignal socket close at or after `15:45 KST`.
+
+## Recent Actual Records
+
+`history.json` stores actual verification rows.
+
+Tracked fields:
+
+- `actualOpen`
+- `actualClose`
+- `dayFuturesClose`
+- `nightFuturesClose`
+- fixed pre-open `modelPrediction`
+- fixed pre-open `nightFuturesSimpleOpen`
+
+For a trading day, the fixed model prediction should come from the last valid pre-open series row before `09:00 KST`, or from the archive fallback.

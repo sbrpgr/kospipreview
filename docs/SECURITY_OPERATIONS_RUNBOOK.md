@@ -1,4 +1,4 @@
-# Security & Operations Runbook (2026-04-11)
+# Security & Operations Runbook (2026-04-13)
 
 ## Scope
 
@@ -40,7 +40,8 @@ This runbook covers:
 
 ## Current Production Topology
 
-- domain edge: Cloudflare
+- root domain edge: Cloudflare
+- `www` host: Firebase Hosting CNAME through Cloudflare DNS, currently not proxied
 - static site: Firebase Hosting
 - live JSON refresh: Cloud Run + Cloud Scheduler + Cloud Storage
 - full retrain and static deploy: GitHub Actions
@@ -105,6 +106,14 @@ Verification:
 - allow `retrain-model` to run
 - if needed, run manual Firebase Hosting deploy:
   - `npx firebase-tools@latest deploy --project kospipreview --only hosting --non-interactive`
+
+#### Production code deploy
+
+- push to `main`
+- run GitHub Actions workflow `deploy-production`
+- confirm Cloud Run latest ready revision receives 100% traffic
+- confirm Firebase Hosting rewrite pins the latest Cloud Run tag
+- confirm `/api/live/prediction.json` responds from bucket
 
 #### Live refresh path
 
@@ -197,7 +206,8 @@ Important:
 - root A record stays proxied
 - WAF / bot protection stays enabled
 - `kospipreview.com` is the primary host
-- Hosting remains behind Cloudflare for real traffic
+- `www.kospipreview.com` currently points directly to Firebase Hosting through Cloudflare DNS with proxy disabled
+- both root and `www` must return live API data with no-store cache headers
 
 ## Routine Checklist
 
@@ -206,12 +216,14 @@ Important:
 - inspect failed GitHub Actions runs
 - inspect Cloud Scheduler / Cloud Run freshness
 - spot-check `prediction.json` and `indicators.json`
+- spot-check `history.json` current actual row after market open and after market close
 
 ### Weekly
 
 - run or review dependency audit
 - inspect source-data anomalies
 - inspect Cloudflare security events
+- check day futures final settlement behavior after at least one domestic close
 
 ### Monthly
 

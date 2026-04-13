@@ -1,23 +1,94 @@
 # Data Sources
 
-## 운영 데이터 소스(2026-04-09 기준)
+Baseline date: 2026-04-13
 
-- Yahoo Finance
-  - 코스피: `^KS11`
-  - 해외/보조 지표: `EWY`, `KORU`, `^GSPC`, `^NDX`, `^DJI`, `^VIX`, `CL=F`, `GC=F`, `^TNX`, `^SOX`, `KRW=X`
-- eSignal 캐시 JSON
-  - 야간선물: `https://esignal.co.kr/data/cache/kospif_ngt.js`
-  - 주간선물: `https://esignal.co.kr/data/cache/kospif_day.js`
+## Production Sources
 
-## KOSPI200 선물 처리 규칙
+### Yahoo Finance
 
-- 야간선물 등락률은 반드시 주간선물 종가 대비로 계산한다.
-- 주간선물 종가는 세션 단위 캐시(`day_futures_close_cache.json`)로 관리한다.
-- 캐시 세션 날짜가 유효하면 재요청하지 않고 재사용한다.
-- 소스 장애 시 마지막 성공 캐시 값을 유지한다.
+Used for market indicators and live model input series.
 
-## 사용자 노출 정책
+Symbols:
 
-- 지표 카드에는 데이터 출처를 표기한다.
-- KOSPI200 야간선물 카드는 내부 정책상 출처 링크를 비활성화한다.
-- 지표별 실제 갱신 주기가 다르므로, 최신 수치는 각 원 출처에서 직접 확인하는 것을 원칙으로 한다.
+- KOSPI: `^KS11`
+- KOSPI 200: `^KS200`
+- EWY: `EWY`
+- KORU: `KORU`
+- S&P 500: `^GSPC`
+- NASDAQ 100: `^NDX`
+- Dow Jones: `^DJI`
+- VIX: `^VIX`
+- WTI: `CL=F`
+- Gold: `GC=F`
+- US 10Y: `^TNX`
+- SOX: `^SOX`
+- USD/KRW: `KRW=X`
+
+Important distinction:
+
+- dashboard cards may show market-standard displayed change;
+- live model inputs use the KRX `15:30 KST` sync basis when available.
+
+### Naver Finance
+
+Used for KOSPI open and close verification.
+
+Endpoint:
+
+- `https://polling.finance.naver.com/api/realtime/domestic/index/KOSPI`
+
+Rules:
+
+- actual open is read from Naver when the session date matches;
+- actual close is accepted after the market is closed or the timestamp is at or after `15:30 KST`.
+
+### eSignal KOSPI 200 Day Futures
+
+Used for day futures close settlement.
+
+Sources:
+
+- page: `https://esignal.co.kr/kospi200-futures/`
+- cache JSON: `https://esignal.co.kr/data/cache/kospif_day.js`
+- socket endpoint: `https://esignal.co.kr/proxy/8889/socket.io/`
+
+Final settlement rule:
+
+- session close before `15:45 KST` is provisional;
+- final day futures close is trusted only from eSignal socket `session-close-socket` at or after `15:45 KST`;
+- `day_futures_close_cache.json` must not permanently cache a same-day provisional value as final.
+
+### eSignal KOSPI 200 Night Futures
+
+Used for comparison-only night futures simple conversion and the K200F card.
+
+Sources:
+
+- page: `https://esignal.co.kr/kospi200-futures-night/`
+- cache JSON: `https://esignal.co.kr/data/cache/kospif_ngt.js`
+
+Rules:
+
+- night futures change must be recalculated versus the final day futures close when that close is available;
+- night futures are considered live only when source freshness is inside the stale window and the night operation window is active;
+- night futures are not model inputs.
+
+## Cache Files
+
+Live refresh reads and writes JSON state through Cloud Storage and bundled static fallbacks.
+
+Key files:
+
+- `prediction.json`
+- `indicators.json`
+- `history.json`
+- `live_prediction_series.json`
+- `prediction_archive.json`
+- `day_futures_close_cache.json`
+- `night_futures_source_cache.json`
+
+## Public Display Policy
+
+- Each market card may expose its data source label.
+- KOSPI 200 night futures source links remain disabled in the UI by policy.
+- Public values are research and comparison values, not guaranteed trading data.

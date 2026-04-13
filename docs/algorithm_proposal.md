@@ -26,3 +26,6 @@
 가장 즉각적으로 예측률을 5~10% 이상 높이면서 서버 인프라에 큰 격변을 주지 않는 베스트 옵션은 **[LightGBM 기반의 앙상블 모델 적용 + Quantile 회귀를 통한 밴드 동적 생성]**입니다.
 
 사용자님께서 검토 후 OK하시면, 다음 작업에서 데이터 파이프라인(`backtest_and_generate.py`) 전체를 LightGBM 앙상블 구조로 개조하는 작업을 바로 진행할 준비가 되어있습니다.
+# Archived Algorithm Proposal
+
+> Archive note: this proposal predates the current production model. It is retained for historical context only. For the live operating spec, read `docs/ALGORITHM.md`, `docs/DATA_SOURCES.md`, and `docs/MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`.
