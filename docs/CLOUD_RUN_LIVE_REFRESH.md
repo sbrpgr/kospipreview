@@ -116,6 +116,9 @@ The current actual trading day row should track:
 - fixed pre-open `modelPrediction`
 - fixed pre-open `nightFuturesSimpleOpen`
 
+Day/night futures close fields are tracked only for actual rows dated
+`2026-04-14` or later. The `2026-04-13` actual row must keep both fields blank.
+
 ## Role Split
 
 ### Cloud Run + Cloud Scheduler

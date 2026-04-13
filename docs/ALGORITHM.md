@@ -91,4 +91,7 @@ Tracked fields:
 - fixed pre-open `modelPrediction`
 - fixed pre-open `nightFuturesSimpleOpen`
 
+Day/night futures close fields are tracked only for recent actual rows dated
+`2026-04-14` or later. The `2026-04-13` row remains blank for both fields.
+
 For a trading day, the fixed model prediction should come from the last valid pre-open series row before `09:00 KST`, or from the archive fallback.

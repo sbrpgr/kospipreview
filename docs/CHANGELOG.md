@@ -16,8 +16,9 @@
 
 - Recent actual record tracking expanded
   - `history.json` tracks `actualClose`.
-  - `history.json` tracks `dayFuturesClose`.
-  - `history.json` tracks `nightFuturesClose`.
+  - `history.json` tracks `dayFuturesClose` from `2026-04-14` rows onward.
+  - `history.json` tracks `nightFuturesClose` from `2026-04-14` rows onward.
+  - The `2026-04-13` recent actual row keeps both futures close fields blank.
   - Frontend accuracy table displays actual close, day futures close, and night futures close.
 
 - Day futures provisional close guard added

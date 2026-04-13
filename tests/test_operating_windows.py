@@ -446,9 +446,18 @@ class OperatingWindowTests(unittest.TestCase):
             components["predicted_kospi_simple_pct"],
         )
 
-    def test_history_uses_preopen_series_for_fixed_actual_row(self):
+    def test_history_leaves_legacy_futures_close_fields_blank_before_tracking_start(self):
         now_utc = datetime(2026, 4, 13, 4, 0, tzinfo=timezone.utc)  # 13:00 KST
-        history = {"summary": {"mae30d": 21.0}, "records": []}
+        history = {
+            "summary": {"mae30d": 21.0},
+            "records": [
+                {
+                    "date": "2026-04-13",
+                    "dayFuturesClose": 872.0,
+                    "nightFuturesClose": 871.75,
+                }
+            ],
+        }
         archive = [
             {
                 "predictionDateIso": "2026-04-13",
@@ -502,8 +511,60 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(updated["records"][0]["modelPrediction"], 5884.0)
         self.assertEqual(updated["records"][0]["actualOpen"], 5876.12)
         self.assertEqual(updated["records"][0]["actualClose"], 5806.62)
-        self.assertEqual(updated["records"][0]["dayFuturesClose"], 872.0)
-        self.assertEqual(updated["records"][0]["nightFuturesClose"], 871.75)
+        self.assertIsNone(updated["records"][0]["dayFuturesClose"])
+        self.assertIsNone(updated["records"][0]["nightFuturesClose"])
+
+    def test_history_tracks_futures_close_fields_from_tracking_start(self):
+        now_utc = datetime(2026, 4, 14, 4, 0, tzinfo=timezone.utc)  # 13:00 KST
+        history = {"summary": {"mae30d": 21.0}, "records": []}
+        archive = [
+            {
+                "predictionDateIso": "2026-04-14",
+                "predictionDate": "2026-04-14",
+                "generatedAt": "2026-04-14T03:30:00+00:00",
+                "pointPrediction": 5999.0,
+                "rangeLow": 5980.0,
+                "rangeHigh": 6020.0,
+            }
+        ]
+        series = {
+            "records": [
+                {
+                    "predictionDateIso": "2026-04-14",
+                    "predictionDate": "2026-04-14",
+                    "observedAt": "2026-04-13T23:59:00+00:00",
+                    "pointPrediction": 5884.0,
+                    "nightFuturesSimplePoint": 5891.0,
+                    "nightFuturesClose": 874.75,
+                },
+            ]
+        }
+
+        original_fetch_open = refresh_night_futures.fetch_kospi_actual_open
+        original_fetch_close = refresh_night_futures.fetch_kospi_actual_close
+        try:
+            refresh_night_futures.fetch_kospi_actual_open = lambda target_date: 5876.12
+            refresh_night_futures.fetch_kospi_actual_close = lambda target_date: 5806.62
+            updated = refresh_night_futures.update_history_with_actual_open(
+                history,
+                archive,
+                now_utc,
+                series,
+                day_close_quote={
+                    "close": 875.0,
+                    "updated_at": "2026-04-14T06:45:00+00:00",
+                    "session_date": "2026-04-14",
+                },
+            )
+        finally:
+            refresh_night_futures.fetch_kospi_actual_open = original_fetch_open
+            refresh_night_futures.fetch_kospi_actual_close = original_fetch_close
+
+        self.assertEqual(updated["records"][0]["date"], "2026-04-14")
+        self.assertEqual(updated["records"][0]["actualOpen"], 5876.12)
+        self.assertEqual(updated["records"][0]["actualClose"], 5806.62)
+        self.assertEqual(updated["records"][0]["dayFuturesClose"], 875.0)
+        self.assertEqual(updated["records"][0]["nightFuturesClose"], 874.75)
 
 
 if __name__ == "__main__":

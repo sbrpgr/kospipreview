@@ -71,6 +71,8 @@ All times are Asia/Seoul.
   - `nightFuturesClose`
   - fixed pre-open `modelPrediction`
   - fixed pre-open `nightFuturesSimpleOpen`
+- `dayFuturesClose` and `nightFuturesClose` in `history.json` start from rows dated
+  `2026-04-14`; the `2026-04-13` row is intentionally blank for both fields.
 
 ## Important Code
 
