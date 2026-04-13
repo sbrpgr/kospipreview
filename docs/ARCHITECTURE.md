@@ -38,9 +38,8 @@ The platform uses a split architecture.
   - Cloudflare proxied root A record.
   - Primary public host.
 - `www.kospipreview.com`
-  - Cloudflare DNS record exists.
+  - Cloudflare proxied CNAME to Firebase Hosting.
   - CNAME to `kospipreview.web.app`.
-  - Currently not proxied through Cloudflare.
 
 Both hosts should return live API data from the Cloud Run bucket-backed path.
 
@@ -59,9 +58,14 @@ Both hosts should return live API data from the Cloud Run bucket-backed path.
 2. Cloud Run seeds a temporary workspace from Cloud Storage live JSON, then repo-bundled fallback JSON when needed.
 3. `scripts/refresh_night_futures.py` refreshes indicators, prediction, history, archive, caches, and live trend data.
 4. Cloud Run uploads refreshed JSON back to Cloud Storage.
-5. Browser requests `/api/live/*.json`.
-6. Firebase Hosting rewrites the request to the pinned Cloud Run revision.
-7. Cloud Run reads the JSON object from Cloud Storage and returns it with `Cache-Control: no-store`.
+5. Public live JSON reads use a short Cloud Run instance-local cache to absorb bursts without changing client no-store semantics.
+
+The refresh task endpoint is token protected and fails closed if
+`REFRESH_BEARER_TOKEN` is missing. Unauthenticated refresh is only allowed when
+`ALLOW_UNAUTHENTICATED_REFRESH=true` is explicitly set for a local/dev service.
+6. Browser requests `/api/live/*.json`.
+7. Firebase Hosting rewrites the request to the pinned Cloud Run revision.
+8. Cloud Run reads the JSON object from Cloud Storage and returns it with `Cache-Control: no-store`.
 
 ## Live JSON Files
 

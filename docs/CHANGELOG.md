@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-04-14
+
+- Security hardening
+  - Cloud Run refresh auth now fails closed when `REFRESH_BEARER_TOKEN` is missing.
+  - Live JSON reads use a short server-side cache to absorb burst traffic while keeping client no-store headers.
+  - Refresh request bodies are size-limited and refresh failures no longer expose subprocess details to callers.
+  - Production deploy now requires the refresh bearer token secret.
+  - `www.kospipreview.com` now also runs through the Cloudflare proxy.
+
 ## 2026-04-13
 
 - Live operating schedule and settlement rules finalized

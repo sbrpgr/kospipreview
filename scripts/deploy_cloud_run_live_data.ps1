@@ -71,7 +71,7 @@ Invoke-Gcloud run deploy $ServiceName `
   --source . `
   --region $Region `
   --allow-unauthenticated `
-  --set-env-vars "LIVE_DATA_BUCKET=$BucketName,REFRESH_BEARER_TOKEN=$RefreshToken"
+  --set-env-vars "LIVE_DATA_BUCKET=$BucketName,REFRESH_BEARER_TOKEN=$RefreshToken,LIVE_JSON_CACHE_SECONDS=10,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240"
 
 $serviceUrl = gcloud run services describe $ServiceName --region $Region --format="value(status.url)"
 if ($LASTEXITCODE -ne 0) {

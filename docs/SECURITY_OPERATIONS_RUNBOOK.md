@@ -18,6 +18,9 @@ This runbook covers:
 - never paste long-lived keys into issues, PRs, or chat
 - GitHub secret in use:
   - `FIREBASE_SERVICE_ACCOUNT`
+  - `REFRESH_BEARER_TOKEN`
+- Cloud Scheduler must call `/api/tasks/refresh` with `Authorization: Bearer ...`
+- Cloud Run refresh auth must fail closed when `REFRESH_BEARER_TOKEN` is missing
 
 ### Frontend dependency posture
 
@@ -25,6 +28,7 @@ This runbook covers:
 - latest recorded checks:
   - `npm audit --omit=dev`: no known issues at the time of the last audit
   - `python -m pip_audit -r requirements.txt`: no known issues at the time of the last audit
+  - `python -m pip_audit -r requirements-cloudrun.txt`: no known issues at the time of the last audit
 
 ### Hosting headers
 
@@ -41,10 +45,41 @@ This runbook covers:
 ## Current Production Topology
 
 - root domain edge: Cloudflare
-- `www` host: Firebase Hosting CNAME through Cloudflare DNS, currently not proxied
+- `www` host: Firebase Hosting CNAME proxied through Cloudflare
 - static site: Firebase Hosting
 - live JSON refresh: Cloud Run + Cloud Scheduler + Cloud Storage
 - full retrain and static deploy: GitHub Actions
+
+## Runtime Abuse Controls
+
+The platform should stay public globally. Do not block a country only because
+traffic appears from that region. Prefer controls that keep normal users online
+while limiting abusive request patterns.
+
+### Cloud Run refresh endpoint
+
+- `/api/tasks/refresh` is the expensive path.
+- It must require `REFRESH_BEARER_TOKEN`.
+- If the token is not configured, the service must reject refresh requests.
+- Local unauthenticated refresh is allowed only when
+  `ALLOW_UNAUTHENTICATED_REFRESH=true` is explicitly set.
+- Refresh request bodies are capped by `MAX_REFRESH_BODY_BYTES`.
+- Failure responses must not return subprocess stdout/stderr to callers.
+
+### Live JSON reads
+
+- Public JSON reads should be cheap and repeatable.
+- Cloud Run keeps a short per-instance server-side cache for live JSON reads.
+- Client responses still use `Cache-Control: no-store` so the dashboard remains
+  live, but bursts do not force a Cloud Storage read on every request.
+
+### Edge posture
+
+- Cloudflare should protect the public hosts where possible.
+- Firebase Hosting and Cloud Run must still be safe if traffic bypasses
+  Cloudflare.
+- WAF decisions should focus on abusive patterns such as scanner paths,
+  request floods, and malformed requests, not normal international traffic.
 
 ## Deployment Roles That Matter
 
@@ -204,10 +239,13 @@ Important:
 ## Cloudflare Policy
 
 - root A record stays proxied
+- `www` CNAME stays proxied
 - WAF / bot protection stays enabled
 - `kospipreview.com` is the primary host
-- `www.kospipreview.com` currently points directly to Firebase Hosting through Cloudflare DNS with proxy disabled
+- `www.kospipreview.com` points to Firebase Hosting through Cloudflare proxy
 - both root and `www` must return live API data with no-store cache headers
+- do not geo-block broad countries by default
+- consider managed challenge or rate limiting for abusive paths and automated scanners
 
 ## Routine Checklist
 
@@ -223,6 +261,7 @@ Important:
 - run or review dependency audit
 - inspect source-data anomalies
 - inspect Cloudflare security events
+- inspect Firebase / Cloud Run request volume by path
 - check day futures final settlement behavior after at least one domestic close
 
 ### Monthly

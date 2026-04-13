@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import hmac
 import json
+import logging
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, request
@@ -32,12 +34,48 @@ SYNC_FILE_NAMES = SERVE_FILE_NAMES | {
 BUCKET_NAME = os.environ.get("LIVE_DATA_BUCKET", "").strip()
 BUCKET_PREFIX = os.environ.get("LIVE_DATA_PREFIX", "").strip().strip("/")
 REFRESH_BEARER_TOKEN = os.environ.get("REFRESH_BEARER_TOKEN", "").strip()
+ALLOW_UNAUTHENTICATED_REFRESH = os.environ.get("ALLOW_UNAUTHENTICATED_REFRESH", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 REFRESH_TIMEOUT_SECONDS = int(os.environ.get("REFRESH_TIMEOUT_SECONDS", "240"))
+LIVE_JSON_CACHE_SECONDS = max(0.0, float(os.environ.get("LIVE_JSON_CACHE_SECONDS", "10")))
+MAX_REFRESH_BODY_BYTES = int(os.environ.get("MAX_REFRESH_BODY_BYTES", "1024"))
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = MAX_REFRESH_BODY_BYTES
 
 _storage_client: storage.Client | None = None
 _refresh_lock = threading.Lock()
+_live_json_cache_lock = threading.Lock()
+_live_json_cache: dict[str, tuple[float, bytes, str]] = {}
+
+
+@app.after_request
+def add_security_headers(response: Response) -> Response:
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    response.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+    if request.path.startswith("/api/live/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+
+
+@app.before_request
+def reject_oversized_refresh_request() -> tuple[Response, int] | None:
+    if request.path != "/api/tasks/refresh":
+        return None
+
+    content_length = request.content_length
+    if content_length is not None and content_length > MAX_REFRESH_BODY_BYTES:
+        return jsonify({"ok": False, "error": "request_too_large"}), 413
+
+    return None
 
 
 def get_storage_bucket():
@@ -103,21 +141,48 @@ def load_live_json_bytes(file_name: str) -> tuple[bytes, str] | tuple[None, None
     if file_name not in SERVE_FILE_NAMES:
         return None, None
 
+    now = time.monotonic()
+    if LIVE_JSON_CACHE_SECONDS > 0:
+        with _live_json_cache_lock:
+            cached = _live_json_cache.get(file_name)
+            if cached is not None:
+                cached_at, payload, source = cached
+                if now - cached_at <= LIVE_JSON_CACHE_SECONDS:
+                    return payload, source
+
+    payload: bytes | None = None
+    source: str | None = None
+
     with tempfile.TemporaryDirectory(prefix="kospi-live-read-") as temp_dir:
         temp_path = Path(temp_dir) / file_name
         if download_bucket_file(file_name, temp_path):
-            return temp_path.read_bytes(), "bucket"
+            payload = temp_path.read_bytes()
+            source = "bucket"
 
-    bundled_path = bundled_file_path(file_name)
-    if bundled_path.exists():
-        return bundled_path.read_bytes(), "bundled"
+    if payload is None:
+        bundled_path = bundled_file_path(file_name)
+        if bundled_path.exists():
+            payload = bundled_path.read_bytes()
+            source = "bundled"
 
-    return None, None
+    if payload is None or source is None:
+        return None, None
+
+    if LIVE_JSON_CACHE_SECONDS > 0:
+        with _live_json_cache_lock:
+            _live_json_cache[file_name] = (now, payload, source)
+
+    return payload, source
+
+
+def clear_live_json_cache() -> None:
+    with _live_json_cache_lock:
+        _live_json_cache.clear()
 
 
 def is_refresh_request_authorized() -> bool:
     if not REFRESH_BEARER_TOKEN:
-        return True
+        return ALLOW_UNAUTHENTICATED_REFRESH
 
     auth_header = request.headers.get("Authorization", "").strip()
     expected = f"Bearer {REFRESH_BEARER_TOKEN}"
@@ -161,6 +226,8 @@ def run_refresh_job() -> dict:
         for file_name in SYNC_FILE_NAMES:
             if upload_bucket_file(file_name, data_dir / file_name):
                 uploaded_files.append(file_name)
+        if uploaded_files:
+            clear_live_json_cache()
 
         prediction_payload = json.loads((data_dir / "prediction.json").read_text(encoding="utf8"))
         indicators_payload = json.loads((data_dir / "indicators.json").read_text(encoding="utf8"))
@@ -181,7 +248,6 @@ def root() -> Response:
     return jsonify(
         {
             "service": "kospi-live-data",
-            "bucket": BUCKET_NAME or None,
             "routes": {
                 "health": "/healthz",
                 "prediction": "/api/live/prediction.json",
@@ -195,7 +261,7 @@ def root() -> Response:
 
 @app.get("/healthz")
 def healthz() -> Response:
-    return jsonify({"ok": True, "bucket": BUCKET_NAME or None})
+    return jsonify({"ok": True})
 
 
 @app.get("/api/live/<path:file_name>")
@@ -230,13 +296,12 @@ def refresh_live_data() -> Response:
         return jsonify(payload)
     except Exception as exc:  # pragma: no cover - exercised in Cloud Run
         details = exc.args[1] if len(exc.args) > 1 and isinstance(exc.args[1], dict) else {}
+        logging.exception("refresh job failed", extra={"details": details})
         return (
             jsonify(
                 {
                     "ok": False,
                     "error": "refresh_failed",
-                    "message": str(exc),
-                    **details,
                 }
             ),
             500,

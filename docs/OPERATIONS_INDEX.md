@@ -20,7 +20,7 @@ If work resumes later, read these documents in order:
 - Primary host: `https://kospipreview.com`
 - `www` host: `https://www.kospipreview.com`
 - Root domain edge: Cloudflare proxied
-- `www` DNS: CNAME to Firebase Hosting, not Cloudflare proxied
+- `www` DNS: Cloudflare proxied CNAME to Firebase Hosting
 - Static frontend hosting: Firebase Hosting
 - Live refresh path: Cloud Run + Cloud Scheduler + Cloud Storage
 - Full rebuild path: GitHub Actions `retrain-model`
@@ -109,7 +109,7 @@ Last verified on 2026-04-13:
 - Scheduler: enabled, weekday every minute.
 - `/api/live/prediction.json`: served from bucket with no-store cache headers.
 - Root host: Cloudflare dynamic, no cache for live API.
-- `www` host: Firebase direct, no-store live API.
+- `www` host: Cloudflare dynamic, no cache for live API.
 
 ## Operating Principles
 

@@ -33,7 +33,14 @@ jobs:
           project_id: kospipreview
 
       - name: Deploy Cloud Run live data service
+        env:
+          REFRESH_BEARER_TOKEN: ${{ secrets.REFRESH_BEARER_TOKEN }}
         run: |
+          if [ -z "${REFRESH_BEARER_TOKEN:-}" ]; then
+            echo "::error::REFRESH_BEARER_TOKEN GitHub secret is required for the Cloud Scheduler refresh endpoint"
+            exit 1
+          fi
+
           IMAGE="gcr.io/kospipreview/kospi-live-data:${GITHUB_SHA}"
           gcloud builds submit \
             --project kospipreview \
@@ -46,7 +53,7 @@ jobs:
             --project kospipreview \
             --region asia-northeast3 \
             --allow-unauthenticated \
-            --update-env-vars LIVE_DATA_BUCKET=kospipreview-live-data \
+            --update-env-vars "LIVE_DATA_BUCKET=kospipreview-live-data,REFRESH_BEARER_TOKEN=${REFRESH_BEARER_TOKEN},LIVE_JSON_CACHE_SECONDS=10,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240" \
             --quiet
 
       - name: Setup Node
