@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-13T12:07:37.205674+00:00",
+  "generatedAt": "2026-04-13T12:19:20.897139+00:00",
   "records": [
     {
       "predictionDateIso": "2026-04-14",
@@ -8,7 +8,9 @@
       "rangeLow": 5780.52,
       "rangeHigh": 5836.3,
       "pointPrediction": 5808.41,
-      "nightFuturesSimplePoint": 5792.97
+      "nightFuturesSimplePoint": 5792.97,
+      "futuresDayClose": 872.0,
+      "futuresDayCloseDate": "2026-04-13"
     },
     {
       "predictionDateIso": "2026-04-13",

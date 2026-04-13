@@ -2475,6 +2475,15 @@ def update_prediction_night_fields(
             raw_model_pct = to_float(prediction_components.get("predicted_kospi_simple_pct_pre_guard"))
             if raw_model_pct is not None:
                 model_payload["rawModelPct"] = round(raw_model_pct, 2)
+            mapping_guard_adj = to_float(prediction_components.get("mapping_direction_guard_adjustment"))
+            if mapping_guard_adj is not None:
+                model_payload["mappingDirectionGuardApplied"] = bool(
+                    prediction_components.get("mapping_direction_guard_applied")
+                )
+                model_payload["mappingDirectionGuardPct"] = round(
+                    log_return_pct_to_simple_return_pct(mapping_guard_adj) or 0.0,
+                    2,
+                )
             residual_adj = to_float(prediction_components.get("residual_adj_k200_return"))
             if residual_adj is not None:
                 model_payload["mlResidualAdjPct"] = round(log_return_pct_to_simple_return_pct(residual_adj) or 0.0, 2)

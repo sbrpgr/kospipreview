@@ -32,6 +32,11 @@
   - Cloud Scheduler: enabled, weekday every minute.
   - Live API: bucket source with no-store headers.
 
+- KOSPI mapping direction guard added
+  - Root cause: the K200-to-KOSPI mapping intercept could flip a small negative EWY/KRW core signal into a positive KOSPI prediction.
+  - Fix: when the KRX-synced core signal is non-trivial and the mapping intercept alone flips direction, final prediction falls back to the beta-only mapped return.
+  - Diagnostics added: `model.mappingDirectionGuardApplied`, `model.mappingDirectionGuardPct`.
+
 ## 2026-04-11
 
 - Live prediction trend chart

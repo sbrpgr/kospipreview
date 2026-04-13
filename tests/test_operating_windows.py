@@ -416,6 +416,31 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(display_returns["ewy"], -2.21)
         self.assertLess(model_returns["ewy"], 0)
 
+    def test_mapping_direction_guard_prevents_intercept_sign_flip(self):
+        components = backtest_and_generate.compute_prediction_components(
+            {
+                "ewy": -0.2773787804659043,
+                "krw": 0.020817385404211766,
+            },
+            core_params={
+                "intercept": 0.1706,
+                "ewy_coef": 0.3618,
+                "krw_coef": 0.2,
+                "sample_size": 180,
+                "r2": 0.2341,
+            },
+            residual_artifact={"weight": 0.0},
+            mapping_artifact={
+                "intercept": 0.161147,
+                "beta": 0.344188,
+                "sample_size": 240,
+            },
+        )
+
+        self.assertTrue(components["mapping_direction_guard_applied"])
+        self.assertGreater(components["predicted_kospi_simple_pct_pre_guard"], 0)
+        self.assertLess(components["predicted_kospi_simple_pct"], 0)
+
     def test_history_uses_preopen_series_for_fixed_actual_row(self):
         now_utc = datetime(2026, 4, 13, 4, 0, tzinfo=timezone.utc)  # 13:00 KST
         history = {"summary": {"mae30d": 21.0}, "records": []}

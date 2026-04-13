@@ -73,6 +73,13 @@ Synthetic KOSPI 200 return is mapped to KOSPI return through:
 
 The final KOSPI return is converted back to a point value from `prevClose`.
 
+Direction guard:
+
+- mapping intercept is allowed to express normal opening drift;
+- mapping intercept must not single-handedly flip a non-trivial KRX-synced core signal;
+- when that happens, the final mapped return uses the beta-only direction-preserving value;
+- diagnostics are exposed through `model.mappingDirectionGuardApplied` and `model.mappingDirectionGuardPct`.
+
 ## Output Fields
 
 `prediction.json` important fields:
@@ -100,12 +107,15 @@ The final KOSPI return is converted back to a point value from `prevClose`.
 - `krxBaselineDate`
 - `coreAnchorPct`
 - `rawModelPct`
+- `mappingDirectionGuardApplied`
+- `mappingDirectionGuardPct`
 - `liveRefreshUpdatedAt`
 
 ## Operating Invariants
 
 - `model.nightFuturesExcluded` must be `true`.
 - `pointPrediction` must not be anchored to `nightFuturesSimplePoint`.
+- `pointPrediction` must not be flipped upward by mapping intercept alone when the KRX-synced EWY/KRW core is meaningfully negative.
 - `nightFuturesSimplePoint` must use current KOSPI close after `15:30 KST`.
 - `nightFuturesSimplePoint` must use final KOSPI 200 day futures close after settlement.
 - Same-day KOSPI 200 day futures close is final only after `15:45 KST` socket settlement.
