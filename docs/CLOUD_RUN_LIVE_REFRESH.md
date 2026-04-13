@@ -1,6 +1,6 @@
 # Cloud Run Live Refresh
 
-Baseline date: 2026-04-13
+Baseline date: 2026-04-14
 
 ## Purpose
 
@@ -33,6 +33,30 @@ Goals:
 5. `scripts/refresh_night_futures.py` runs.
 6. Refreshed JSON is uploaded back to Cloud Storage.
 7. Public reads use `/api/live/*.json`.
+
+## Refresh Cadence And Performance
+
+Cloud Scheduler attempts one refresh per weekday minute.
+
+Operational target:
+
+- a normal refresh run should finish well under `60s`;
+- if a refresh run exceeds roughly one minute, the next Scheduler attempt can overlap with the active run;
+- overlapping attempts are protected by the refresh lock and can return `409 refresh_in_progress`;
+- repeated over-one-minute runs make the effective dashboard cadence look closer to two minutes.
+
+Current implementation:
+
+- `scripts/refresh_night_futures.py` shares a per-run `market_snapshot_cache` for Yahoo display snapshots;
+- independent Yahoo quote/display fetches are parallelized with `YAHOO_FETCH_WORKERS` defaulting to `6`;
+- these changes affect collection throughput only and do not change model math, conversion formulas, or the no-night-futures model rule.
+
+Latest verified production state after the refresh performance fix:
+
+- commit: `81ee130`;
+- Cloud Run revision: `kospi-live-data-00026-nf2`;
+- observed Cloud Run refresh POST latency: `12.1s` to `14.9s`;
+- verified date: `2026-04-14 KST`.
 
 ## Served Live Files
 

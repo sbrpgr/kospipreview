@@ -1,4 +1,4 @@
-# Security & Operations Runbook (2026-04-13)
+# Security & Operations Runbook (2026-04-14)
 
 ## Scope
 
@@ -153,6 +153,7 @@ Verification:
 #### Live refresh path
 
 - Cloud Scheduler should call Cloud Run every minute
+- a normal refresh should finish under `60s`; latest verified production latency after optimization was `12.1s~14.9s`
 - no full Hosting redeploy required for normal live data updates
 
 ### After deploy
@@ -181,7 +182,29 @@ Likely causes:
 
 - Cloud Scheduler auth issue
 - Cloud Run refresh failure
+- refresh runtime repeatedly exceeding `60s`, causing Scheduler overlap and visible two-minute cadence
 - source market data lag
+
+### A-0. Refresh cadence is slower than expected
+
+Check:
+
+1. Cloud Run request logs for `POST /api/tasks/refresh` latency
+2. Cloud Scheduler last attempts and response codes
+3. repeated `409 refresh_in_progress` responses
+4. Yahoo/source-market fetch errors or slow responses
+5. `YAHOO_FETCH_WORKERS` configuration
+
+Expected state:
+
+- Scheduler remains enabled on weekday `* * * * 1-5`;
+- successful refresh requests normally complete below `60s`;
+- latest verified production latency was `12.1s~14.9s` on revision `kospi-live-data-00026-nf2`.
+
+Notes:
+
+- an occasional `409 refresh_in_progress` is expected if a manual refresh overlaps a scheduled refresh;
+- repeated scheduled overlaps mean the expensive data collection path has slowed down and should be investigated.
 
 ### A-1. Prediction trend chart is empty or stale
 

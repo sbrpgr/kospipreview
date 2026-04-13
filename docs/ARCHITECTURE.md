@@ -1,6 +1,6 @@
 # Architecture
 
-Baseline date: 2026-04-13
+Baseline date: 2026-04-14
 
 ## Current Production Shape
 
@@ -59,13 +59,19 @@ Both hosts should return live API data from the Cloud Run bucket-backed path.
 3. `scripts/refresh_night_futures.py` refreshes indicators, prediction, history, archive, caches, and live trend data.
 4. Cloud Run uploads refreshed JSON back to Cloud Storage.
 5. Public live JSON reads use a short Cloud Run instance-local cache to absorb bursts without changing client no-store semantics.
+6. Browser requests `/api/live/*.json`.
+7. Firebase Hosting rewrites the request to the pinned Cloud Run revision.
+8. Cloud Run reads the JSON object from Cloud Storage and returns it with `Cache-Control: no-store`.
 
 The refresh task endpoint is token protected and fails closed if
 `REFRESH_BEARER_TOKEN` is missing. Unauthenticated refresh is only allowed when
 `ALLOW_UNAUTHENTICATED_REFRESH=true` is explicitly set for a local/dev service.
-6. Browser requests `/api/live/*.json`.
-7. Firebase Hosting rewrites the request to the pinned Cloud Run revision.
-8. Cloud Run reads the JSON object from Cloud Storage and returns it with `Cache-Control: no-store`.
+
+The refresh worker reuses Yahoo display snapshots inside a single run and
+parallelizes independent Yahoo fetches with `YAHOO_FETCH_WORKERS` defaulting to
+`6`. This is an operational throughput control only. It must not alter model
+math, conversion formulas, settlement rules, or the night-futures exclusion
+rule.
 
 ## Live JSON Files
 

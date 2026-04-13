@@ -2,6 +2,13 @@
 
 ## 2026-04-14
 
+- Live refresh performance fix
+  - Yahoo quote/display fetches now use per-run snapshot reuse plus bounded parallel fetching.
+  - Local refresh runtime improved from about `61.8s` before optimization to about `9.2s` after optimization.
+  - Production Cloud Run refresh latency improved from roughly `65s~69s` to `12.1s~14.9s`.
+  - Effective weekday minute cadence was restored while keeping model math and live conversion formulas unchanged.
+  - Deployed commit: `81ee130`; Cloud Run revision: `kospi-live-data-00026-nf2`; GitHub Actions run: `24364299502`.
+
 - Security hardening
   - Cloud Run refresh auth now fails closed when `REFRESH_BEARER_TOKEN` is missing.
   - Live JSON reads use a short server-side cache to absorb burst traffic while keeping client no-store headers.

@@ -1,6 +1,6 @@
 # Operations Spec Index
 
-Baseline date: 2026-04-13
+Baseline date: 2026-04-14
 
 ## Read This First
 
@@ -30,6 +30,7 @@ If work resumes later, read these documents in order:
 - Cloud Run service: `kospi-live-data`
 - Cloud Scheduler job: `kospi-live-refresh`
 - Cloud Storage bucket: `kospipreview-live-data`
+- Live refresh performance control: `YAHOO_FETCH_WORKERS` default `6`
 
 ## Current Operating Schedule
 
@@ -101,13 +102,17 @@ All times are Asia/Seoul.
 
 ## Latest Verified Production State
 
-Last verified on 2026-04-13:
+Last verified on 2026-04-14 KST:
 
-- GitHub deploy workflow: `deploy-production` succeeded for commit `524ec64`.
-- Cloud Run latest ready revision: `kospi-live-data-00019-tg2`.
+- GitHub deploy workflow: `deploy-production` succeeded for commit `81ee130`.
+- GitHub Actions run: `24364299502`.
+- Cloud Run latest ready revision: `kospi-live-data-00026-nf2`.
 - Cloud Run traffic: 100% to latest revision.
 - Scheduler: enabled, weekday every minute.
+- Refresh POST latency after Yahoo fetch optimization: observed `12.1s` to `14.9s`.
+- Refresh latency target: normally under `60s`; investigate if repeated runs exceed that.
 - `/api/live/prediction.json`: served from bucket with no-store cache headers.
+- `/api/live/prediction.json`: latest verified `generatedAt` was `2026-04-13T20:13:04.412177+00:00`.
 - Root host: Cloudflare dynamic, no cache for live API.
 - `www` host: Cloudflare dynamic, no cache for live API.
 
