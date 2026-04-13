@@ -65,6 +65,23 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(refresh_night_futures.latest_closed_day_futures_session_date(before_close), "2026-04-10")
         self.assertEqual(refresh_night_futures.latest_closed_day_futures_session_date(at_close), "2026-04-13")
 
+    def test_yahoo_quote_payload_prefers_overnight_ewy_snapshot(self):
+        payload = {
+            "regularMarketPrice": {"raw": 138.73},
+            "regularMarketTime": {"raw": 1775851200},
+            "regularMarketChangePercent": {"raw": -0.64},
+            "overnightMarketPrice": {"raw": 135.74},
+            "overnightMarketTime": {"raw": 1776059593},
+            "overnightMarketChangePercent": {"raw": -2.1552587},
+        }
+
+        snapshot = refresh_night_futures.yahoo_quote_payload_snapshot(payload)
+
+        self.assertIsNotNone(snapshot)
+        self.assertEqual(snapshot["market_session"], "overnight")
+        self.assertEqual(snapshot["value"], 135.74)
+        self.assertAlmostEqual(snapshot["change_pct"], -2.1552587)
+
     def test_refresh_rollover_sets_next_target_to_pending(self):
         payload = {
             "generatedAt": "2026-04-13T08:58:00+09:00",

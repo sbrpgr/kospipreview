@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import html
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -149,6 +151,8 @@ YAHOO_CHART_URL_TEMPLATE = (
     "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
     "?interval=1m&range=2d&includePrePost=true"
 )
+YAHOO_QUOTE_PAGE_URL_TEMPLATE = "https://finance.yahoo.com/quote/{symbol}/"
+YAHOO_OVERNIGHT_SYMBOLS = {"EWY", "KORU"}
 KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 KRX_SYNC_MAX_FORWARD_HOURS = 12
@@ -387,6 +391,130 @@ def fetch_yahoo_chart_points(symbol: str) -> list[tuple[datetime, float]]:
             continue
         points.append((ts_utc, close_value))
     return points
+
+
+def raw_yahoo_field(payload: dict, key: str) -> float | None:
+    value = payload.get(key)
+    if isinstance(value, dict):
+        return to_float(value.get("raw"))
+    return to_float(value)
+
+
+def raw_yahoo_time(payload: dict, key: str) -> datetime | None:
+    value = payload.get(key)
+    if isinstance(value, dict):
+        value = value.get("raw")
+    try:
+        return datetime.fromtimestamp(int(value), tz=timezone.utc)
+    except (TypeError, ValueError, OSError):
+        return None
+
+
+def yahoo_quote_payload_snapshot(payload: dict) -> dict | None:
+    candidates: list[dict] = []
+    field_groups = [
+        ("overnight", "overnightMarketTime", "overnightMarketPrice", "overnightMarketChangePercent"),
+        ("pre", "preMarketTime", "preMarketPrice", "preMarketChangePercent"),
+        ("post", "postMarketTime", "postMarketPrice", "postMarketChangePercent"),
+        ("regular", "regularMarketTime", "regularMarketPrice", "regularMarketChangePercent"),
+    ]
+    regular_price = raw_yahoo_field(payload, "regularMarketPrice")
+
+    for session, time_key, price_key, change_key in field_groups:
+        price = raw_yahoo_field(payload, price_key)
+        updated_at = raw_yahoo_time(payload, time_key)
+        if price is None or updated_at is None:
+            continue
+
+        change_pct = raw_yahoo_field(payload, change_key)
+        if change_pct is None and regular_price not in (None, 0):
+            change_pct = (price / float(regular_price) - 1) * 100
+
+        candidates.append(
+            {
+                "value": price,
+                "change_pct": change_pct if change_pct is not None else 0.0,
+                "updated_at": updated_at.isoformat(),
+                "market_session": session,
+            }
+        )
+
+    if not candidates:
+        return None
+
+    return max(candidates, key=lambda item: str(item.get("updated_at", "")))
+
+
+def fetch_yahoo_quote_page_snapshot(symbol: str) -> dict | None:
+    encoded_symbol = urllib.parse.quote(symbol, safe="")
+    url = YAHOO_QUOTE_PAGE_URL_TEMPLATE.format(symbol=encoded_symbol)
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": ESIGNAL_USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Cache-Control": "no-cache",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=ESIGNAL_REQUEST_TIMEOUT) as response:
+            body = response.read().decode("utf-8", "replace")
+    except (urllib.error.URLError, TimeoutError):
+        return None
+
+    for match in re.finditer(r"<script[^>]*data-sveltekit-fetched[^>]*>(.*?)</script>", body, re.S):
+        tag = body[match.start() : body.find(">", match.start()) + 1]
+        data_url_match = re.search(r'data-url="([^"]+)"', tag)
+        if data_url_match is None:
+            continue
+        data_url = html.unescape(data_url_match.group(1))
+        if "/v7/finance/quote" not in data_url or "overnightPrice=true" not in data_url:
+            continue
+
+        parsed = urllib.parse.urlparse(data_url)
+        query = urllib.parse.parse_qs(parsed.query)
+        symbols = ",".join(query.get("symbols", []))
+        if symbol not in {part.strip() for part in symbols.split(",") if part.strip()}:
+            continue
+
+        try:
+            outer = json.loads(match.group(1))
+            inner = json.loads(outer.get("body", "{}"))
+        except (TypeError, ValueError):
+            continue
+
+        result = ((inner.get("quoteResponse") or {}).get("result") or [])
+        if not isinstance(result, list) or not result or not isinstance(result[0], dict):
+            continue
+
+        snapshot = yahoo_quote_payload_snapshot(result[0])
+        if snapshot is not None:
+            return snapshot
+
+    return None
+
+
+def merge_yahoo_quote_page_latest_point(
+    symbol: str,
+    points: list[tuple[datetime, float]],
+) -> list[tuple[datetime, float]]:
+    if symbol not in YAHOO_OVERNIGHT_SYMBOLS:
+        return points
+
+    snapshot = fetch_yahoo_quote_page_snapshot(symbol)
+    if not snapshot:
+        return points
+
+    updated_at = parse_iso_datetime_utc(snapshot.get("updated_at"))
+    value = to_float(snapshot.get("value"))
+    if updated_at is None or value is None:
+        return points
+
+    merged = list(points)
+    if not merged or updated_at > merged[-1][0]:
+        merged.append((updated_at, value))
+    return sorted(merged, key=lambda item: item[0])
 
 
 def normalize_prediction_archive_entry(payload: dict) -> dict | None:
@@ -658,6 +786,11 @@ def update_history_with_actual_open(
 
 
 def fetch_yahoo_market_display_snapshot(symbol: str) -> dict | None:
+    if symbol in YAHOO_OVERNIGHT_SYMBOLS:
+        quote_page_snapshot = fetch_yahoo_quote_page_snapshot(symbol)
+        if quote_page_snapshot is not None:
+            return quote_page_snapshot
+
     encoded_symbol = urllib.parse.quote(symbol, safe="")
     url = YAHOO_CHART_URL_TEMPLATE.format(symbol=encoded_symbol)
     req = urllib.request.Request(
@@ -780,6 +913,7 @@ def fetch_yahoo_intraday_return_pct(symbol: str, baseline_session_date: str | No
         return None
 
     points = fetch_yahoo_chart_points(symbol)
+    points = merge_yahoo_quote_page_latest_point(symbol, points)
     if not points:
         return None
 
@@ -830,6 +964,7 @@ def fetch_yahoo_intraday_model_change(
         return None
 
     points = fetch_yahoo_chart_points(symbol)
+    points = merge_yahoo_quote_page_latest_point(symbol, points)
     if not points:
         return None
 
@@ -1843,6 +1978,7 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
             if value is None or change_pct is None or not isinstance(updated_at, str):
                 continue
 
+            market_session = str(snapshot.get("market_session") or "")
             updated_dt = parse_iso_datetime_utc(updated_at)
             is_premarket_quote = (
                 not has_fresh_cash_index_quote
@@ -1862,8 +1998,16 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
             row["changePct"] = round(change_pct, 2)
             row["updatedAt"] = updated_at
             row["dataSource"] = "Yahoo Finance"
-            row["displayTag"] = "(장 시작전)" if premarket_untracked else ""
-            row["isPremarket"] = is_premarket_quote
+            row["marketSession"] = market_session
+            if market_session == "overnight":
+                row["displayTag"] = "(오버나이트)"
+            elif market_session == "post":
+                row["displayTag"] = "(장 마감후)"
+            elif market_session == "pre" or premarket_untracked:
+                row["displayTag"] = "(장 시작전)"
+            else:
+                row["displayTag"] = ""
+            row["isPremarket"] = is_premarket_quote or market_session == "pre"
 
     apply_rows(primary)
     apply_rows(secondary)

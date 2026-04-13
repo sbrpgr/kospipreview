@@ -76,6 +76,7 @@ export async function getIndicatorData() {
       dataSource?: string;
       displayTag?: string;
       isPremarket?: boolean;
+      marketSession?: string;
       referenceLabel?: string;
       referenceValue?: string;
       referenceDate?: string;
@@ -91,6 +92,7 @@ export async function getIndicatorData() {
       dataSource?: string;
       displayTag?: string;
       isPremarket?: boolean;
+      marketSession?: string;
       referenceLabel?: string;
       referenceValue?: string;
       referenceDate?: string;
