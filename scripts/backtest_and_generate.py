@@ -199,6 +199,7 @@ ESIGNAL_USER_AGENT = (
 )
 KOSPI_DAY_FUTURES_SESSION_OPEN = time(8, 45)
 KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 30)
+KOSPI_DAY_FUTURES_FINAL_CLOSE_TIME = time(15, 45)
 
 CORE_MODEL_LOOKBACK_DAYS = 180
 RESIDUAL_MODEL_LOOKBACK_DAYS = 180
@@ -520,6 +521,27 @@ def save_day_futures_close_cache(quote: dict) -> None:
     write_output_json("day_futures_close_cache.json", payload)
 
 
+def is_final_day_futures_close_quote(quote: dict | None) -> bool:
+    if not isinstance(quote, dict):
+        return False
+
+    session_date = quote.get("session_date")
+    if not isinstance(session_date, str) or not session_date:
+        return False
+
+    provider = str(quote.get("provider") or "")
+    selection = str(quote.get("selection") or "")
+    if provider != "esignal-socket" and selection != "session-close-socket":
+        return False
+
+    updated_at = parse_iso_datetime_utc(quote.get("updated_at"))
+    if updated_at is None:
+        return False
+
+    updated_kst = updated_at.astimezone(KST)
+    return updated_kst.date().isoformat() == session_date and updated_kst.time() >= KOSPI_DAY_FUTURES_FINAL_CLOSE_TIME
+
+
 def fetch_esignal_socket_payload(url: str, referer: str, body: str | None = None) -> str | None:
     headers = {
         "User-Agent": ESIGNAL_USER_AGENT,
@@ -755,18 +777,13 @@ def resolve_day_futures_close_quote() -> dict | None:
 
     if cached:
         cached_session_date = str(cached.get("session_date", ""))
-        cached_is_socket_close = (
-            str(cached.get("provider", "")) == "esignal-socket"
-            or str(cached.get("selection", "")) == "session-close-socket"
-        )
-        if cached_session_date >= target_session_date and cached_is_socket_close:
-            cached["selection"] = cached.get("selection", "cached")
+        if cached_session_date >= target_session_date and is_final_day_futures_close_quote(cached):
             return cached
 
     fetched = fetch_esignal_kospi_day_close_quote()
     if fetched:
         fetched_session_date = str(fetched.get("session_date", ""))
-        if fetched_session_date:
+        if fetched_session_date and (is_final_day_futures_close_quote(fetched) or cached is None):
             save_day_futures_close_cache(fetched)
         if cached and fetched_session_date and str(cached.get("session_date", "")) > fetched_session_date:
             return cached

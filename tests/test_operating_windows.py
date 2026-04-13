@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from datetime import datetime, timezone
 
+from scripts import backtest_and_generate
 from scripts import refresh_night_futures
 from scripts.backtest_and_generate import KST, is_prediction_operation_window, resolve_prediction_target_timestamp
 
@@ -317,6 +318,40 @@ class OperatingWindowTests(unittest.TestCase):
             refresh_night_futures.load_day_futures_close_cache = original_load
             refresh_night_futures.fetch_esignal_kospi_day_close_quote = original_fetch
             refresh_night_futures.save_day_futures_close_cache = original_save
+
+        self.assertEqual(resolved["close"], 872.0)
+        self.assertEqual(saved["close"], 872.0)
+
+    def test_backtest_provisional_day_futures_close_cache_is_refetched_after_settlement(self):
+        cached = {
+            "close": 874.05,
+            "updated_at": "2026-04-13T06:30:03+00:00",
+            "session_date": "2026-04-13",
+            "provider": "esignal-socket",
+            "selection": "session-close-socket",
+        }
+        final_quote = {
+            "close": 872.0,
+            "updated_at": "2026-04-13T06:45:00+00:00",
+            "session_date": "2026-04-13",
+            "provider": "esignal-socket",
+            "selection": "session-close-socket",
+        }
+        saved = {}
+
+        original_load = backtest_and_generate.load_day_futures_close_cache
+        original_fetch = backtest_and_generate.fetch_esignal_kospi_day_close_quote
+        original_save = backtest_and_generate.save_day_futures_close_cache
+        try:
+            backtest_and_generate.load_day_futures_close_cache = lambda: cached
+            backtest_and_generate.fetch_esignal_kospi_day_close_quote = lambda: final_quote
+            backtest_and_generate.save_day_futures_close_cache = lambda quote: saved.update(quote)
+
+            resolved = backtest_and_generate.resolve_day_futures_close_quote()
+        finally:
+            backtest_and_generate.load_day_futures_close_cache = original_load
+            backtest_and_generate.fetch_esignal_kospi_day_close_quote = original_fetch
+            backtest_and_generate.save_day_futures_close_cache = original_save
 
         self.assertEqual(resolved["close"], 872.0)
         self.assertEqual(saved["close"], 872.0)
