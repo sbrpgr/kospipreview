@@ -85,6 +85,10 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
 
   if (targetIndex >= 0) {
     const existing = baseRecords[targetIndex];
+    if (isFiniteNumber(existing.actualOpen)) {
+      return baseRecords.sort((a, b) => compareDateDesc(a.date, b.date));
+    }
+
     baseRecords[targetIndex] = {
       ...existing,
       modelPrediction: isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : existing.modelPrediction,

@@ -130,6 +130,10 @@ function getStatusMeta(status: FreshnessData["status"], latestRecordDate: string
   return "지표별 갱신 주기가 다르므로 최신 데이터는 각 지표의 데이터 출처에서 직접 확인해 주세요.";
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 function getDashboardVersion(
   prediction: PredictionData,
   indicators: IndicatorData,
@@ -409,8 +413,16 @@ export function LiveDashboard({
   const futuresDayClose =
     hasLiveSnapshot && typeof prediction.futuresDayClose === "number" ? prediction.futuresDayClose : null;
   const futuresDayCloseDate = prediction.futuresDayCloseDate ?? "";
+  const modelPoint = isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : null;
+  const modelChangePct = isFiniteNumber(prediction.predictedChangePct) ? prediction.predictedChangePct : null;
+  const modelRangeLow = isFiniteNumber(prediction.rangeLow) ? prediction.rangeLow : null;
+  const modelRangeHigh = isFiniteNumber(prediction.rangeHigh) ? prediction.rangeHigh : null;
   const isModelForecastReady =
-    hasLiveSnapshot && Number.isFinite(prediction.pointPrediction) && Number.isFinite(prediction.predictedChangePct);
+    hasLiveSnapshot &&
+    modelPoint !== null &&
+    modelChangePct !== null &&
+    modelRangeLow !== null &&
+    modelRangeHigh !== null;
 
   return (
     <div className="pageContainer">
@@ -450,15 +462,15 @@ export function LiveDashboard({
             <div className="heroForecastCard isModel">
               <div className="heroForecastLabel">모델 예측 (야간 선물 지표 완전 미사용)</div>
               <div className="heroForecastValue">
-                {isModelForecastReady ? prediction.pointPrediction.toLocaleString("ko-KR") : "-"}
+                {isModelForecastReady ? modelPoint.toLocaleString("ko-KR") : "-"}
               </div>
               <div
                 className={`heroForecastChange ${
-                  !isModelForecastReady ? "isNeu" : prediction.predictedChangePct >= 0 ? "isPos" : "isNeg"
+                  !isModelForecastReady ? "isNeu" : modelChangePct >= 0 ? "isPos" : "isNeg"
                 }`}
               >
                 {isModelForecastReady
-                  ? `${prediction.predictedChangePct >= 0 ? "상방" : "하방"} ${Math.abs(prediction.predictedChangePct).toFixed(2)}%`
+                  ? `${modelChangePct >= 0 ? "상방" : "하방"} ${Math.abs(modelChangePct).toFixed(2)}%`
                   : "-"}
               </div>
             </div>
@@ -466,7 +478,7 @@ export function LiveDashboard({
 
           <div className="heroBand">
             {isModelForecastReady
-              ? `모델 예상 밴드 ${prediction.rangeLow.toLocaleString("ko-KR")} ~ ${prediction.rangeHigh.toLocaleString("ko-KR")}`
+              ? `모델 예상 밴드 ${modelRangeLow.toLocaleString("ko-KR")} ~ ${modelRangeHigh.toLocaleString("ko-KR")}`
               : "모델 예상 밴드 -"}
           </div>
 
@@ -475,7 +487,7 @@ export function LiveDashboard({
                 ? "최신 데이터 확인 중입니다."
                 : isModelForecastReady
                   ? prediction.signalSummary
-                  : "모델 예측값은 EWY·환율 기반 데이터가 준비되면 표시됩니다."}
+                  : prediction.signalSummary || "모델 예측값은 EWY·환율 기반 데이터가 준비되면 표시됩니다."}
           </div>
           <div className="heroFootnote">{statusMessage}</div>
         </section>

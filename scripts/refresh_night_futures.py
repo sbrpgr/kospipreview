@@ -30,7 +30,9 @@ DATA_DIR = Path(os.environ.get("KOSPI_DAWN_DATA_DIR", ROOT / "frontend" / "publi
 OUT_DATA_DIR = Path(os.environ.get("KOSPI_DAWN_OUT_DATA_DIR", ROOT / "frontend" / "out" / "data"))
 INDICATORS_FILE = DATA_DIR / "indicators.json"
 PREDICTION_FILE = DATA_DIR / "prediction.json"
+HISTORY_FILE = DATA_DIR / "history.json"
 LIVE_PREDICTION_SERIES_FILE = DATA_DIR / "live_prediction_series.json"
+PREDICTION_ARCHIVE_FILE = DATA_DIR / "prediction_archive.json"
 DAY_FUTURES_CLOSE_CACHE_FILE = DATA_DIR / "day_futures_close_cache.json"
 NIGHT_FUTURES_SOURCE_CACHE_FILE = DATA_DIR / "night_futures_source_cache.json"
 
@@ -52,6 +54,10 @@ ESIGNAL_USER_AGENT = (
 
 KOSPI_DAY_FUTURES_SESSION_OPEN = time(8, 45)
 KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 45)
+KOSPI_OPEN_FIX_TIME = time(9, 0)
+PREDICTION_TARGET_ROLLOVER_TIME = time(9, 0)
+PREDICTION_OPERATION_START = time(18, 0)
+PREDICTION_OPERATION_END = time(9, 0)
 NIGHT_OPERATION_START = time(18, 0)
 NIGHT_OPERATION_END = time(6, 30)
 NIGHT_FUTURES_STALE_MINUTES = 180
@@ -143,6 +149,8 @@ KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 KRX_SYNC_MAX_FORWARD_HOURS = 12
 LIVE_PREDICTION_SERIES_MAX_RECORDS = 1080
+PREDICTION_ARCHIVE_MAX_RECORDS = 200
+HISTORY_RECORDS_MAX = 30
 
 
 def read_json(path: Path) -> dict | None:
@@ -210,6 +218,36 @@ def to_float(value: object) -> float | None:
         return None
 
 
+def rollforward_business_day(base: date) -> date:
+    candidate = base
+    while candidate.weekday() >= 5:
+        candidate += timedelta(days=1)
+    return candidate
+
+
+def next_business_day(base: date) -> date:
+    return rollforward_business_day(base + timedelta(days=1))
+
+
+def resolve_prediction_target_date(now_kst: datetime) -> date:
+    today = now_kst.date()
+    today_business = rollforward_business_day(today)
+    if today_business != today:
+        return today_business
+    if now_kst.time() >= PREDICTION_TARGET_ROLLOVER_TIME:
+        return next_business_day(today)
+    return today
+
+
+def format_prediction_date_label(target_date: date) -> str:
+    return target_date.strftime("%Y년 %m월 %d일")
+
+
+def is_prediction_operation_window(now_utc: datetime) -> bool:
+    current = now_utc.astimezone(KST).time()
+    return current >= PREDICTION_OPERATION_START or current < PREDICTION_OPERATION_END
+
+
 def load_live_prediction_series() -> dict:
     payload = read_json(LIVE_PREDICTION_SERIES_FILE)
     if not isinstance(payload, dict):
@@ -251,6 +289,9 @@ def build_live_prediction_series_entry(payload: dict, now_utc: datetime) -> dict
 
 
 def update_live_prediction_series(payload: dict, now_utc: datetime) -> dict:
+    if not is_prediction_operation_window(now_utc):
+        return load_live_prediction_series()
+
     entry = build_live_prediction_series_entry(payload, now_utc)
     if entry is None:
         return load_live_prediction_series()
@@ -337,6 +378,274 @@ def fetch_yahoo_chart_points(symbol: str) -> list[tuple[datetime, float]]:
             continue
         points.append((ts_utc, close_value))
     return points
+
+
+def normalize_prediction_archive_entry(payload: dict) -> dict | None:
+    prediction_date_iso = parse_prediction_target_date(
+        payload.get("predictionDateIso") or payload.get("predictionDate")
+    )
+    generated_at = payload.get("generatedAt") or payload.get("lastCalculatedAt")
+    if not prediction_date_iso or not isinstance(generated_at, str):
+        return None
+
+    point = to_float(payload.get("pointPrediction"))
+    low = to_float(payload.get("rangeLow"))
+    high = to_float(payload.get("rangeHigh"))
+    if point is None or low is None or high is None:
+        return None
+
+    if low > high:
+        low, high = high, low
+
+    night_simple = to_float(payload.get("nightFuturesSimplePoint"))
+    return {
+        "predictionDateIso": prediction_date_iso,
+        "predictionDate": payload.get("predictionDate") or format_prediction_date_label(date.fromisoformat(prediction_date_iso)),
+        "generatedAt": generated_at,
+        "rangeLow": round(low, 2),
+        "rangeHigh": round(high, 2),
+        "pointPrediction": round(point, 2),
+        "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
+    }
+
+
+def load_prediction_archive() -> list[dict]:
+    payload = read_json(PREDICTION_ARCHIVE_FILE)
+    if not isinstance(payload, dict):
+        return []
+    records = payload.get("records")
+    if not isinstance(records, list):
+        return []
+    return [row for row in records if isinstance(row, dict)]
+
+
+def merge_prediction_into_archive(archive: list[dict], payload: dict | None) -> list[dict]:
+    if payload is None:
+        return archive
+
+    entry = normalize_prediction_archive_entry(payload)
+    if entry is None:
+        return archive
+
+    by_date: dict[str, dict] = {}
+    for raw in archive:
+        normalized = normalize_prediction_archive_entry(raw)
+        if normalized is None:
+            continue
+        date_key = str(normalized["predictionDateIso"])
+        existing = by_date.get(date_key)
+        if existing is None or str(normalized["generatedAt"]) >= str(existing["generatedAt"]):
+            by_date[date_key] = normalized
+
+    date_key = str(entry["predictionDateIso"])
+    existing = by_date.get(date_key)
+    if existing is None or str(entry["generatedAt"]) >= str(existing["generatedAt"]):
+        by_date[date_key] = entry
+
+    return sorted(
+        by_date.values(),
+        key=lambda row: str(row.get("predictionDateIso", "")),
+        reverse=True,
+    )[:PREDICTION_ARCHIVE_MAX_RECORDS]
+
+
+def write_prediction_archive_json(archive: list[dict], now_utc: datetime) -> None:
+    write_output_json(
+        "prediction_archive.json",
+        {
+            "generatedAt": now_utc.isoformat(),
+            "records": archive,
+        },
+    )
+
+
+def prediction_archive_lookup(archive: list[dict]) -> dict[str, dict]:
+    lookup: dict[str, dict] = {}
+    for raw in archive:
+        normalized = normalize_prediction_archive_entry(raw)
+        if normalized is None:
+            continue
+        date_key = str(normalized["predictionDateIso"])
+        existing = lookup.get(date_key)
+        if existing is None or str(normalized["generatedAt"]) >= str(existing["generatedAt"]):
+            lookup[date_key] = normalized
+    return lookup
+
+
+def should_archive_prediction_snapshot(payload: dict, now_utc: datetime) -> bool:
+    prediction_date_iso = parse_prediction_target_date(payload.get("predictionDateIso") or payload.get("predictionDate"))
+    if not prediction_date_iso:
+        return False
+
+    now_kst = now_utc.astimezone(KST)
+    if prediction_date_iso != now_kst.date().isoformat() or now_kst.time() < KOSPI_OPEN_FIX_TIME:
+        return True
+
+    generated_at = parse_iso_datetime_utc(payload.get("lastCalculatedAt")) or parse_iso_datetime_utc(
+        payload.get("generatedAt")
+    )
+    if generated_at is None:
+        return False
+
+    generated_at_kst = generated_at.astimezone(KST)
+    return generated_at_kst.date() == now_kst.date() and generated_at_kst.time() < KOSPI_OPEN_FIX_TIME
+
+
+def latest_preopen_series_row(series_payload: dict | None, target_date: date) -> dict | None:
+    if not isinstance(series_payload, dict):
+        return None
+
+    records = series_payload.get("records")
+    if not isinstance(records, list):
+        return None
+
+    target_iso = target_date.isoformat()
+    target_open_kst = datetime.combine(target_date, KOSPI_OPEN_FIX_TIME, tzinfo=KST)
+    candidates: list[tuple[datetime, dict]] = []
+    for row in records:
+        if not isinstance(row, dict) or row.get("predictionDateIso") != target_iso:
+            continue
+        observed_at = parse_iso_datetime_utc(row.get("observedAt"))
+        if observed_at is None:
+            continue
+        observed_at_kst = observed_at.astimezone(KST)
+        if observed_at_kst >= target_open_kst:
+            continue
+        if to_float(row.get("pointPrediction")) is None:
+            continue
+        candidates.append((observed_at, row))
+
+    if not candidates:
+        return None
+    return sorted(candidates, key=lambda item: item[0])[-1][1]
+
+
+def resolve_fixed_prediction_entry(
+    target_date: date,
+    archive: list[dict],
+    series_payload: dict | None,
+    fallback_prediction: dict | None,
+) -> dict | None:
+    target_iso = target_date.isoformat()
+    archive_entry = prediction_archive_lookup(archive).get(target_iso)
+    fallback_entry = normalize_prediction_archive_entry(fallback_prediction) if isinstance(fallback_prediction, dict) else None
+    base_entry = archive_entry or fallback_entry
+
+    series_row = latest_preopen_series_row(series_payload, target_date)
+    if series_row is None:
+        return base_entry
+
+    point = to_float(series_row.get("pointPrediction"))
+    if point is None:
+        return base_entry
+
+    low = to_float(base_entry.get("rangeLow")) if base_entry else None
+    high = to_float(base_entry.get("rangeHigh")) if base_entry else None
+    center = to_float(base_entry.get("pointPrediction")) if base_entry else None
+    if low is not None and high is not None and center is not None:
+        half_band = max(1.0, (high - low) / 2)
+    else:
+        half_band = 20.0
+
+    night_simple = to_float(series_row.get("nightFuturesSimplePoint"))
+    return {
+        "predictionDateIso": target_iso,
+        "predictionDate": series_row.get("predictionDate") or format_prediction_date_label(target_date),
+        "generatedAt": series_row.get("observedAt") or (base_entry or {}).get("generatedAt") or "",
+        "rangeLow": round(point - half_band, 2),
+        "rangeHigh": round(point + half_band, 2),
+        "pointPrediction": round(point, 2),
+        "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
+    }
+
+
+def fetch_kospi_actual_open(target_date: date) -> float | None:
+    points = fetch_yahoo_chart_points("^KS11")
+    if not points:
+        return None
+
+    kst_points = [
+        (ts_utc.astimezone(KST), value)
+        for ts_utc, value in points
+        if ts_utc.astimezone(KST).date() == target_date
+    ]
+    if not kst_points:
+        return None
+
+    after_open = [(ts_kst, value) for ts_kst, value in kst_points if ts_kst.time() >= KOSPI_OPEN_FIX_TIME]
+    selected = after_open[0] if after_open else kst_points[0]
+    return float(selected[1])
+
+
+def compare_date_desc(left: str, right: str) -> int:
+    try:
+        left_date = date.fromisoformat(left)
+        right_date = date.fromisoformat(right)
+    except ValueError:
+        return -1 if left > right else 1 if left < right else 0
+    if left_date == right_date:
+        return 0
+    return -1 if left_date > right_date else 1
+
+
+def update_history_with_actual_open(
+    history_payload: dict,
+    archive: list[dict],
+    now_utc: datetime,
+    series_payload: dict | None = None,
+    fallback_prediction: dict | None = None,
+) -> dict:
+    now_kst = now_utc.astimezone(KST)
+    if now_kst.weekday() >= 5 or now_kst.time() < KOSPI_OPEN_FIX_TIME:
+        return history_payload
+
+    target_date = now_kst.date()
+    target_iso = target_date.isoformat()
+    fixed_prediction = resolve_fixed_prediction_entry(target_date, archive, series_payload, fallback_prediction)
+    if fixed_prediction is None:
+        return history_payload
+
+    actual_open = fetch_kospi_actual_open(target_date)
+    if actual_open is None:
+        return history_payload
+
+    low = to_float(fixed_prediction.get("rangeLow"))
+    high = to_float(fixed_prediction.get("rangeHigh"))
+    point = to_float(fixed_prediction.get("pointPrediction"))
+    if low is None or high is None or point is None:
+        return history_payload
+    if low > high:
+        low, high = high, low
+
+    night_simple = to_float(fixed_prediction.get("nightFuturesSimplePoint"))
+    record = {
+        "date": target_iso,
+        "modelPrediction": round(point, 2),
+        "nightFuturesSimpleOpen": round(night_simple, 2) if night_simple is not None else None,
+        "low": round(low, 2),
+        "high": round(high, 2),
+        "actualOpen": round(actual_open, 2),
+        "hit": bool(low <= actual_open <= high),
+        "isSynthetic": False,
+    }
+
+    records = history_payload.get("records")
+    if not isinstance(records, list):
+        records = []
+
+    next_records = [row for row in records if not (isinstance(row, dict) and row.get("date") == target_iso)]
+    next_records.append(record)
+    next_records = [
+        row
+        for row in next_records
+        if isinstance(row, dict) and isinstance(row.get("date"), str)
+    ]
+    next_records.sort(key=lambda row: str(row.get("date", "")), reverse=True)
+    history_payload["records"] = next_records[:HISTORY_RECORDS_MAX]
+    history_payload["generatedAt"] = now_utc.isoformat()
+    if not isinstance(history_payload.get("summary"), dict):
+        history_payload["summary"] = {}
+    return history_payload
 
 
 def fetch_yahoo_market_display_snapshot(symbol: str) -> dict | None:
@@ -1532,30 +1841,82 @@ def update_display_changes_from_market_quote(payload: dict, now_utc: datetime) -
     return payload
 
 
+def apply_prediction_pending_state(payload: dict, now_utc: datetime) -> dict:
+    model_payload = payload.get("model")
+    if not isinstance(model_payload, dict):
+        model_payload = {}
+        payload["model"] = model_payload
+
+    payload["pointPrediction"] = None
+    payload["nightFuturesSimplePoint"] = None
+    payload["nightFuturesSimpleChangePct"] = None
+    payload["rangeLow"] = None
+    payload["rangeHigh"] = None
+    payload["predictedChangePct"] = None
+    payload["signalSummary"] = "예측 운영 시간은 18:00~09:00입니다. 다음 운영 구간부터 모델 예측이 갱신됩니다."
+    payload["lastCalculatedAt"] = None
+    payload["generatedAt"] = now_utc.isoformat()
+    model_payload["isOperationWindow"] = False
+    model_payload["operationHours"] = "18:00~09:00"
+    model_payload["predictionPhase"] = "standby"
+    model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()
+    return payload
+
+
+def ensure_prediction_target_rollover(payload: dict, now_utc: datetime) -> dict:
+    target_date = resolve_prediction_target_date(now_utc.astimezone(KST))
+    target_iso = target_date.isoformat()
+    current_iso = parse_prediction_target_date(payload.get("predictionDateIso") or payload.get("predictionDate"))
+
+    if current_iso != target_iso:
+        payload["predictionDateIso"] = target_iso
+        payload["predictionDate"] = format_prediction_date_label(target_date)
+        payload = apply_prediction_pending_state(payload, now_utc)
+
+    return payload
+
+
 def update_prediction_night_fields(
     payload: dict,
     quote: dict | None,
     day_close_quote: dict | None,
     now_utc: datetime,
 ) -> dict:
+    payload = ensure_prediction_target_rollover(payload, now_utc)
+    is_active_prediction_window = is_prediction_operation_window(now_utc)
+
     prev_close = to_float(payload.get("prevClose"))
     prediction_target_date_iso = parse_prediction_target_date(
         payload.get("predictionDateIso") or payload.get("predictionDate")
     )
     night_futures_change = resolve_night_futures_change_for_target(prediction_target_date_iso, quote, day_close_quote)
 
-    if night_futures_change is not None and prev_close and prev_close != 0:
+    model_payload = payload.get("model")
+    if not isinstance(model_payload, dict):
+        model_payload = {}
+        payload["model"] = model_payload
+    model_payload["isOperationWindow"] = is_active_prediction_window
+    model_payload["operationHours"] = "18:00~09:00"
+
+    if is_active_prediction_window and night_futures_change is not None and prev_close and prev_close != 0:
         payload["nightFuturesSimpleChangePct"] = round(float(night_futures_change), 2)
         payload["nightFuturesSimplePoint"] = round(prev_close * (1 + float(night_futures_change) / 100), 2)
     else:
         payload["nightFuturesSimpleChangePct"] = None
         payload["nightFuturesSimplePoint"] = None
 
+    if not is_active_prediction_window:
+        if day_close_quote:
+            try:
+                payload["futuresDayClose"] = round(float(day_close_quote.get("close")), 2)
+            except (TypeError, ValueError):
+                pass
+            session_date = day_close_quote.get("session_date")
+            if isinstance(session_date, str) and session_date:
+                payload["futuresDayCloseDate"] = session_date
+        return apply_prediction_pending_state(payload, now_utc)
+
     if prev_close and prev_close != 0:
-        model_payload = payload.get("model")
-        if not isinstance(model_payload, dict):
-            model_payload = {}
-            payload["model"] = model_payload
         correction_params = resolve_ewy_fx_correction_params(model_payload)
         residual_artifact = resolve_residual_model_artifact(model_payload)
         mapping_artifact = resolve_k200_mapping_artifact(model_payload)
@@ -1672,6 +2033,13 @@ def main() -> None:
     now_utc = datetime.now(timezone.utc)
     indicators_payload = read_json(INDICATORS_FILE) or {"primary": [], "secondary": []}
     prediction_payload = read_json(PREDICTION_FILE) or {}
+    history_payload = read_json(HISTORY_FILE) or {"summary": {}, "records": []}
+    live_prediction_series_payload = load_live_prediction_series()
+    prediction_archive = load_prediction_archive()
+
+    if prediction_payload and should_archive_prediction_snapshot(prediction_payload, now_utc):
+        prediction_archive = merge_prediction_into_archive(prediction_archive, prediction_payload)
+        write_prediction_archive_json(prediction_archive, now_utc)
 
     day_close_quote = resolve_day_futures_close_quote()
     night_quote = fetch_esignal_kospi_night_quote(day_close_quote)
@@ -1682,10 +2050,19 @@ def main() -> None:
     write_output_json("indicators.json", indicators_payload)
 
     if prediction_payload:
+        history_payload = update_history_with_actual_open(
+            history_payload,
+            prediction_archive,
+            now_utc,
+            live_prediction_series_payload,
+            prediction_payload,
+        )
+        write_output_json("history.json", history_payload)
+
         prediction_payload = update_prediction_night_fields(prediction_payload, night_quote, day_close_quote, now_utc)
         write_output_json("prediction.json", prediction_payload)
-        live_prediction_series_payload = update_live_prediction_series(prediction_payload, now_utc)
-        write_output_json("live_prediction_series.json", live_prediction_series_payload)
+        next_live_prediction_series_payload = update_live_prediction_series(prediction_payload, now_utc)
+        write_output_json("live_prediction_series.json", next_live_prediction_series_payload)
 
     status = "live" if night_quote and night_quote.get("is_live_night") else "standby"
     updated_at = night_quote.get("updated_at") if night_quote else "-"

@@ -36,17 +36,17 @@ export async function getPredictionData() {
     generatedAt?: string;
     predictionDate: string;
     predictionDateIso?: string;
-    rangeLow: number;
-    rangeHigh: number;
-    pointPrediction: number;
+    rangeLow: number | null;
+    rangeHigh: number | null;
+    pointPrediction: number | null;
     nightFuturesSimplePoint?: number | null;
     nightFuturesSimpleChangePct?: number | null;
     futuresDayClose?: number | null;
     futuresDayCloseDate?: string | null;
-    predictedChangePct: number;
+    predictedChangePct: number | null;
     prevClose: number;
     signalSummary: string;
-    lastCalculatedAt: string;
+    lastCalculatedAt: string | null;
     latestRecordDate?: string;
     mae30d: number;
     yesterday: {

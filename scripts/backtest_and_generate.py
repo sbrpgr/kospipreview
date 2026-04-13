@@ -90,6 +90,9 @@ KRX_SESSION_CLOSE_CUTOFF = time(15, 20)
 KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 KRX_SYNC_MAX_FORWARD_HOURS = 12
+PREDICTION_TARGET_ROLLOVER_TIME = time(9, 0)
+PREDICTION_OPERATION_START = time(18, 0)
+PREDICTION_OPERATION_END = time(9, 0)
 
 NIGHT_FUTURES_PRIMARY_SCALE = 1.0
 AUXILIARY_SIGNAL_WEIGHTS = {
@@ -281,9 +284,14 @@ def resolve_prediction_target_timestamp(now_kst: datetime) -> pd.Timestamp:
     if today_business != today:
         return today_business
 
-    if now_kst.time() >= KRX_SYNC_BASELINE_TIME:
+    if now_kst.time() >= PREDICTION_TARGET_ROLLOVER_TIME:
         return rollforward_business_day(today + pd.Timedelta(days=1))
     return today
+
+
+def is_prediction_operation_window(now_kst: datetime) -> bool:
+    current = now_kst.time()
+    return current >= PREDICTION_OPERATION_START or current < PREDICTION_OPERATION_END
 
 
 def next_business_day_iso(session_date_value: object) -> str | None:
@@ -2605,6 +2613,7 @@ def next_prediction_date_iso(now_kst: datetime) -> str:
 def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) -> dict:
     now_utc = datetime.now(timezone.utc)
     now_kst = now_utc.astimezone(KST)
+    is_active_prediction_window = is_prediction_operation_window(now_kst)
     latest_record_date = latest.get("latest_record_date")
     if not latest_record_date and not history_df.empty:
         latest_record_date = history_df.iloc[0]["date"]
@@ -2614,25 +2623,31 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
         "generatedAt": now_utc.isoformat(),
         "predictionDate": next_prediction_date_label(now_kst),
         "predictionDateIso": next_prediction_date_iso(now_kst),
-        "pointPrediction": round(latest["point"], 2),
+        "pointPrediction": round(latest["point"], 2) if is_active_prediction_window else None,
         "nightFuturesSimplePoint": (
             round(float(latest["night_futures_simple_point"]), 2)
-            if latest["night_futures_simple_point"] is not None
+            if is_active_prediction_window and latest["night_futures_simple_point"] is not None
             else None
         ),
         "nightFuturesSimpleChangePct": (
-            round(float(latest["night_futures_change_c"]), 2) if latest["night_futures_change_c"] is not None else None
+            round(float(latest["night_futures_change_c"]), 2)
+            if is_active_prediction_window and latest["night_futures_change_c"] is not None
+            else None
         ),
         "futuresDayClose": (
             round(float(latest["futures_day_close"]), 2) if latest.get("futures_day_close") is not None else None
         ),
         "futuresDayCloseDate": latest.get("futures_day_close_date"),
-        "rangeLow": round(latest["r_low"], 2),
-        "rangeHigh": round(latest["r_high"], 2),
-        "predictedChangePct": round(latest["pred_c"], 2),
+        "rangeLow": round(latest["r_low"], 2) if is_active_prediction_window else None,
+        "rangeHigh": round(latest["r_high"], 2) if is_active_prediction_window else None,
+        "predictedChangePct": round(latest["pred_c"], 2) if is_active_prediction_window else None,
         "prevClose": round(latest["prev_close"], 2),
-        "signalSummary": _build_signal_summary(latest["returns"]),
-        "lastCalculatedAt": now_utc.isoformat(),
+        "signalSummary": (
+            _build_signal_summary(latest["returns"])
+            if is_active_prediction_window
+            else "예측 운영 시간은 18:00~09:00입니다. 다음 운영 구간부터 모델 예측이 갱신됩니다."
+        ),
+        "lastCalculatedAt": now_utc.isoformat() if is_active_prediction_window else None,
         "latestRecordDate": latest_record_date,
         "mae30d": round(result["mae"], 2),
         "model": {
@@ -2641,6 +2656,8 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "lgbmRmse": round(result["rmse"], 2),
             "calculationMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(NoNightFutures)",
             "nightFuturesExcluded": True,
+            "isOperationWindow": is_active_prediction_window,
+            "operationHours": "18:00~09:00",
             "nightFuturesAnchorPct": (
                 round(float(latest["night_anchor_c"]), 2) if latest.get("night_anchor_c") is not None else None
             ),
@@ -3166,6 +3183,11 @@ def overlay_prediction_on_history_df(history_df: pd.DataFrame, prediction_payloa
     row_mask = history_df["date"].astype(str) == prediction_date_iso
     if not bool(row_mask.any()):
         return history_df
+
+    if "actual_open" in history_df.columns:
+        actual_values = pd.to_numeric(history_df.loc[row_mask, "actual_open"], errors="coerce")
+        if bool(actual_values.notna().any()):
+            return history_df
 
     patched = history_df.copy()
 

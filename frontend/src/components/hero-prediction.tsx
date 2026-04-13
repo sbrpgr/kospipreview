@@ -7,8 +7,23 @@ type HeroPredictionProps = {
   prediction: PredictionData;
 };
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 export function HeroPrediction({ prediction }: HeroPredictionProps) {
-  const copyText = `${prediction.predictionDate} 코스피 예상 시초가: ${prediction.rangeLow}~${prediction.rangeHigh} (${formatSignedPercent(prediction.predictedChangePct)})`;
+  const isForecastReady =
+    isFiniteNumber(prediction.rangeLow) &&
+    isFiniteNumber(prediction.rangeHigh) &&
+    isFiniteNumber(prediction.pointPrediction) &&
+    isFiniteNumber(prediction.predictedChangePct);
+  const rangeLow = isFiniteNumber(prediction.rangeLow) ? prediction.rangeLow : null;
+  const rangeHigh = isFiniteNumber(prediction.rangeHigh) ? prediction.rangeHigh : null;
+  const pointPrediction = isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : null;
+  const predictedChangePct = isFiniteNumber(prediction.predictedChangePct) ? prediction.predictedChangePct : null;
+  const copyText = isForecastReady
+    ? `${prediction.predictionDate} 코스피 예상 시초가: ${rangeLow}~${rangeHigh} (${formatSignedPercent(predictedChangePct ?? 0)})`
+    : `${prediction.predictionDate} 코스피 예상 시초가: 운영 시간 대기`;
 
   const yesterdayCenter = (prediction.yesterday.predictionLow + prediction.yesterday.predictionHigh) / 2;
   const yesterdayDeviation = prediction.yesterday.actualOpen - yesterdayCenter;
@@ -20,26 +35,30 @@ export function HeroPrediction({ prediction }: HeroPredictionProps) {
         <div>
           <div className="eyebrow">{prediction.predictionDate} 코스피 시초가 전망</div>
           <div className="heroRange">
-            {prediction.rangeLow.toLocaleString("ko-KR")} ~ {prediction.rangeHigh.toLocaleString("ko-KR")}
+            {isForecastReady
+              ? `${rangeLow?.toLocaleString("ko-KR")} ~ ${rangeHigh?.toLocaleString("ko-KR")}`
+              : "-"}
           </div>
           <div className="heroPoint">
             <span>모델 예측 (야간 선물 지표 완전 미사용)</span>
             <strong style={{ color: "#fff", fontSize: "1.1rem" }}>
-              {prediction.pointPrediction.toLocaleString("ko-KR")}
+              {isForecastReady ? pointPrediction?.toLocaleString("ko-KR") : "-"}
             </strong>
-            <span className={prediction.predictedChangePct >= 0 ? "isPositive" : "isNegative"}>
-              {formatSignedPercent(prediction.predictedChangePct)}
+            <span className={isForecastReady && (predictedChangePct ?? 0) >= 0 ? "isPositive" : "isNegative"}>
+              {isForecastReady ? formatSignedPercent(predictedChangePct ?? 0) : "-"}
             </span>
           </div>
 
           <div className="heroSignal">{prediction.signalSummary}</div>
 
-          <IntradayChart
-            closePrice={prediction.yesterday.actualOpen}
-            expectedLow={prediction.rangeLow}
-            expectedHigh={prediction.rangeHigh}
-            expectedPoint={prediction.pointPrediction}
-          />
+          {isForecastReady ? (
+            <IntradayChart
+              closePrice={prediction.yesterday.actualOpen}
+              expectedLow={rangeLow ?? 0}
+              expectedHigh={rangeHigh ?? 0}
+              expectedPoint={pointPrediction ?? 0}
+            />
+          ) : null}
         </div>
 
         <aside className="heroAside">
@@ -111,7 +130,9 @@ export function HeroPrediction({ prediction }: HeroPredictionProps) {
       </div>
 
       <div className="heroFooter">
-        <span className="heroFooterText">마지막 갱신: {formatDateTime(prediction.lastCalculatedAt)}</span>
+        <span className="heroFooterText">
+          마지막 갱신: {prediction.lastCalculatedAt ? formatDateTime(prediction.lastCalculatedAt) : "-"}
+        </span>
         <CopyButton text={copyText} />
       </div>
     </section>
