@@ -1389,16 +1389,29 @@ def compute_ewy_fx_core_change(
     return learned_core * (1 - blend) + structural_sum * blend
 
 
-def compute_ewy_fx_simple_log_return(returns: dict[str, float]) -> float | None:
+def compute_ewy_fx_simple_log_return(
+    returns: dict[str, float],
+    display_returns: dict[str, float] | None = None,
+) -> float | None:
     ewy_change = returns.get("ewy")
     krw_change = returns.get("krw")
+    if display_returns is not None:
+        if ewy_change is None:
+            display_ewy = to_float(display_returns.get("ewy"))
+            ewy_change = simple_return_pct_to_log_return_pct(display_ewy) if display_ewy is not None else None
+        if krw_change is None:
+            display_krw = to_float(display_returns.get("krw"))
+            krw_change = simple_return_pct_to_log_return_pct(display_krw) if display_krw is not None else None
     if ewy_change is None or krw_change is None:
         return None
     return float(ewy_change) + float(krw_change)
 
 
-def compute_ewy_fx_simple_change_pct(returns: dict[str, float]) -> float | None:
-    return log_return_pct_to_simple_return_pct(compute_ewy_fx_simple_log_return(returns))
+def compute_ewy_fx_simple_change_pct(
+    returns: dict[str, float],
+    display_returns: dict[str, float] | None = None,
+) -> float | None:
+    return log_return_pct_to_simple_return_pct(compute_ewy_fx_simple_log_return(returns, display_returns))
 
 
 def weighted_average_from_returns(returns: dict[str, float], weights: dict[str, float]) -> float | None:
@@ -2462,7 +2475,7 @@ def update_prediction_night_fields(
         live_display_returns, live_model_returns = fetch_live_prediction_inputs(
             baseline_session_date, correction_params
         )
-        ewy_fx_simple_return = compute_ewy_fx_simple_log_return(live_model_returns)
+        ewy_fx_simple_return = compute_ewy_fx_simple_log_return(live_model_returns, live_display_returns)
         if ewy_fx_simple_return is not None:
             ewy_fx_simple_change = log_return_pct_to_simple_return_pct(ewy_fx_simple_return)
             payload["ewyFxSimpleChangePct"] = (

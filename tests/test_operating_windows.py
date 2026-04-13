@@ -358,6 +358,18 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertNotEqual(updated["ewyFxSimplePoint"], updated["pointPrediction"])
         self.assertTrue(updated["model"]["nightFuturesExcluded"])
 
+    def test_ewy_fx_simple_conversion_falls_back_to_display_returns(self):
+        ewy_log = backtest_and_generate.simple_return_pct_to_log_return_pct(3.0)
+        self.assertIsNotNone(ewy_log)
+
+        simple_return = refresh_night_futures.compute_ewy_fx_simple_change_pct(
+            {"ewy": ewy_log},
+            {"ewy": 3.0, "krw": -0.4},
+        )
+
+        expected = ((1 + 3.0 / 100) * (1 - 0.4 / 100) - 1) * 100
+        self.assertAlmostEqual(simple_return, expected)
+
     def test_provisional_day_futures_close_cache_is_refetched_after_settlement(self):
         cached = {
             "close": 874.05,

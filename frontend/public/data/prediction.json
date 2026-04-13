@@ -1,18 +1,18 @@
 {
-  "generatedAt": "2026-04-13T17:46:45.381517+00:00",
+  "generatedAt": "2026-04-13T17:56:39.366750+00:00",
   "predictionDate": "2026년 04월 14일",
   "predictionDateIso": "2026-04-14",
-  "pointPrediction": 5863.74,
-  "nightFuturesSimplePoint": 5958.5,
-  "nightFuturesSimpleChangePct": 2.58,
+  "pointPrediction": 5865.06,
+  "nightFuturesSimplePoint": 5964.49,
+  "nightFuturesSimpleChangePct": 2.68,
   "futuresDayClose": 872.0,
   "futuresDayCloseDate": "2026-04-13",
-  "rangeLow": 5842.41,
-  "rangeHigh": 5885.07,
-  "predictedChangePct": 0.95,
+  "rangeLow": 5843.73,
+  "rangeHigh": 5886.39,
+  "predictedChangePct": 0.97,
   "prevClose": 5808.62,
   "signalSummary": "EWY 상승 · S&P 500 상승 · VIX 하락(안정) · NASDAQ 100 상승 · USD/KRW 원화 강세",
-  "lastCalculatedAt": "2026-04-13T17:46:45.381517+00:00",
+  "lastCalculatedAt": "2026-04-13T17:56:39.366750+00:00",
   "latestRecordDate": "2026-04-13",
   "mae30d": 21.33,
   "model": {
@@ -26,8 +26,8 @@
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,
-    "coreAnchorPct": 0.95,
-    "rawModelPct": 0.95,
+    "coreAnchorPct": 0.97,
+    "rawModelPct": 0.97,
     "rawResidualPct": 0.0,
     "ewyFxIntercept": 0.1706,
     "ewyFxEwyCoef": 0.3618,
@@ -92,12 +92,12 @@
     "kospiCloseSource": "naver-index",
     "kospiCloseUpdatedAt": "2026-04-13T09:59:00+00:00",
     "mappingInterceptPct": 0.16,
-    "mappingBetaContributionPct": 0.79,
+    "mappingBetaContributionPct": 0.81,
     "mappingDirectionFlip": false,
-    "liveRefreshGuardBandPct": 0.87,
-    "liveEwyChangePct": 3.18,
-    "liveKrwChangePct": -0.54,
-    "liveRefreshUpdatedAt": "2026-04-13T17:46:45.381517+00:00"
+    "liveRefreshGuardBandPct": 0.89,
+    "liveEwyChangePct": 3.24,
+    "liveKrwChangePct": -0.53,
+    "liveRefreshUpdatedAt": "2026-04-13T17:56:39.366750+00:00"
   },
   "yesterday": {
     "predictionLow": 5863.06,
@@ -106,8 +106,8 @@
     "hit": false
   },
   "prevCloseDate": "2026-04-13",
-  "nightFuturesClose": 894.5,
-  "nightFuturesCloseUpdatedAt": "2026-04-13T17:46:40+00:00",
-  "ewyFxSimpleChangePct": 2.62,
-  "ewyFxSimplePoint": 5960.6
+  "nightFuturesClose": 895.4,
+  "nightFuturesCloseUpdatedAt": "2026-04-13T17:56:29+00:00",
+  "ewyFxSimpleChangePct": 2.7,
+  "ewyFxSimplePoint": 5965.31
 }
