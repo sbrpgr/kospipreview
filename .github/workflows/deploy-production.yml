@@ -34,8 +34,14 @@ jobs:
 
       - name: Deploy Cloud Run live data service
         run: |
+          IMAGE="gcr.io/kospipreview/kospi-live-data:${GITHUB_SHA}"
+          gcloud builds submit \
+            --project kospipreview \
+            --tag "$IMAGE" \
+            --quiet
+
           gcloud run deploy kospi-live-data \
-            --source . \
+            --image "$IMAGE" \
             --project kospipreview \
             --region asia-northeast3 \
             --allow-unauthenticated \
