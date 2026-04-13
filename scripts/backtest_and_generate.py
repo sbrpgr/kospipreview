@@ -159,7 +159,6 @@ EWY_ALIGNMENT_MIN_SHARE = 0.80
 RESIDUAL_MODEL_CAP_MIN_PCT = 0.18
 RESIDUAL_MODEL_CAP_MAX_PCT = 0.95
 RESIDUAL_MODEL_CAP_SHARE = 0.38
-MAPPING_DIRECTION_GUARD_MIN_CORE_PCT = 0.05
 ANCHOR_BIAS_BLEND = 0.12
 ANCHOR_BIAS_CAP_PCT = 0.24
 SESSION_GUARD_BAND_MIN_PCT = 0.42
@@ -1573,26 +1572,6 @@ def map_k200_to_kospi_return(k200_return: float, mapping_artifact: dict[str, flo
     return intercept + beta * float(k200_return)
 
 
-def apply_mapping_direction_guard(
-    k200_return: float,
-    mapped_kospi_return: float,
-    mapping_artifact: dict[str, float | int] | None,
-) -> tuple[float, bool]:
-    source_return = float(k200_return)
-    mapped_return = float(mapped_kospi_return)
-    if abs(source_return) < MAPPING_DIRECTION_GUARD_MIN_CORE_PCT:
-        return mapped_return, False
-
-    if source_return == 0 or mapped_return == 0 or np.sign(source_return) == np.sign(mapped_return):
-        return mapped_return, False
-
-    beta = float((mapping_artifact or {}).get("beta", 1.0))
-    beta_only_return = beta * source_return
-    if beta_only_return != 0 and np.sign(beta_only_return) == np.sign(source_return):
-        return float(beta_only_return), True
-    return 0.0, True
-
-
 def simple_return_pct_to_log_return_pct(value: float | None) -> float | None:
     if value is None:
         return None
@@ -1639,13 +1618,13 @@ def compute_prediction_components(
             "residual_cap_k200_return": None,
             "predicted_k200_return": None,
             "core_kospi_return": None,
-            "core_kospi_return_pre_guard": None,
             "predicted_kospi_return_pre_guard": None,
             "predicted_kospi_return": None,
             "predicted_kospi_simple_pct_pre_guard": None,
             "predicted_kospi_simple_pct": None,
-            "mapping_direction_guard_applied": False,
-            "mapping_direction_guard_adjustment": None,
+            "mapping_intercept_return": None,
+            "mapping_beta_return": None,
+            "mapping_direction_flip": False,
             "ewy_simple_pct": None,
             "residual_features": {},
             "residual_weight": None,
@@ -1663,17 +1642,17 @@ def compute_prediction_components(
     residual_adj_k200_return = float(np.clip(residual_raw_k200_return * residual_weight, -residual_cap, residual_cap))
     predicted_k200_return = float(core_k200_return + residual_adj_k200_return)
 
-    core_kospi_return_pre_guard = float(map_k200_to_kospi_return(core_k200_return, mapping_artifact))
+    mapping = mapping_artifact or {}
+    mapping_intercept_return = float(mapping.get("intercept", 0.0))
+    mapping_beta = float(mapping.get("beta", 1.0))
+    mapping_beta_return = float(mapping_beta * predicted_k200_return)
+    core_kospi_return = float(map_k200_to_kospi_return(core_k200_return, mapping_artifact))
     predicted_kospi_return_pre_guard = float(map_k200_to_kospi_return(predicted_k200_return, mapping_artifact))
-    core_kospi_return, core_guard_applied = apply_mapping_direction_guard(
-        core_k200_return,
-        core_kospi_return_pre_guard,
-        mapping_artifact,
-    )
-    predicted_kospi_return, prediction_guard_applied = apply_mapping_direction_guard(
-        predicted_k200_return,
-        predicted_kospi_return_pre_guard,
-        mapping_artifact,
+    predicted_kospi_return = predicted_kospi_return_pre_guard
+    mapping_direction_flip = (
+        predicted_k200_return != 0
+        and predicted_kospi_return != 0
+        and np.sign(predicted_k200_return) != np.sign(predicted_kospi_return)
     )
     predicted_kospi_simple_pct_pre_guard = log_return_pct_to_simple_return_pct(predicted_kospi_return_pre_guard)
     predicted_kospi_simple_pct = log_return_pct_to_simple_return_pct(predicted_kospi_return)
@@ -1687,13 +1666,13 @@ def compute_prediction_components(
         "residual_cap_k200_return": residual_cap,
         "predicted_k200_return": predicted_k200_return,
         "core_kospi_return": core_kospi_return,
-        "core_kospi_return_pre_guard": core_kospi_return_pre_guard,
         "predicted_kospi_return_pre_guard": predicted_kospi_return_pre_guard,
         "predicted_kospi_return": predicted_kospi_return,
         "predicted_kospi_simple_pct_pre_guard": predicted_kospi_simple_pct_pre_guard,
         "predicted_kospi_simple_pct": predicted_kospi_simple_pct,
-        "mapping_direction_guard_applied": bool(core_guard_applied or prediction_guard_applied),
-        "mapping_direction_guard_adjustment": float(predicted_kospi_return - predicted_kospi_return_pre_guard),
+        "mapping_intercept_return": mapping_intercept_return,
+        "mapping_beta_return": mapping_beta_return,
+        "mapping_direction_flip": bool(mapping_direction_flip),
         "ewy_simple_pct": ewy_simple_pct,
         "residual_features": residual_features,
         "residual_weight": residual_weight,

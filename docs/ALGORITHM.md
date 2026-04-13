@@ -53,13 +53,13 @@ Indicator cards may still display standard market-session change values. That di
 
 3. KOSPI mapping
    - Synthetic K200 return is mapped to KOSPI opening return through a Ridge mapping layer.
-   - The mapping intercept must not flip the final direction against a meaningful EWY/KRW core signal.
+   - The mapping intercept is allowed to represent learned opening drift.
 
 4. Stabilization
    - Prediction changes are guard-banded.
    - Live refresh applies a small smoothing weight to reduce one-minute jump noise.
    - The model must not force night-futures direction into `pointPrediction`.
-   - If the K200-to-KOSPI mapping intercept alone flips a non-trivial core signal, the direction guard falls back to the beta-only mapped return.
+   - The model must not force EWY direction matching when the full statistical mapping produces a different valid result.
 
 ## Night Futures Simple Conversion
 

@@ -416,7 +416,7 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(display_returns["ewy"], -2.21)
         self.assertLess(model_returns["ewy"], 0)
 
-    def test_mapping_direction_guard_prevents_intercept_sign_flip(self):
+    def test_mapping_intercept_can_flip_small_core_signal_without_forcing_direction(self):
         components = backtest_and_generate.compute_prediction_components(
             {
                 "ewy": -0.2773787804659043,
@@ -437,9 +437,14 @@ class OperatingWindowTests(unittest.TestCase):
             },
         )
 
-        self.assertTrue(components["mapping_direction_guard_applied"])
+        self.assertTrue(components["mapping_direction_flip"])
+        self.assertGreater(components["mapping_intercept_return"], 0)
+        self.assertLess(components["mapping_beta_return"], 0)
         self.assertGreater(components["predicted_kospi_simple_pct_pre_guard"], 0)
-        self.assertLess(components["predicted_kospi_simple_pct"], 0)
+        self.assertEqual(
+            components["predicted_kospi_simple_pct_pre_guard"],
+            components["predicted_kospi_simple_pct"],
+        )
 
     def test_history_uses_preopen_series_for_fixed_actual_row(self):
         now_utc = datetime(2026, 4, 13, 4, 0, tzinfo=timezone.utc)  # 13:00 KST

@@ -1,18 +1,18 @@
 {
-  "generatedAt": "2026-04-13T12:19:20.897139+00:00",
+  "generatedAt": "2026-04-13T12:29:28.923668+00:00",
   "predictionDate": "2026년 04월 14일",
   "predictionDateIso": "2026-04-14",
-  "pointPrediction": 5804.76,
-  "nightFuturesSimplePoint": 5802.62,
-  "nightFuturesSimpleChangePct": -0.1,
+  "pointPrediction": 5812.81,
+  "nightFuturesSimplePoint": 5802.29,
+  "nightFuturesSimpleChangePct": -0.11,
   "futuresDayClose": 872.0,
   "futuresDayCloseDate": "2026-04-13",
-  "rangeLow": 5776.87,
-  "rangeHigh": 5832.65,
-  "predictedChangePct": -0.07,
+  "rangeLow": 5784.92,
+  "rangeHigh": 5840.7,
+  "predictedChangePct": 0.07,
   "prevClose": 5808.62,
   "signalSummary": "EWY 하락 · S&P 500 보합 · VIX 상승(불안) · NASDAQ 100 보합 · USD/KRW 보합",
-  "lastCalculatedAt": "2026-04-13T12:19:20.897139+00:00",
+  "lastCalculatedAt": "2026-04-13T12:29:28.923668+00:00",
   "latestRecordDate": "2026-04-13",
   "mae30d": 21.45,
   "model": {
@@ -26,8 +26,8 @@
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,
-    "coreAnchorPct": -0.07,
-    "rawModelPct": 0.06,
+    "coreAnchorPct": 0.08,
+    "rawModelPct": 0.08,
     "rawResidualPct": 0.0,
     "ewyFxIntercept": 0.1278,
     "ewyFxEwyCoef": 0.3646,
@@ -91,12 +91,13 @@
     },
     "kospiCloseSource": "naver-index",
     "kospiCloseUpdatedAt": "2026-04-13T09:59:00+00:00",
-    "mappingDirectionGuardApplied": true,
-    "mappingDirectionGuardPct": -0.13,
     "liveRefreshGuardBandPct": 0.18,
-    "liveEwyChangePct": -0.35,
-    "liveKrwChangePct": 0.04,
-    "liveRefreshUpdatedAt": "2026-04-13T12:19:20.897139+00:00"
+    "liveEwyChangePct": -0.3,
+    "liveKrwChangePct": 0.05,
+    "liveRefreshUpdatedAt": "2026-04-13T12:29:28.923668+00:00",
+    "mappingInterceptPct": 0.13,
+    "mappingBetaContributionPct": -0.05,
+    "mappingDirectionFlip": true
   },
   "yesterday": {
     "predictionLow": 5863.06,
@@ -105,6 +106,6 @@
     "hit": false
   },
   "prevCloseDate": "2026-04-13",
-  "nightFuturesClose": 871.1,
-  "nightFuturesCloseUpdatedAt": "2026-04-13T12:19:07+00:00"
+  "nightFuturesClose": 871.05,
+  "nightFuturesCloseUpdatedAt": "2026-04-13T12:29:20+00:00"
 }
