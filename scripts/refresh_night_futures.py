@@ -152,7 +152,10 @@ YAHOO_CHART_URL_TEMPLATE = (
     "?interval=1m&range=2d&includePrePost=true"
 )
 YAHOO_QUOTE_PAGE_URL_TEMPLATE = "https://finance.yahoo.com/quote/{symbol}/"
-YAHOO_OVERNIGHT_SYMBOLS = {"EWY", "KORU"}
+YAHOO_QUOTE_PAGE_CACHE_SECONDS = 20
+YAHOO_CHART_POINTS_CACHE_SECONDS = 20
+YAHOO_QUOTE_PAGE_SNAPSHOT_CACHE: dict[str, tuple[datetime, dict | None]] = {}
+YAHOO_CHART_POINTS_CACHE: dict[str, tuple[datetime, list[tuple[datetime, float]]]] = {}
 KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 KRX_SYNC_MAX_FORWARD_HOURS = 12
@@ -337,6 +340,19 @@ def update_live_prediction_series(payload: dict, now_utc: datetime) -> dict:
 
 
 def fetch_yahoo_chart_points(symbol: str) -> list[tuple[datetime, float]]:
+    now_utc = datetime.now(timezone.utc)
+    cached = YAHOO_CHART_POINTS_CACHE.get(symbol)
+    if cached is not None:
+        cached_at, cached_points = cached
+        if (now_utc - cached_at).total_seconds() <= YAHOO_CHART_POINTS_CACHE_SECONDS:
+            return list(cached_points)
+
+    points = fetch_yahoo_chart_points_uncached(symbol)
+    YAHOO_CHART_POINTS_CACHE[symbol] = (now_utc, list(points))
+    return points
+
+
+def fetch_yahoo_chart_points_uncached(symbol: str) -> list[tuple[datetime, float]]:
     encoded_symbol = urllib.parse.quote(symbol, safe="")
     url = YAHOO_CHART_URL_TEMPLATE.format(symbol=encoded_symbol)
     req = urllib.request.Request(
@@ -446,6 +462,22 @@ def yahoo_quote_payload_snapshot(payload: dict) -> dict | None:
 
 
 def fetch_yahoo_quote_page_snapshot(symbol: str) -> dict | None:
+    now_utc = datetime.now(timezone.utc)
+    cached = YAHOO_QUOTE_PAGE_SNAPSHOT_CACHE.get(symbol)
+    if cached is not None:
+        cached_at, cached_snapshot = cached
+        if (now_utc - cached_at).total_seconds() <= YAHOO_QUOTE_PAGE_CACHE_SECONDS:
+            return dict(cached_snapshot) if cached_snapshot is not None else None
+
+    snapshot = fetch_yahoo_quote_page_snapshot_uncached(symbol)
+    YAHOO_QUOTE_PAGE_SNAPSHOT_CACHE[symbol] = (
+        now_utc,
+        dict(snapshot) if snapshot is not None else None,
+    )
+    return snapshot
+
+
+def fetch_yahoo_quote_page_snapshot_uncached(symbol: str) -> dict | None:
     encoded_symbol = urllib.parse.quote(symbol, safe="")
     url = YAHOO_QUOTE_PAGE_URL_TEMPLATE.format(symbol=encoded_symbol)
     req = urllib.request.Request(
@@ -499,9 +531,6 @@ def merge_yahoo_quote_page_latest_point(
     symbol: str,
     points: list[tuple[datetime, float]],
 ) -> list[tuple[datetime, float]]:
-    if symbol not in YAHOO_OVERNIGHT_SYMBOLS:
-        return points
-
     snapshot = fetch_yahoo_quote_page_snapshot(symbol)
     if not snapshot:
         return points
@@ -785,12 +814,7 @@ def update_history_with_actual_open(
     return history_payload
 
 
-def fetch_yahoo_market_display_snapshot(symbol: str) -> dict | None:
-    if symbol in YAHOO_OVERNIGHT_SYMBOLS:
-        quote_page_snapshot = fetch_yahoo_quote_page_snapshot(symbol)
-        if quote_page_snapshot is not None:
-            return quote_page_snapshot
-
+def fetch_yahoo_chart_market_display_snapshot(symbol: str) -> dict | None:
     encoded_symbol = urllib.parse.quote(symbol, safe="")
     url = YAHOO_CHART_URL_TEMPLATE.format(symbol=encoded_symbol)
     req = urllib.request.Request(
@@ -892,6 +916,32 @@ def fetch_yahoo_market_display_snapshot(symbol: str) -> dict | None:
         "change_pct": (freshest_value / previous_close - 1) * 100,
         "updated_at": freshest_ts_utc.isoformat(),
     }
+
+
+def select_latest_market_snapshot(*snapshots: dict | None) -> dict | None:
+    candidates: list[tuple[datetime, int, int, dict]] = []
+    for snapshot in snapshots:
+        if not isinstance(snapshot, dict):
+            continue
+        if to_float(snapshot.get("value")) is None or to_float(snapshot.get("change_pct")) is None:
+            continue
+        updated_at = parse_iso_datetime_utc(snapshot.get("updated_at"))
+        if updated_at is None:
+            continue
+        has_market_session = 1 if snapshot.get("market_session") else 0
+        candidates.append((updated_at, has_market_session, len(candidates), snapshot))
+
+    if not candidates:
+        return None
+
+    _, _, _, snapshot = max(candidates, key=lambda item: (item[0], item[1], item[2]))
+    return dict(snapshot)
+
+
+def fetch_yahoo_market_display_snapshot(symbol: str) -> dict | None:
+    chart_snapshot = fetch_yahoo_chart_market_display_snapshot(symbol)
+    quote_page_snapshot = fetch_yahoo_quote_page_snapshot(symbol)
+    return select_latest_market_snapshot(chart_snapshot, quote_page_snapshot)
 
 
 def format_indicator_value(key: str, value: float) -> str:

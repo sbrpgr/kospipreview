@@ -82,6 +82,70 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(snapshot["value"], 135.74)
         self.assertAlmostEqual(snapshot["change_pct"], -2.1552587)
 
+    def test_market_display_snapshot_uses_latest_quote_for_any_symbol(self):
+        original_chart = refresh_night_futures.fetch_yahoo_chart_market_display_snapshot
+        original_quote = refresh_night_futures.fetch_yahoo_quote_page_snapshot
+        try:
+            refresh_night_futures.fetch_yahoo_chart_market_display_snapshot = lambda symbol: {
+                "value": 100.0,
+                "change_pct": 0.1,
+                "updated_at": "2026-04-13T05:00:00+00:00",
+            }
+            refresh_night_futures.fetch_yahoo_quote_page_snapshot = lambda symbol: {
+                "value": 101.0,
+                "change_pct": 1.1,
+                "updated_at": "2026-04-13T05:02:00+00:00",
+                "market_session": "post",
+            }
+
+            snapshot = refresh_night_futures.fetch_yahoo_market_display_snapshot("^GSPC")
+        finally:
+            refresh_night_futures.fetch_yahoo_chart_market_display_snapshot = original_chart
+            refresh_night_futures.fetch_yahoo_quote_page_snapshot = original_quote
+
+        self.assertIsNotNone(snapshot)
+        self.assertEqual(snapshot["value"], 101.0)
+        self.assertEqual(snapshot["market_session"], "post")
+
+    def test_market_display_snapshot_prefers_session_metadata_on_tie(self):
+        chart = {
+            "value": 100.0,
+            "change_pct": 0.1,
+            "updated_at": "2026-04-13T05:00:00+00:00",
+        }
+        quote = {
+            "value": 100.0,
+            "change_pct": 0.1,
+            "updated_at": "2026-04-13T05:00:00+00:00",
+            "market_session": "regular",
+        }
+
+        snapshot = refresh_night_futures.select_latest_market_snapshot(chart, quote)
+
+        self.assertIsNotNone(snapshot)
+        self.assertEqual(snapshot["market_session"], "regular")
+
+    def test_quote_page_latest_point_merges_for_non_ewy_symbol(self):
+        original_fetch = refresh_night_futures.fetch_yahoo_quote_page_snapshot
+        try:
+            refresh_night_futures.fetch_yahoo_quote_page_snapshot = lambda symbol: {
+                "value": 6020.0,
+                "change_pct": 0.4,
+                "updated_at": "2026-04-13T05:02:00+00:00",
+                "market_session": "pre",
+            }
+            points = [
+                (datetime(2026, 4, 13, 5, 0, tzinfo=timezone.utc), 6000.0),
+            ]
+
+            merged = refresh_night_futures.merge_yahoo_quote_page_latest_point("^GSPC", points)
+        finally:
+            refresh_night_futures.fetch_yahoo_quote_page_snapshot = original_fetch
+
+        self.assertEqual(len(merged), 2)
+        self.assertEqual(merged[-1][1], 6020.0)
+        self.assertEqual(merged[-1][0], datetime(2026, 4, 13, 5, 2, tzinfo=timezone.utc))
+
     def test_refresh_rollover_sets_next_target_to_pending(self):
         payload = {
             "generatedAt": "2026-04-13T08:58:00+09:00",
