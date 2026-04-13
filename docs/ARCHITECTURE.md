@@ -129,9 +129,11 @@ Fields:
 - `kstTime`
 - `pointPrediction`
 - `nightFuturesSimplePoint`
+- `ewyFxSimplePoint`
 - `nightFuturesClose`
 - `predictedChangePct`
 - `nightFuturesSimpleChangePct`
+- `ewyFxSimpleChangePct`
 
 ## Recent Actual Record Layer
 
@@ -141,6 +143,7 @@ For each actual trading date, the row should include:
 
 - fixed pre-open model prediction;
 - fixed pre-open night futures simple conversion;
+- fixed pre-open EWY + FX simple conversion;
 - actual KOSPI open;
 - actual KOSPI close when available;
 - KOSPI 200 day futures close;

@@ -41,6 +41,8 @@ export async function getPredictionData() {
     pointPrediction: number | null;
     nightFuturesSimplePoint?: number | null;
     nightFuturesSimpleChangePct?: number | null;
+    ewyFxSimplePoint?: number | null;
+    ewyFxSimpleChangePct?: number | null;
     nightFuturesClose?: number | null;
     nightFuturesCloseUpdatedAt?: string | null;
     futuresDayClose?: number | null;
@@ -114,6 +116,7 @@ export async function getHistoryData() {
       date: string;
       modelPrediction?: number | null;
       nightFuturesSimpleOpen?: number | null;
+      ewyFxSimpleOpen?: number | null;
       low: number;
       high: number;
       actualOpen: number;
@@ -137,9 +140,11 @@ export async function getLivePredictionSeriesData() {
       kstTime?: string;
       pointPrediction?: number | null;
       nightFuturesSimplePoint?: number | null;
+      ewyFxSimplePoint?: number | null;
       nightFuturesClose?: number | null;
       predictedChangePct?: number | null;
       nightFuturesSimpleChangePct?: number | null;
+      ewyFxSimpleChangePct?: number | null;
     }>;
   }>("live_prediction_series.json");
 }

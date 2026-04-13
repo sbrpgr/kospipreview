@@ -101,7 +101,7 @@ Expected behavior:
 
 - one row per minute-level `observedAt`;
 - records keep only the active `predictionDateIso`;
-- chart compares `pointPrediction` and `nightFuturesSimplePoint`.
+- chart compares `pointPrediction`, `nightFuturesSimplePoint`, and `ewyFxSimplePoint`.
 
 ## Recent Actual Record Updates
 
@@ -115,6 +115,7 @@ The current actual trading day row should track:
 - `nightFuturesClose`
 - fixed pre-open `modelPrediction`
 - fixed pre-open `nightFuturesSimpleOpen`
+- fixed pre-open `ewyFxSimpleOpen`
 
 Day/night futures close fields are tracked only for actual rows dated
 `2026-04-14` or later. The `2026-04-13` actual row must keep both fields blank.

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-13T14:34:08.846148+00:00",
+  "generatedAt": "2026-04-13T17:46:45.381517+00:00",
   "predictionDateIso": "2026-04-14",
   "predictionDate": "2026년 04월 14일",
   "records": [
@@ -100,6 +100,58 @@
       "nightFuturesClose": 879.25,
       "predictedChangePct": 0.4,
       "nightFuturesSimpleChangePct": 0.83
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T17:38:00+00:00",
+      "kstTime": "02:38",
+      "pointPrediction": 5862.49,
+      "nightFuturesSimplePoint": 5961.83,
+      "ewyFxSimplePoint": 5966.69,
+      "nightFuturesClose": 895.0,
+      "predictedChangePct": 0.93,
+      "nightFuturesSimpleChangePct": 2.64,
+      "ewyFxSimpleChangePct": 2.72
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T17:41:00+00:00",
+      "kstTime": "02:41",
+      "pointPrediction": 5863.86,
+      "nightFuturesSimplePoint": 5963.16,
+      "ewyFxSimplePoint": 5966.07,
+      "nightFuturesClose": 895.2,
+      "predictedChangePct": 0.95,
+      "nightFuturesSimpleChangePct": 2.66,
+      "ewyFxSimpleChangePct": 2.71
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T17:44:00+00:00",
+      "kstTime": "02:44",
+      "pointPrediction": 5861.86,
+      "nightFuturesSimplePoint": 5962.83,
+      "ewyFxSimplePoint": 5960.52,
+      "nightFuturesClose": 895.15,
+      "predictedChangePct": 0.92,
+      "nightFuturesSimpleChangePct": 2.65,
+      "ewyFxSimpleChangePct": 2.61
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T17:46:00+00:00",
+      "kstTime": "02:46",
+      "pointPrediction": 5863.74,
+      "nightFuturesSimplePoint": 5958.5,
+      "ewyFxSimplePoint": 5960.6,
+      "nightFuturesClose": 894.5,
+      "predictedChangePct": 0.95,
+      "nightFuturesSimpleChangePct": 2.58,
+      "ewyFxSimpleChangePct": 2.62
     }
   ]
 }

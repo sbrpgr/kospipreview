@@ -64,6 +64,10 @@ All times are Asia/Seoul.
   - current KOSPI close;
   - final day futures close;
   - live night futures close.
+- EWY + FX simple conversion uses:
+  - current KOSPI close;
+  - KRX-close-synchronized EWY return;
+  - KRX-close-synchronized USD/KRW return.
 - `history.json` recent actual rows track:
   - `actualOpen`
   - `actualClose`
@@ -71,6 +75,7 @@ All times are Asia/Seoul.
   - `nightFuturesClose`
   - fixed pre-open `modelPrediction`
   - fixed pre-open `nightFuturesSimpleOpen`
+  - fixed pre-open `ewyFxSimpleOpen`
 - `dayFuturesClose` and `nightFuturesClose` in `history.json` start from rows dated
   `2026-04-14`; the `2026-04-13` row is intentionally blank for both fields.
 

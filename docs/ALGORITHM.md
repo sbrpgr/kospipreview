@@ -14,6 +14,7 @@ Primary output:
 - prediction band: `rangeLow`, `rangeHigh`
 - predicted change from the latest KOSPI close: `predictedChangePct`
 - comparison-only night futures simple conversion: `nightFuturesSimplePoint`
+- comparison-only EWY + USD/KRW simple conversion: `ewyFxSimplePoint`
 
 ## Time Anchors
 
@@ -78,6 +79,24 @@ Required basis:
 - `K200_day_close(D)` is the final KOSPI 200 day futures close.
 - Final day futures close is trusted only when the source is the eSignal socket close at or after `15:45 KST`.
 
+## EWY + FX Simple Conversion
+
+EWY + FX simple conversion is separate from the statistical model. It replaces the
+night-futures input with the KRX-close-synchronized EWY and USD/KRW move.
+
+Formula:
+
+```text
+ewyFxSimpleChangePct = exp((EWY_log_return + USDKRW_log_return) / 100) - 1
+ewyFxSimplePoint = KOSPI_close(D) * (1 + ewyFxSimpleChangePct)
+```
+
+Required basis:
+
+- `KOSPI_close(D)` is the current completed KOSPI close after `15:30 KST`.
+- EWY and USD/KRW returns use the same KRX `15:30 KST` baseline as the model inputs.
+- No residual model, K200 mapping, or night-futures value is used.
+
 ## Recent Actual Records
 
 `history.json` stores actual verification rows.
@@ -90,6 +109,7 @@ Tracked fields:
 - `nightFuturesClose`
 - fixed pre-open `modelPrediction`
 - fixed pre-open `nightFuturesSimpleOpen`
+- fixed pre-open `ewyFxSimpleOpen`
 
 Day/night futures close fields are tracked only for recent actual rows dated
 `2026-04-14` or later. The `2026-04-13` row remains blank for both fields.

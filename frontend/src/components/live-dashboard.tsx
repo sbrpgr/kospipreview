@@ -147,6 +147,7 @@ function getDashboardVersion(
         record.date,
         record.modelPrediction ?? "",
         record.nightFuturesSimpleOpen ?? "",
+        record.ewyFxSimpleOpen ?? "",
         record.low,
         record.high,
         record.actualOpen,
@@ -164,6 +165,7 @@ function getDashboardVersion(
         record.observedAt,
         record.pointPrediction ?? "",
         record.nightFuturesSimplePoint ?? "",
+        record.ewyFxSimplePoint ?? "",
         record.nightFuturesClose ?? "",
       ].join("~"),
     )
@@ -176,6 +178,8 @@ function getDashboardVersion(
     prediction.pointPrediction,
     prediction.nightFuturesSimplePoint ?? "",
     prediction.nightFuturesSimpleChangePct ?? "",
+    prediction.ewyFxSimplePoint ?? "",
+    prediction.ewyFxSimpleChangePct ?? "",
     prediction.nightFuturesClose ?? "",
     prediction.futuresDayClose ?? "",
     prediction.futuresDayCloseDate ?? "",
@@ -418,6 +422,10 @@ export function LiveDashboard({
   const futuresDayClose =
     hasLiveSnapshot && typeof prediction.futuresDayClose === "number" ? prediction.futuresDayClose : null;
   const futuresDayCloseDate = prediction.futuresDayCloseDate ?? "";
+  const ewyFxSimplePoint =
+    hasLiveSnapshot && typeof prediction.ewyFxSimplePoint === "number" ? prediction.ewyFxSimplePoint : null;
+  const ewyFxSimpleChangePct =
+    hasLiveSnapshot && typeof prediction.ewyFxSimpleChangePct === "number" ? prediction.ewyFxSimpleChangePct : null;
   const modelPoint = isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : null;
   const modelChangePct = isFiniteNumber(prediction.predictedChangePct) ? prediction.predictedChangePct : null;
   const modelRangeLow = isFiniteNumber(prediction.rangeLow) ? prediction.rangeLow : null;
@@ -463,6 +471,20 @@ export function LiveDashboard({
                   ? "주간선물 종가 (장 시작전)"
                   : `주간선물 종가 ${futuresDayClose.toLocaleString("ko-KR")}${futuresDayCloseDate ? ` (${futuresDayCloseDate})` : ""}`}
               </div>
+            </div>
+            <div className="heroForecastCard isEwyFx">
+              <div className="heroForecastLabel">EWY + 환율환산</div>
+              <div className="heroForecastValue">{ewyFxSimplePoint?.toLocaleString("ko-KR") ?? "-"}</div>
+              <div
+                className={`heroForecastChange ${
+                  ewyFxSimpleChangePct === null ? "isNeu" : ewyFxSimpleChangePct >= 0 ? "isPos" : "isNeg"
+                }`}
+              >
+                {ewyFxSimpleChangePct === null
+                  ? "-"
+                  : `${ewyFxSimpleChangePct >= 0 ? "상방" : "하방"} ${Math.abs(ewyFxSimpleChangePct).toFixed(2)}%`}
+              </div>
+              <div className="heroForecastMeta">EWY와 USD/KRW 기준</div>
             </div>
             <div className="heroForecastCard isModel">
               <div className="heroForecastLabel">모델 예측 (야간 선물 지표 완전 미사용)</div>

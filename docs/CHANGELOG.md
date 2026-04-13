@@ -16,10 +16,16 @@
 
 - Recent actual record tracking expanded
   - `history.json` tracks `actualClose`.
+  - `history.json` tracks fixed pre-open `ewyFxSimpleOpen`.
   - `history.json` tracks `dayFuturesClose` from `2026-04-14` rows onward.
   - `history.json` tracks `nightFuturesClose` from `2026-04-14` rows onward.
   - The `2026-04-13` recent actual row keeps both futures close fields blank.
-  - Frontend accuracy table displays actual close, day futures close, and night futures close.
+  - Frontend accuracy table displays actual close, EWY + FX conversion, day futures close, and night futures close.
+
+- EWY + FX simple conversion added
+  - `prediction.json` publishes `ewyFxSimplePoint` and `ewyFxSimpleChangePct`.
+  - The dashboard shows night futures simple conversion, EWY + FX conversion, and model prediction as three separate indicators.
+  - The EWY + FX conversion uses EWY and USD/KRW only, with no residual model, K200 mapping, or night-futures value.
 
 - Day futures provisional close guard added
   - Same-day socket close around `15:30 KST` is provisional.

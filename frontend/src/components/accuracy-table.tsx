@@ -14,6 +14,7 @@ type DisplayRecord = {
   date: string;
   modelPrediction: number | null;
   nightFuturesSimpleOpen: number | null;
+  ewyFxSimpleOpen: number | null;
   actualOpen: number | null;
   actualClose: number | null;
   dayFuturesClose: number | null;
@@ -75,6 +76,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       date: record.date,
       modelPrediction,
       nightFuturesSimpleOpen: isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null,
+      ewyFxSimpleOpen: isFiniteNumber(record.ewyFxSimpleOpen) ? record.ewyFxSimpleOpen : null,
       actualOpen: isFiniteNumber(record.actualOpen) ? record.actualOpen : null,
       actualClose: isFiniteNumber(record.actualClose) ? record.actualClose : null,
       dayFuturesClose: isFiniteNumber(record.dayFuturesClose) ? record.dayFuturesClose : null,
@@ -102,6 +104,9 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
         isFiniteNumber(prediction.nightFuturesSimplePoint)
           ? prediction.nightFuturesSimplePoint
           : existing.nightFuturesSimpleOpen,
+      ewyFxSimpleOpen: isFiniteNumber(prediction.ewyFxSimplePoint)
+        ? prediction.ewyFxSimplePoint
+        : existing.ewyFxSimpleOpen,
       dayFuturesClose: isFiniteNumber(prediction.futuresDayClose) ? prediction.futuresDayClose : existing.dayFuturesClose,
       nightFuturesClose: isFiniteNumber(prediction.nightFuturesClose)
         ? prediction.nightFuturesClose
@@ -113,6 +118,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       date: predictionDateIso,
       modelPrediction: isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : null,
       nightFuturesSimpleOpen: isFiniteNumber(prediction.nightFuturesSimplePoint) ? prediction.nightFuturesSimplePoint : null,
+      ewyFxSimpleOpen: isFiniteNumber(prediction.ewyFxSimplePoint) ? prediction.ewyFxSimplePoint : null,
       actualOpen: null,
       actualClose: null,
       dayFuturesClose: isFiniteNumber(prediction.futuresDayClose) ? prediction.futuresDayClose : null,
@@ -182,8 +188,10 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             <th>주간선물 종가</th>
             <th>야간선물 종가</th>
             <th>야간선물 환산치</th>
+            <th>EWY+환율 환산치</th>
             <th>모델 예측치</th>
             <th>야간선물 오차</th>
+            <th>EWY+환율 오차</th>
             <th>모델 오차</th>
             <th style={{ textAlign: "center" }}>
               모델 일치율(%){" "}
@@ -205,7 +213,9 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             const nightFuturesCloseValue = isFiniteNumber(record.nightFuturesClose) ? record.nightFuturesClose : null;
             const modelPrediction = isFiniteNumber(record.modelPrediction) ? record.modelPrediction : null;
             const nightSimple = isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null;
+            const ewyFxSimple = isFiniteNumber(record.ewyFxSimpleOpen) ? record.ewyFxSimpleOpen : null;
             const nightError = actualOpenValue !== null && nightSimple !== null ? actualOpenValue - nightSimple : null;
+            const ewyFxError = actualOpenValue !== null && ewyFxSimple !== null ? actualOpenValue - ewyFxSimple : null;
             const modelError = actualOpenValue !== null && modelPrediction !== null ? actualOpenValue - modelPrediction : null;
             const modelMatchRatePct = computeModelMatchRatePct(actualOpenValue, modelPrediction);
 
@@ -225,6 +235,7 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                   {nightFuturesCloseValue !== null ? nightFuturesCloseValue.toLocaleString("ko-KR") : "-"}
                 </td>
                 <td>{nightSimple === null ? "-" : nightSimple.toLocaleString("ko-KR")}</td>
+                <td>{ewyFxSimple === null ? "-" : ewyFxSimple.toLocaleString("ko-KR")}</td>
                 <td style={{ color: "var(--text)", fontWeight: 700 }}>
                   {modelPrediction === null ? "-" : modelPrediction.toLocaleString("ko-KR")}
                 </td>
@@ -235,6 +246,14 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                   }}
                 >
                   {nightError === null ? "-" : `${nightError >= 0 ? "+" : ""}${nightError.toFixed(1)}`}
+                </td>
+                <td
+                  style={{
+                    color: getErrorColor(ewyFxError),
+                    fontWeight: 700,
+                  }}
+                >
+                  {ewyFxError === null ? "-" : `${ewyFxError >= 0 ? "+" : ""}${ewyFxError.toFixed(1)}`}
                 </td>
                 <td
                   style={{

@@ -300,9 +300,11 @@ def build_live_prediction_series_entry(payload: dict, now_utc: datetime) -> dict
     observed_at = now_utc.replace(second=0, microsecond=0)
     observed_at_kst = observed_at.astimezone(KST)
     night_simple = to_float(payload.get("nightFuturesSimplePoint"))
+    ewy_fx_simple = to_float(payload.get("ewyFxSimplePoint"))
     night_close = to_float(payload.get("nightFuturesClose"))
     predicted_change = to_float(payload.get("predictedChangePct"))
     night_change = to_float(payload.get("nightFuturesSimpleChangePct"))
+    ewy_fx_change = to_float(payload.get("ewyFxSimpleChangePct"))
 
     return {
         "predictionDateIso": prediction_date_iso,
@@ -311,9 +313,11 @@ def build_live_prediction_series_entry(payload: dict, now_utc: datetime) -> dict
         "kstTime": observed_at_kst.strftime("%H:%M"),
         "pointPrediction": round(point_prediction, 2),
         "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
+        "ewyFxSimplePoint": round(ewy_fx_simple, 2) if ewy_fx_simple is not None else None,
         "nightFuturesClose": round(night_close, 2) if night_close is not None else None,
         "predictedChangePct": round(predicted_change, 2) if predicted_change is not None else None,
         "nightFuturesSimpleChangePct": round(night_change, 2) if night_change is not None else None,
+        "ewyFxSimpleChangePct": round(ewy_fx_change, 2) if ewy_fx_change is not None else None,
     }
 
 
@@ -577,6 +581,7 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         low, high = high, low
 
     night_simple = to_float(payload.get("nightFuturesSimplePoint"))
+    ewy_fx_simple = to_float(payload.get("ewyFxSimplePoint"))
     night_close = to_float(payload.get("nightFuturesClose"))
     day_close = to_float(payload.get("futuresDayClose"))
     entry = {
@@ -587,6 +592,7 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         "rangeHigh": round(high, 2),
         "pointPrediction": round(point, 2),
         "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
+        "ewyFxSimplePoint": round(ewy_fx_simple, 2) if ewy_fx_simple is not None else None,
     }
     if night_close is not None:
         entry["nightFuturesClose"] = round(night_close, 2)
@@ -737,6 +743,7 @@ def resolve_fixed_prediction_entry(
         half_band = 20.0
 
     night_simple = to_float(series_row.get("nightFuturesSimplePoint"))
+    ewy_fx_simple = to_float(series_row.get("ewyFxSimplePoint"))
     night_close = to_float(series_row.get("nightFuturesClose"))
     day_close = to_float((base_entry or {}).get("futuresDayClose"))
     entry = {
@@ -747,6 +754,7 @@ def resolve_fixed_prediction_entry(
         "rangeHigh": round(point + half_band, 2),
         "pointPrediction": round(point, 2),
         "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
+        "ewyFxSimplePoint": round(ewy_fx_simple, 2) if ewy_fx_simple is not None else None,
     }
     if night_close is not None:
         entry["nightFuturesClose"] = round(night_close, 2)
@@ -926,6 +934,9 @@ def update_history_with_actual_open(
         None,
     )
     existing_actual_close = to_float(existing_record.get("actualClose")) if isinstance(existing_record, dict) else None
+    existing_ewy_fx_simple_open = (
+        to_float(existing_record.get("ewyFxSimpleOpen")) if isinstance(existing_record, dict) else None
+    )
     existing_day_futures_close = (
         to_float(existing_record.get("dayFuturesClose")) if isinstance(existing_record, dict) else None
     )
@@ -966,10 +977,14 @@ def update_history_with_actual_open(
         low, high = high, low
 
     night_simple = to_float(fixed_prediction.get("nightFuturesSimplePoint"))
+    ewy_fx_simple = to_float(fixed_prediction.get("ewyFxSimplePoint"))
+    if ewy_fx_simple is None:
+        ewy_fx_simple = existing_ewy_fx_simple_open
     record = {
         "date": target_iso,
         "modelPrediction": round(point, 2),
         "nightFuturesSimpleOpen": round(night_simple, 2) if night_simple is not None else None,
+        "ewyFxSimpleOpen": round(ewy_fx_simple, 2) if ewy_fx_simple is not None else None,
         "low": round(low, 2),
         "high": round(high, 2),
         "actualOpen": round(actual_open, 2),
@@ -1372,6 +1387,18 @@ def compute_ewy_fx_core_change(
         blend = max(blend, EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
 
     return learned_core * (1 - blend) + structural_sum * blend
+
+
+def compute_ewy_fx_simple_log_return(returns: dict[str, float]) -> float | None:
+    ewy_change = returns.get("ewy")
+    krw_change = returns.get("krw")
+    if ewy_change is None or krw_change is None:
+        return None
+    return float(ewy_change) + float(krw_change)
+
+
+def compute_ewy_fx_simple_change_pct(returns: dict[str, float]) -> float | None:
+    return log_return_pct_to_simple_return_pct(compute_ewy_fx_simple_log_return(returns))
 
 
 def weighted_average_from_returns(returns: dict[str, float], weights: dict[str, float]) -> float | None:
@@ -2316,6 +2343,8 @@ def apply_prediction_pending_state(payload: dict, now_utc: datetime) -> dict:
     payload["pointPrediction"] = None
     payload["nightFuturesSimplePoint"] = None
     payload["nightFuturesSimpleChangePct"] = None
+    payload["ewyFxSimplePoint"] = None
+    payload["ewyFxSimpleChangePct"] = None
     payload["nightFuturesClose"] = None
     payload["nightFuturesCloseUpdatedAt"] = None
     payload["rangeLow"] = None
@@ -2422,6 +2451,9 @@ def update_prediction_night_fields(
                 payload["futuresDayCloseDate"] = session_date
         return apply_prediction_pending_state(payload, now_utc)
 
+    payload["ewyFxSimpleChangePct"] = None
+    payload["ewyFxSimplePoint"] = None
+
     if prev_close and prev_close != 0:
         correction_params = resolve_ewy_fx_correction_params(model_payload)
         residual_artifact = resolve_residual_model_artifact(model_payload)
@@ -2430,6 +2462,17 @@ def update_prediction_night_fields(
         live_display_returns, live_model_returns = fetch_live_prediction_inputs(
             baseline_session_date, correction_params
         )
+        ewy_fx_simple_return = compute_ewy_fx_simple_log_return(live_model_returns)
+        if ewy_fx_simple_return is not None:
+            ewy_fx_simple_change = log_return_pct_to_simple_return_pct(ewy_fx_simple_return)
+            payload["ewyFxSimpleChangePct"] = (
+                round(ewy_fx_simple_change, 2) if ewy_fx_simple_change is not None else None
+            )
+            payload["ewyFxSimplePoint"] = round(price_from_log_return(prev_close, ewy_fx_simple_return), 2)
+        else:
+            payload["ewyFxSimpleChangePct"] = None
+            payload["ewyFxSimplePoint"] = None
+
         prediction_components = compute_model_prediction_components(
             live_model_returns,
             core_params=correction_params,
@@ -2575,6 +2618,9 @@ def main() -> None:
 
         prediction_payload = update_prediction_night_fields(prediction_payload, night_quote, day_close_quote, now_utc)
         write_output_json("prediction.json", prediction_payload)
+        if should_archive_prediction_snapshot(prediction_payload, now_utc):
+            prediction_archive = merge_prediction_into_archive(prediction_archive, prediction_payload)
+            write_prediction_archive_json(prediction_archive, now_utc)
         next_live_prediction_series_payload = update_live_prediction_series(prediction_payload, now_utc)
         write_output_json("live_prediction_series.json", next_live_prediction_series_payload)
 

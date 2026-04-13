@@ -53,8 +53,10 @@ export function PredictionTrendChart({ prediction, series }: PredictionTrendChar
           nightFuturesSimplePoint: isFiniteNumber(record.nightFuturesSimplePoint)
             ? record.nightFuturesSimplePoint
             : null,
+          ewyFxSimplePoint: isFiniteNumber(record.ewyFxSimplePoint) ? record.ewyFxSimplePoint : null,
           modelChangePct: record.predictedChangePct,
           nightChangePct: record.nightFuturesSimpleChangePct,
+          ewyFxChangePct: record.ewyFxSimpleChangePct,
         }))
         .sort((a, b) => new Date(a.observedAt).getTime() - new Date(b.observedAt).getTime()),
     [series, targetDate],
@@ -62,7 +64,7 @@ export function PredictionTrendChart({ prediction, series }: PredictionTrendChar
 
   const domainY = useMemo(() => {
     const values = chartData.flatMap((item) =>
-      [item.modelPrediction, item.nightFuturesSimplePoint].filter(isFiniteNumber),
+      [item.modelPrediction, item.nightFuturesSimplePoint, item.ewyFxSimplePoint].filter(isFiniteNumber),
     );
 
     if (!values.length) {
@@ -81,7 +83,7 @@ export function PredictionTrendChart({ prediction, series }: PredictionTrendChar
         <div>
           <h2 className="predictionTrendTitle">예측 추이</h2>
           <p className="predictionTrendSubtext">
-            {prediction.predictionDate} 기준 야간선물 단순환산과 모델 예측값의 시간별 변화를 비교합니다.
+            {prediction.predictionDate} 기준 야간선물, EWY+환율, 모델 예측값의 시간별 변화를 비교합니다.
           </p>
         </div>
         <div className="predictionTrendBadge">{chartData.length.toLocaleString("ko-KR")}개 관측</div>
@@ -151,6 +153,16 @@ export function PredictionTrendChart({ prediction, series }: PredictionTrendChar
                 strokeDasharray="6 5"
                 dot={false}
                 activeDot={{ r: 5, strokeWidth: 0, fill: "var(--gold)" }}
+                connectNulls
+              />
+              <Line
+                type="monotone"
+                name="EWY+환율환산"
+                dataKey="ewyFxSimplePoint"
+                stroke="var(--positive)"
+                strokeWidth={2.4}
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 0, fill: "var(--positive)" }}
                 connectNulls
               />
             </LineChart>

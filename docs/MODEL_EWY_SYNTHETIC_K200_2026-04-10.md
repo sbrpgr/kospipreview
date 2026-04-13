@@ -93,6 +93,8 @@ Mapping diagnostics:
 - `rangeHigh`
 - `nightFuturesSimplePoint`
 - `nightFuturesSimpleChangePct`
+- `ewyFxSimplePoint`
+- `ewyFxSimpleChangePct`
 - `futuresDayClose`
 - `futuresDayCloseDate`
 - `nightFuturesClose`
@@ -119,5 +121,7 @@ Mapping diagnostics:
 - `pointPrediction` must not be forcibly matched to EWY direction when the statistical mapping supports a different result.
 - `nightFuturesSimplePoint` must use current KOSPI close after `15:30 KST`.
 - `nightFuturesSimplePoint` must use final KOSPI 200 day futures close after settlement.
+- `ewyFxSimplePoint` must use only EWY and USD/KRW returns from the KRX close baseline.
+- `ewyFxSimplePoint` must not use residuals, K200 mapping, or night futures.
 - Same-day KOSPI 200 day futures close is final only after `15:45 KST` socket settlement.
-- The most recent actual history row must track actual open, actual close, day futures close, and night futures close.
+- The most recent actual history row must track actual open, actual close, EWY + FX conversion, day futures close, and night futures close.

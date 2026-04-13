@@ -40,8 +40,10 @@ class OperatingWindowTests(unittest.TestCase):
             "predictionDate": "2026년 04월 13일",
             "pointPrediction": 5884.0,
             "nightFuturesSimplePoint": 5891.0,
+            "ewyFxSimplePoint": 5902.5,
             "predictedChangePct": 0.4,
             "nightFuturesSimpleChangePct": 0.5,
+            "ewyFxSimpleChangePct": 0.7,
         }
 
         outside_window = datetime(2026, 4, 13, 4, 0, tzinfo=timezone.utc)  # 13:00 KST
@@ -54,7 +56,10 @@ class OperatingWindowTests(unittest.TestCase):
             refresh_night_futures.load_live_prediction_series = lambda: {"records": []}
             self.assertEqual(refresh_night_futures.update_live_prediction_series(payload, outside_window)["records"], [])
             self.assertEqual(refresh_night_futures.update_live_prediction_series(payload, after_domestic_close)["records"], [])
-            self.assertEqual(len(refresh_night_futures.update_live_prediction_series(payload, trend_open)["records"]), 1)
+            trend_records = refresh_night_futures.update_live_prediction_series(payload, trend_open)["records"]
+            self.assertEqual(len(trend_records), 1)
+            self.assertEqual(trend_records[0]["ewyFxSimplePoint"], 5902.5)
+            self.assertEqual(trend_records[0]["ewyFxSimpleChangePct"], 0.7)
             self.assertEqual(len(refresh_night_futures.update_live_prediction_series(payload, inside_window)["records"]), 1)
         finally:
             refresh_night_futures.load_live_prediction_series = original_loader
@@ -287,6 +292,71 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertLess(updated["nightFuturesSimplePoint"], 5806.62)
         self.assertEqual(updated["futuresDayClose"], 872.0)
         self.assertEqual(updated["nightFuturesClose"], 871.75)
+
+    def test_ewy_fx_simple_conversion_uses_ewy_and_krw_without_mapping(self):
+        payload = {
+            "generatedAt": "2026-04-13T09:56:00+00:00",
+            "predictionDateIso": "2026-04-14",
+            "predictionDate": "2026-04-14",
+            "pointPrediction": None,
+            "rangeLow": None,
+            "rangeHigh": None,
+            "predictedChangePct": None,
+            "prevClose": 5858.87,
+            "latestRecordDate": "2026-04-10",
+            "mae30d": 20.0,
+            "model": {
+                "ewyFxIntercept": 0.0,
+                "ewyFxEwyCoef": 0.36,
+                "ewyFxKrwCoef": 0.2,
+                "ewyFxSampleSize": 180,
+                "ewyFxFitR2": 0.3,
+                "residualModel": {"weight": 0.0},
+                "k200Mapping": {"intercept": 0.16, "beta": 0.34, "sampleSize": 240},
+            },
+        }
+        now_utc = datetime(2026, 4, 13, 9, 57, tzinfo=timezone.utc)  # 18:57 KST
+        day_close_quote = {
+            "close": 872.0,
+            "updated_at": "2026-04-13T06:45:00+00:00",
+            "session_date": "2026-04-13",
+        }
+        ewy_log = backtest_and_generate.simple_return_pct_to_log_return_pct(3.0)
+        krw_log = backtest_and_generate.simple_return_pct_to_log_return_pct(-0.4)
+        self.assertIsNotNone(ewy_log)
+        self.assertIsNotNone(krw_log)
+
+        original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
+        original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
+        try:
+            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: (
+                {"ewy": 3.0, "krw": -0.4},
+                {"ewy": ewy_log, "krw": krw_log},
+            )
+            refresh_night_futures.fetch_kospi_actual_close_quote = lambda target_date: {
+                "close": 5806.62,
+                "updated_at": "2026-04-13T06:30:00+00:00",
+                "session_date": "2026-04-13",
+                "provider": "test",
+            }
+            updated = refresh_night_futures.update_prediction_night_fields(
+                payload,
+                None,
+                day_close_quote,
+                now_utc,
+            )
+        finally:
+            refresh_night_futures.fetch_live_prediction_inputs = original_fetch_inputs
+            refresh_night_futures.fetch_kospi_actual_close_quote = original_fetch_close_quote
+
+        expected_return = float(ewy_log) + float(krw_log)
+        expected_change = backtest_and_generate.log_return_pct_to_simple_return_pct(expected_return)
+        expected_point = backtest_and_generate.price_from_log_return(5806.62, expected_return)
+
+        self.assertAlmostEqual(updated["ewyFxSimpleChangePct"], round(expected_change, 2))
+        self.assertAlmostEqual(updated["ewyFxSimplePoint"], round(expected_point, 2))
+        self.assertNotEqual(updated["ewyFxSimplePoint"], updated["pointPrediction"])
+        self.assertTrue(updated["model"]["nightFuturesExcluded"])
 
     def test_provisional_day_futures_close_cache_is_refetched_after_settlement(self):
         cached = {
@@ -535,6 +605,7 @@ class OperatingWindowTests(unittest.TestCase):
                     "observedAt": "2026-04-13T23:59:00+00:00",
                     "pointPrediction": 5884.0,
                     "nightFuturesSimplePoint": 5891.0,
+                    "ewyFxSimplePoint": 5902.5,
                     "nightFuturesClose": 874.75,
                 },
             ]
@@ -565,6 +636,7 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(updated["records"][0]["actualClose"], 5806.62)
         self.assertEqual(updated["records"][0]["dayFuturesClose"], 875.0)
         self.assertEqual(updated["records"][0]["nightFuturesClose"], 874.75)
+        self.assertEqual(updated["records"][0]["ewyFxSimpleOpen"], 5902.5)
 
 
 if __name__ == "__main__":

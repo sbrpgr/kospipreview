@@ -374,6 +374,16 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         except (TypeError, ValueError):
             night_simple = None
 
+    ewy_fx_simple_raw = payload.get("ewyFxSimplePoint")
+    ewy_fx_simple: float | None
+    if ewy_fx_simple_raw is None:
+        ewy_fx_simple = None
+    else:
+        try:
+            ewy_fx_simple = float(ewy_fx_simple_raw)
+        except (TypeError, ValueError):
+            ewy_fx_simple = None
+
     return {
         "predictionDateIso": prediction_date_iso,
         "predictionDate": payload.get("predictionDate"),
@@ -382,6 +392,7 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         "rangeHigh": round(high, 2),
         "pointPrediction": round(point, 2),
         "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
+        "ewyFxSimplePoint": round(ewy_fx_simple, 2) if ewy_fx_simple is not None else None,
     }
 
 
@@ -1591,6 +1602,18 @@ def price_from_log_return(prev_close: float, log_return_pct: float) -> float:
     return float(prev_close * np.exp(float(log_return_pct) / 100.0))
 
 
+def compute_ewy_fx_simple_log_return(returns: dict[str, float]) -> float | None:
+    ewy_change = returns.get("ewy")
+    krw_change = returns.get("krw")
+    if ewy_change is None or krw_change is None:
+        return None
+    return float(ewy_change) + float(krw_change)
+
+
+def compute_ewy_fx_simple_change_pct(returns: dict[str, float]) -> float | None:
+    return log_return_pct_to_simple_return_pct(compute_ewy_fx_simple_log_return(returns))
+
+
 def compute_residual_cap(core_k200_return: float | None) -> float:
     magnitude = abs(float(core_k200_return or 0.0))
     return float(
@@ -1849,6 +1872,12 @@ def train_lgbm(dataset: pd.DataFrame) -> dict:
                 actual_open_value = float(actual_open)
                 predicted_kospi_return = float(components["predicted_kospi_return"])
                 point_open = price_from_log_return(prev_close_value, predicted_kospi_return)
+                ewy_fx_simple_return = compute_ewy_fx_simple_log_return(returns)
+                ewy_fx_simple_open = (
+                    price_from_log_return(prev_close_value, ewy_fx_simple_return)
+                    if ewy_fx_simple_return is not None
+                    else None
+                )
 
                 vix_level = row.get("vix_level", 20.0)
                 vix_float = 20.0 if pd.isna(vix_level) else float(vix_level)
@@ -1858,6 +1887,7 @@ def train_lgbm(dataset: pd.DataFrame) -> dict:
                         "date": pd.Timestamp(model_dataset.index[idx]).strftime("%Y-%m-%d"),
                         "pred_open": point_open,
                         "night_simple_open": None,
+                        "ewy_fx_simple_open": ewy_fx_simple_open,
                         "actual_open": actual_open_value,
                         "low": np.nan,
                         "high": np.nan,
@@ -1876,6 +1906,7 @@ def train_lgbm(dataset: pd.DataFrame) -> dict:
                 "date",
                 "pred_open",
                 "night_simple_open",
+                "ewy_fx_simple_open",
                 "actual_open",
                 "low",
                 "high",
@@ -2577,6 +2608,13 @@ def build_latest(
     night_futures_simple_point = (
         prev_close * (1 + float(night_futures_change) / 100) if night_futures_change is not None else None
     )
+    ewy_fx_simple_return = compute_ewy_fx_simple_log_return(model_returns)
+    ewy_fx_simple_change = (
+        log_return_pct_to_simple_return_pct(ewy_fx_simple_return) if ewy_fx_simple_return is not None else None
+    )
+    ewy_fx_simple_point = (
+        price_from_log_return(prev_close, ewy_fx_simple_return) if ewy_fx_simple_return is not None else None
+    )
     buffer = result["mae"] * choose_band_multiplier(vix)
 
     return {
@@ -2586,6 +2624,8 @@ def build_latest(
         "pred_c": predicted_change,
         "night_futures_simple_point": night_futures_simple_point,
         "night_futures_change_c": night_futures_change,
+        "ewy_fx_simple_point": ewy_fx_simple_point,
+        "ewy_fx_simple_change_c": ewy_fx_simple_change,
         "raw_pred_c": components.get("predicted_kospi_simple_pct_pre_guard"),
         "raw_residual_c": log_return_pct_to_simple_return_pct(
             float(components.get("residual_adj_k200_return") or 0.0) * float(kospi_mapping.get("beta", 1.0))
@@ -2671,6 +2711,16 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
         "nightFuturesSimpleChangePct": (
             round(float(latest["night_futures_change_c"]), 2)
             if is_active_prediction_window and latest["night_futures_change_c"] is not None
+            else None
+        ),
+        "ewyFxSimplePoint": (
+            round(float(latest["ewy_fx_simple_point"]), 2)
+            if is_active_prediction_window and latest.get("ewy_fx_simple_point") is not None
+            else None
+        ),
+        "ewyFxSimpleChangePct": (
+            round(float(latest["ewy_fx_simple_change_c"]), 2)
+            if is_active_prediction_window and latest.get("ewy_fx_simple_change_c") is not None
             else None
         ),
         "futuresDayClose": (
@@ -2994,10 +3044,17 @@ def _build_archive_history_row(
     except (TypeError, ValueError):
         night_simple_open = None
 
+    ewy_fx_simple_raw = archive_entry.get("ewyFxSimplePoint")
+    try:
+        ewy_fx_simple_open = float(ewy_fx_simple_raw) if ewy_fx_simple_raw is not None else None
+    except (TypeError, ValueError):
+        ewy_fx_simple_open = None
+
     return {
         "date": target_date.isoformat(),
         "pred_open": point,
         "night_simple_open": night_simple_open,
+        "ewy_fx_simple_open": ewy_fx_simple_open,
         "actual_open": actual_open,
         "low": low,
         "high": high,
@@ -3030,6 +3087,7 @@ def _estimate_history_row_from_dataset(
             "date": target_date.isoformat(),
             "pred_open": point_open,
             "night_simple_open": None,
+            "ewy_fx_simple_open": None,
             "actual_open": actual_open,
             "low": low,
             "high": high,
@@ -3068,6 +3126,12 @@ def _estimate_history_row_from_dataset(
     if predicted_kospi_return is None:
         return build_fallback_row()
     point_open = price_from_log_return(prev_close_value, float(predicted_kospi_return))
+    ewy_fx_simple_return = compute_ewy_fx_simple_log_return(returns)
+    ewy_fx_simple_open = (
+        price_from_log_return(prev_close_value, ewy_fx_simple_return)
+        if ewy_fx_simple_return is not None
+        else None
+    )
 
     vix_level = row.get("vix_level", 20.0)
     vix_float = 20.0 if pd.isna(vix_level) else float(vix_level)
@@ -3083,6 +3147,7 @@ def _estimate_history_row_from_dataset(
         "date": target_date.isoformat(),
         "pred_open": point_open,
         "night_simple_open": None,
+        "ewy_fx_simple_open": ewy_fx_simple_open,
         "actual_open": actual_open,
         "low": low,
         "high": high,
@@ -3113,7 +3178,19 @@ def _fill_recent_history_gaps(
     ][:RECENT_HISTORY_FILL_DAYS]
 
     if history_df.empty:
-        base_df = pd.DataFrame(columns=["date", "pred_open", "actual_open", "low", "high", "error", "hit"])
+        base_df = pd.DataFrame(
+            columns=[
+                "date",
+                "pred_open",
+                "night_simple_open",
+                "ewy_fx_simple_open",
+                "actual_open",
+                "low",
+                "high",
+                "error",
+                "hit",
+            ]
+        )
     else:
         base_df = history_df.copy()
     base_df["date"] = base_df["date"].astype(str)
@@ -3187,6 +3264,8 @@ def build_history_df(
             df[col] = pd.to_numeric(df[col], errors="coerce")
     if "night_simple_open" not in df.columns:
         df["night_simple_open"] = np.nan
+    if "ewy_fx_simple_open" not in df.columns:
+        df["ewy_fx_simple_open"] = np.nan
 
     df = _fill_recent_history_gaps(
         history_df=df,
@@ -3246,6 +3325,7 @@ def overlay_prediction_on_history_df(history_df: pd.DataFrame, prediction_payloa
     low = to_float_or_none(prediction_payload.get("rangeLow"))
     high = to_float_or_none(prediction_payload.get("rangeHigh"))
     night_simple = to_float_or_none(prediction_payload.get("nightFuturesSimplePoint"))
+    ewy_fx_simple = to_float_or_none(prediction_payload.get("ewyFxSimplePoint"))
 
     if point is not None:
         patched.loc[row_mask, "pred_open"] = point
@@ -3255,6 +3335,8 @@ def overlay_prediction_on_history_df(history_df: pd.DataFrame, prediction_payloa
         patched.loc[row_mask, "high"] = high
     if night_simple is not None:
         patched.loc[row_mask, "night_simple_open"] = night_simple
+    if ewy_fx_simple is not None:
+        patched.loc[row_mask, "ewy_fx_simple_open"] = ewy_fx_simple
 
     if point is not None and "actual_open" in patched.columns:
         actual_open = pd.to_numeric(patched.loc[row_mask, "actual_open"], errors="coerce")
@@ -3278,6 +3360,9 @@ def write_history_json(result: dict, history_df: pd.DataFrame) -> None:
             "modelPrediction": round(float(row["pred_open"]), 2) if not pd.isna(row["pred_open"]) else None,
             "nightFuturesSimpleOpen": (
                 round(float(row["night_simple_open"]), 2) if not pd.isna(row.get("night_simple_open")) else None
+            ),
+            "ewyFxSimpleOpen": (
+                round(float(row["ewy_fx_simple_open"]), 2) if not pd.isna(row.get("ewy_fx_simple_open")) else None
             ),
             "low": row["low"],
             "high": row["high"],
