@@ -38,6 +38,7 @@ jobs:
           gcloud builds submit \
             --project kospipreview \
             --tag "$IMAGE" \
+            --suppress-logs \
             --quiet
 
           gcloud run deploy kospi-live-data \
