@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-13T10:21:29.169065+00:00",
+  "generatedAt": "2026-04-13T11:12:53.810678+00:00",
   "predictionDateIso": "2026-04-14",
   "predictionDate": "2026년 04월 14일",
   "records": [
@@ -12,6 +12,39 @@
       "nightFuturesSimplePoint": 5806.62,
       "predictedChangePct": 0.14,
       "nightFuturesSimpleChangePct": -0.03
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T11:08:00+00:00",
+      "kstTime": "20:08",
+      "pointPrediction": 5779.16,
+      "nightFuturesSimplePoint": 5811.95,
+      "nightFuturesClose": 872.5,
+      "predictedChangePct": -0.51,
+      "nightFuturesSimpleChangePct": 0.06
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T11:10:00+00:00",
+      "kstTime": "20:10",
+      "pointPrediction": 5781.84,
+      "nightFuturesSimplePoint": 5809.95,
+      "nightFuturesClose": 872.2,
+      "predictedChangePct": -0.46,
+      "nightFuturesSimpleChangePct": 0.02
+    },
+    {
+      "predictionDateIso": "2026-04-14",
+      "predictionDate": "2026년 04월 14일",
+      "observedAt": "2026-04-13T11:12:00+00:00",
+      "kstTime": "20:12",
+      "pointPrediction": 5788.01,
+      "nightFuturesSimplePoint": 5809.62,
+      "nightFuturesClose": 872.15,
+      "predictedChangePct": -0.35,
+      "nightFuturesSimpleChangePct": 0.02
     }
   ]
 }

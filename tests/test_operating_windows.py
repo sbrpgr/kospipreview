@@ -246,14 +246,14 @@ class OperatingWindowTests(unittest.TestCase):
         }
         now_utc = datetime(2026, 4, 13, 9, 57, tzinfo=timezone.utc)  # 18:57 KST
         day_close_quote = {
-            "close": 874.05,
-            "updated_at": "2026-04-13T06:30:00+00:00",
+            "close": 872.0,
+            "updated_at": "2026-04-13T06:45:00+00:00",
             "session_date": "2026-04-13",
         }
         quote = {
             "price": 871.75,
-            "previous_close": 874.05,
-            "change_pct": (871.75 / 874.05 - 1) * 100,
+            "previous_close": 872.0,
+            "change_pct": (871.75 / 872.0 - 1) * 100,
             "updated_at": "2026-04-13T09:57:00+00:00",
             "day_close_date": "2026-04-13",
             "is_live_night": True,
@@ -279,11 +279,76 @@ class OperatingWindowTests(unittest.TestCase):
             refresh_night_futures.fetch_live_prediction_inputs = original_fetch_inputs
             refresh_night_futures.fetch_kospi_actual_close_quote = original_fetch_close_quote
 
-        expected_simple = 5806.62 * (871.75 / 874.05)
+        expected_simple = 5806.62 * (871.75 / 872.0)
         self.assertEqual(updated["prevClose"], 5806.62)
         self.assertEqual(updated["latestRecordDate"], "2026-04-13")
         self.assertAlmostEqual(updated["nightFuturesSimplePoint"], round(expected_simple, 2))
         self.assertLess(updated["nightFuturesSimplePoint"], 5806.62)
+        self.assertEqual(updated["futuresDayClose"], 872.0)
+        self.assertEqual(updated["nightFuturesClose"], 871.75)
+
+    def test_provisional_day_futures_close_cache_is_refetched_after_settlement(self):
+        cached = {
+            "close": 874.05,
+            "updated_at": "2026-04-13T06:30:03+00:00",
+            "session_date": "2026-04-13",
+            "provider": "esignal-socket",
+            "selection": "session-close-socket",
+        }
+        final_quote = {
+            "close": 872.0,
+            "updated_at": "2026-04-13T06:45:00+00:00",
+            "session_date": "2026-04-13",
+            "provider": "esignal-socket",
+            "selection": "session-close-socket",
+        }
+        saved = {}
+
+        original_load = refresh_night_futures.load_day_futures_close_cache
+        original_fetch = refresh_night_futures.fetch_esignal_kospi_day_close_quote
+        original_save = refresh_night_futures.save_day_futures_close_cache
+        try:
+            refresh_night_futures.load_day_futures_close_cache = lambda: cached
+            refresh_night_futures.fetch_esignal_kospi_day_close_quote = lambda: final_quote
+            refresh_night_futures.save_day_futures_close_cache = lambda quote: saved.update(quote)
+
+            resolved = refresh_night_futures.resolve_day_futures_close_quote()
+        finally:
+            refresh_night_futures.load_day_futures_close_cache = original_load
+            refresh_night_futures.fetch_esignal_kospi_day_close_quote = original_fetch
+            refresh_night_futures.save_day_futures_close_cache = original_save
+
+        self.assertEqual(resolved["close"], 872.0)
+        self.assertEqual(saved["close"], 872.0)
+
+    def test_live_prediction_inputs_prefer_session_change_snapshot(self):
+        original_snapshot = refresh_night_futures.fetch_yahoo_market_display_snapshot
+        original_display = refresh_night_futures.fetch_yahoo_intraday_return_pct
+        original_model = refresh_night_futures.fetch_yahoo_intraday_model_change
+        try:
+            refresh_night_futures.fetch_yahoo_market_display_snapshot = (
+                lambda symbol: {
+                    "value": 135.7,
+                    "change_pct": -2.21,
+                    "updated_at": "2026-04-13T10:43:00+00:00",
+                    "market_session": "pre",
+                }
+                if symbol == "EWY"
+                else None
+            )
+            refresh_night_futures.fetch_yahoo_intraday_return_pct = lambda symbol, baseline: None
+            refresh_night_futures.fetch_yahoo_intraday_model_change = (
+                lambda symbol, baseline, diff_mode=False: None
+            )
+
+            display_returns, model_returns = refresh_night_futures.fetch_live_prediction_inputs("2026-04-13")
+        finally:
+            refresh_night_futures.fetch_yahoo_market_display_snapshot = original_snapshot
+            refresh_night_futures.fetch_yahoo_intraday_return_pct = original_display
+            refresh_night_futures.fetch_yahoo_intraday_model_change = original_model
+
+        self.assertEqual(display_returns["ewy"], -2.21)
+        self.assertLess(model_returns["ewy"], 0)
 
     def test_history_uses_preopen_series_for_fixed_actual_row(self):
         now_utc = datetime(2026, 4, 13, 4, 0, tzinfo=timezone.utc)  # 13:00 KST
@@ -306,6 +371,7 @@ class OperatingWindowTests(unittest.TestCase):
                     "observedAt": "2026-04-12T23:59:00+00:00",
                     "pointPrediction": 5884.0,
                     "nightFuturesSimplePoint": 5891.0,
+                    "nightFuturesClose": 871.75,
                 },
                 {
                     "predictionDateIso": "2026-04-13",
@@ -321,7 +387,17 @@ class OperatingWindowTests(unittest.TestCase):
         try:
             refresh_night_futures.fetch_kospi_actual_open = lambda target_date: 5876.12
             refresh_night_futures.fetch_kospi_actual_close = lambda target_date: 5806.62
-            updated = refresh_night_futures.update_history_with_actual_open(history, archive, now_utc, series)
+            updated = refresh_night_futures.update_history_with_actual_open(
+                history,
+                archive,
+                now_utc,
+                series,
+                day_close_quote={
+                    "close": 872.0,
+                    "updated_at": "2026-04-13T06:45:00+00:00",
+                    "session_date": "2026-04-13",
+                },
+            )
         finally:
             refresh_night_futures.fetch_kospi_actual_open = original_fetch_open
             refresh_night_futures.fetch_kospi_actual_close = original_fetch_close
@@ -330,6 +406,8 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(updated["records"][0]["modelPrediction"], 5884.0)
         self.assertEqual(updated["records"][0]["actualOpen"], 5876.12)
         self.assertEqual(updated["records"][0]["actualClose"], 5806.62)
+        self.assertEqual(updated["records"][0]["dayFuturesClose"], 872.0)
+        self.assertEqual(updated["records"][0]["nightFuturesClose"], 871.75)
 
 
 if __name__ == "__main__":

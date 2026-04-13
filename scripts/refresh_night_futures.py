@@ -25,6 +25,7 @@ from backtest_and_generate import (  # noqa: E402
     parse_prediction_target_date,
     price_from_log_return,
     resolve_night_futures_change_for_target,
+    resolve_night_futures_target_date_iso,
     simple_return_pct_to_log_return_pct,
 )
 
@@ -58,6 +59,7 @@ ESIGNAL_USER_AGENT = (
 
 KOSPI_DAY_FUTURES_SESSION_OPEN = time(8, 45)
 KOSPI_DAY_FUTURES_SESSION_CLOSE = time(15, 30)
+KOSPI_DAY_FUTURES_FINAL_CLOSE_TIME = time(15, 45)
 KOSPI_OPEN_FIX_TIME = time(9, 0)
 PREDICTION_TARGET_ROLLOVER_TIME = time(9, 0)
 PREDICTION_OPERATION_START = time(15, 30)
@@ -297,6 +299,7 @@ def build_live_prediction_series_entry(payload: dict, now_utc: datetime) -> dict
     observed_at = now_utc.replace(second=0, microsecond=0)
     observed_at_kst = observed_at.astimezone(KST)
     night_simple = to_float(payload.get("nightFuturesSimplePoint"))
+    night_close = to_float(payload.get("nightFuturesClose"))
     predicted_change = to_float(payload.get("predictedChangePct"))
     night_change = to_float(payload.get("nightFuturesSimpleChangePct"))
 
@@ -307,6 +310,7 @@ def build_live_prediction_series_entry(payload: dict, now_utc: datetime) -> dict
         "kstTime": observed_at_kst.strftime("%H:%M"),
         "pointPrediction": round(point_prediction, 2),
         "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
+        "nightFuturesClose": round(night_close, 2) if night_close is not None else None,
         "predictedChangePct": round(predicted_change, 2) if predicted_change is not None else None,
         "nightFuturesSimpleChangePct": round(night_change, 2) if night_change is not None else None,
     }
@@ -572,7 +576,9 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         low, high = high, low
 
     night_simple = to_float(payload.get("nightFuturesSimplePoint"))
-    return {
+    night_close = to_float(payload.get("nightFuturesClose"))
+    day_close = to_float(payload.get("futuresDayClose"))
+    entry = {
         "predictionDateIso": prediction_date_iso,
         "predictionDate": payload.get("predictionDate") or format_prediction_date_label(date.fromisoformat(prediction_date_iso)),
         "generatedAt": generated_at,
@@ -581,6 +587,14 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         "pointPrediction": round(point, 2),
         "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
     }
+    if night_close is not None:
+        entry["nightFuturesClose"] = round(night_close, 2)
+    if day_close is not None:
+        entry["futuresDayClose"] = round(day_close, 2)
+        futures_day_close_date = payload.get("futuresDayCloseDate")
+        if isinstance(futures_day_close_date, str) and futures_day_close_date:
+            entry["futuresDayCloseDate"] = futures_day_close_date
+    return entry
 
 
 def load_prediction_archive() -> list[dict]:
@@ -722,7 +736,9 @@ def resolve_fixed_prediction_entry(
         half_band = 20.0
 
     night_simple = to_float(series_row.get("nightFuturesSimplePoint"))
-    return {
+    night_close = to_float(series_row.get("nightFuturesClose"))
+    day_close = to_float((base_entry or {}).get("futuresDayClose"))
+    entry = {
         "predictionDateIso": target_iso,
         "predictionDate": series_row.get("predictionDate") or format_prediction_date_label(target_date),
         "generatedAt": series_row.get("observedAt") or (base_entry or {}).get("generatedAt") or "",
@@ -731,6 +747,14 @@ def resolve_fixed_prediction_entry(
         "pointPrediction": round(point, 2),
         "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
     }
+    if night_close is not None:
+        entry["nightFuturesClose"] = round(night_close, 2)
+    if day_close is not None:
+        entry["futuresDayClose"] = round(day_close, 2)
+        futures_day_close_date = (base_entry or {}).get("futuresDayCloseDate")
+        if isinstance(futures_day_close_date, str) and futures_day_close_date:
+            entry["futuresDayCloseDate"] = futures_day_close_date
+    return entry
 
 
 def fetch_kospi_actual_open(target_date: date) -> float | None:
@@ -875,6 +899,8 @@ def update_history_with_actual_open(
     now_utc: datetime,
     series_payload: dict | None = None,
     fallback_prediction: dict | None = None,
+    day_close_quote: dict | None = None,
+    night_quote: dict | None = None,
 ) -> dict:
     now_kst = now_utc.astimezone(KST)
     if now_kst.weekday() >= 5 or now_kst.time() < KOSPI_OPEN_FIX_TIME:
@@ -899,9 +925,33 @@ def update_history_with_actual_open(
         None,
     )
     existing_actual_close = to_float(existing_record.get("actualClose")) if isinstance(existing_record, dict) else None
+    existing_day_futures_close = (
+        to_float(existing_record.get("dayFuturesClose")) if isinstance(existing_record, dict) else None
+    )
+    existing_night_futures_close = (
+        to_float(existing_record.get("nightFuturesClose")) if isinstance(existing_record, dict) else None
+    )
     actual_close = fetch_kospi_actual_close(target_date)
     if actual_close is None:
         actual_close = existing_actual_close
+
+    day_futures_close = existing_day_futures_close
+    if isinstance(day_close_quote, dict) and day_close_quote.get("session_date") == target_iso:
+        quoted_day_close = to_float(day_close_quote.get("close"))
+        if quoted_day_close is not None:
+            day_futures_close = quoted_day_close
+
+    night_futures_close = None
+    if isinstance(night_quote, dict) and night_quote.get("day_close_date") == target_iso:
+        night_futures_close = to_float(night_quote.get("price"))
+    if night_futures_close is None:
+        night_futures_close = to_float(fixed_prediction.get("nightFuturesClose"))
+    if night_futures_close is None:
+        night_target_iso = resolve_night_futures_target_date_iso(night_quote, day_close_quote)
+        if night_target_iso == target_iso and isinstance(night_quote, dict):
+            night_futures_close = to_float(night_quote.get("price"))
+    if night_futures_close is None:
+        night_futures_close = existing_night_futures_close
 
     low = to_float(fixed_prediction.get("rangeLow"))
     high = to_float(fixed_prediction.get("rangeHigh"))
@@ -920,6 +970,8 @@ def update_history_with_actual_open(
         "high": round(high, 2),
         "actualOpen": round(actual_open, 2),
         "actualClose": round(actual_close, 2) if actual_close is not None else None,
+        "dayFuturesClose": round(day_futures_close, 2) if day_futures_close is not None else None,
+        "nightFuturesClose": round(night_futures_close, 2) if night_futures_close is not None else None,
         "hit": bool(low <= actual_open <= high),
         "isSynthetic": False,
     }
@@ -1178,6 +1230,27 @@ def fetch_yahoo_intraday_model_change(
     if ratio <= 0:
         return None
     return float(np.log(ratio) * 100)
+
+
+def market_snapshot_change_for_model(snapshot: dict | None, *, diff_mode: bool = False) -> float | None:
+    if not isinstance(snapshot, dict):
+        return None
+
+    change_pct = to_float(snapshot.get("change_pct"))
+    if change_pct is None:
+        return None
+
+    if diff_mode:
+        value = to_float(snapshot.get("value"))
+        if value is None:
+            return None
+        divisor = 1 + change_pct / 100
+        if divisor == 0:
+            return None
+        previous_value = value / divisor
+        return value - previous_value
+
+    return simple_return_pct_to_log_return_pct(change_pct)
 
 
 def resolve_ewy_fx_correction_params(model_payload: dict | None) -> dict[str, float]:
@@ -1495,15 +1568,22 @@ def fetch_live_prediction_inputs(
     display_returns: dict[str, float] = {}
     model_returns: dict[str, float] = {}
     for key, ticker in ticker_map.items():
-        display_value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date)
+        snapshot = fetch_yahoo_market_display_snapshot(ticker)
+        snapshot_change = to_float(snapshot.get("change_pct")) if isinstance(snapshot, dict) else None
+
+        display_value = snapshot_change
+        if display_value is None:
+            display_value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date)
         if display_value is not None:
             display_returns[key] = display_value
 
-        model_value = fetch_yahoo_intraday_model_change(
-            ticker,
-            baseline_session_date,
-            diff_mode=(key == "us10y"),
-        )
+        model_value = market_snapshot_change_for_model(snapshot, diff_mode=(key == "us10y"))
+        if model_value is None:
+            model_value = fetch_yahoo_intraday_model_change(
+                ticker,
+                baseline_session_date,
+                diff_mode=(key == "us10y"),
+            )
         if model_value is not None:
             model_returns[key] = model_value
 
@@ -1628,6 +1708,27 @@ def save_day_futures_close_cache(quote: dict) -> None:
         "cached_at": datetime.now(timezone.utc).isoformat(),
     }
     write_output_json("day_futures_close_cache.json", payload)
+
+
+def is_final_day_futures_close_quote(quote: dict | None) -> bool:
+    if not isinstance(quote, dict):
+        return False
+
+    session_date = quote.get("session_date")
+    if not isinstance(session_date, str) or not session_date:
+        return False
+
+    provider = str(quote.get("provider") or "")
+    selection = str(quote.get("selection") or "")
+    if provider != "esignal-socket" and selection != "session-close-socket":
+        return False
+
+    updated_at = parse_iso_datetime_utc(quote.get("updated_at"))
+    if updated_at is None:
+        return False
+
+    updated_kst = updated_at.astimezone(KST)
+    return updated_kst.date().isoformat() == session_date and updated_kst.time() >= KOSPI_DAY_FUTURES_FINAL_CLOSE_TIME
 
 
 def fetch_esignal_json(url: str, referer: str) -> dict | None:
@@ -1875,17 +1976,13 @@ def resolve_day_futures_close_quote() -> dict | None:
 
     if cached:
         cached_session_date = str(cached.get("session_date", ""))
-        cached_is_socket_close = (
-            str(cached.get("provider", "")) == "esignal-socket"
-            or str(cached.get("selection", "")) == "session-close-socket"
-        )
-        if cached_session_date >= target_session_date and cached_is_socket_close:
+        if cached_session_date >= target_session_date and is_final_day_futures_close_quote(cached):
             return cached
 
     fetched = fetch_esignal_kospi_day_close_quote()
     if fetched:
         fetched_session_date = str(fetched.get("session_date", ""))
-        if fetched_session_date:
+        if fetched_session_date and (is_final_day_futures_close_quote(fetched) or cached is None):
             save_day_futures_close_cache(fetched)
         if cached and fetched_session_date and str(cached.get("session_date", "")) > fetched_session_date:
             return cached
@@ -2213,6 +2310,8 @@ def apply_prediction_pending_state(payload: dict, now_utc: datetime) -> dict:
     payload["pointPrediction"] = None
     payload["nightFuturesSimplePoint"] = None
     payload["nightFuturesSimpleChangePct"] = None
+    payload["nightFuturesClose"] = None
+    payload["nightFuturesCloseUpdatedAt"] = None
     payload["rangeLow"] = None
     payload["rangeHigh"] = None
     payload["predictedChangePct"] = None
@@ -2294,9 +2393,17 @@ def update_prediction_night_fields(
     ):
         payload["nightFuturesSimpleChangePct"] = round(float(night_futures_change), 2)
         payload["nightFuturesSimplePoint"] = round(prev_close * (1 + float(night_futures_change) / 100), 2)
+        night_futures_close = to_float(quote.get("price"))
+        payload["nightFuturesClose"] = round(night_futures_close, 2) if night_futures_close is not None else None
+        night_futures_updated_at = quote.get("updated_at")
+        payload["nightFuturesCloseUpdatedAt"] = (
+            night_futures_updated_at if isinstance(night_futures_updated_at, str) else None
+        )
     else:
         payload["nightFuturesSimpleChangePct"] = None
         payload["nightFuturesSimplePoint"] = None
+        payload["nightFuturesClose"] = None
+        payload["nightFuturesCloseUpdatedAt"] = None
 
     if not is_active_prediction_window:
         if day_close_quote:
@@ -2440,6 +2547,8 @@ def main() -> None:
             now_utc,
             live_prediction_series_payload,
             prediction_payload,
+            day_close_quote,
+            night_quote,
         )
         write_output_json("history.json", history_payload)
 

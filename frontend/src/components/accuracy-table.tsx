@@ -16,6 +16,8 @@ type DisplayRecord = {
   nightFuturesSimpleOpen: number | null;
   actualOpen: number | null;
   actualClose: number | null;
+  dayFuturesClose: number | null;
+  nightFuturesClose: number | null;
   isPredictionTarget: boolean;
 };
 
@@ -75,6 +77,8 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       nightFuturesSimpleOpen: isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null,
       actualOpen: isFiniteNumber(record.actualOpen) ? record.actualOpen : null,
       actualClose: isFiniteNumber(record.actualClose) ? record.actualClose : null,
+      dayFuturesClose: isFiniteNumber(record.dayFuturesClose) ? record.dayFuturesClose : null,
+      nightFuturesClose: isFiniteNumber(record.nightFuturesClose) ? record.nightFuturesClose : null,
       isPredictionTarget: predictionDateIso !== null && record.date === predictionDateIso,
     };
   });
@@ -98,6 +102,10 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
         isFiniteNumber(prediction.nightFuturesSimplePoint)
           ? prediction.nightFuturesSimplePoint
           : existing.nightFuturesSimpleOpen,
+      dayFuturesClose: isFiniteNumber(prediction.futuresDayClose) ? prediction.futuresDayClose : existing.dayFuturesClose,
+      nightFuturesClose: isFiniteNumber(prediction.nightFuturesClose)
+        ? prediction.nightFuturesClose
+        : existing.nightFuturesClose,
       isPredictionTarget: true,
     };
   } else {
@@ -107,6 +115,8 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       nightFuturesSimpleOpen: isFiniteNumber(prediction.nightFuturesSimplePoint) ? prediction.nightFuturesSimplePoint : null,
       actualOpen: null,
       actualClose: null,
+      dayFuturesClose: isFiniteNumber(prediction.futuresDayClose) ? prediction.futuresDayClose : null,
+      nightFuturesClose: isFiniteNumber(prediction.nightFuturesClose) ? prediction.nightFuturesClose : null,
       isPredictionTarget: true,
     });
   }
@@ -169,6 +179,8 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             <th>날짜</th>
             <th>실제 시초가</th>
             <th>당일 종가</th>
+            <th>주간선물 종가</th>
+            <th>야간선물 종가</th>
             <th>야간선물 환산치</th>
             <th>모델 예측치</th>
             <th>야간선물 오차</th>
@@ -189,6 +201,8 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
           {pagedRecords.map((record) => {
             const actualOpenValue = isFiniteNumber(record.actualOpen) ? record.actualOpen : null;
             const actualCloseValue = isFiniteNumber(record.actualClose) ? record.actualClose : null;
+            const dayFuturesCloseValue = isFiniteNumber(record.dayFuturesClose) ? record.dayFuturesClose : null;
+            const nightFuturesCloseValue = isFiniteNumber(record.nightFuturesClose) ? record.nightFuturesClose : null;
             const modelPrediction = isFiniteNumber(record.modelPrediction) ? record.modelPrediction : null;
             const nightSimple = isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null;
             const nightError = actualOpenValue !== null && nightSimple !== null ? actualOpenValue - nightSimple : null;
@@ -203,6 +217,12 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                 </td>
                 <td style={{ color: "var(--text-secondary)", fontWeight: 700 }}>
                   {actualCloseValue !== null ? actualCloseValue.toLocaleString("ko-KR") : "-"}
+                </td>
+                <td style={{ color: "var(--text-secondary)", fontWeight: 700 }}>
+                  {dayFuturesCloseValue !== null ? dayFuturesCloseValue.toLocaleString("ko-KR") : "-"}
+                </td>
+                <td style={{ color: "var(--text-secondary)", fontWeight: 700 }}>
+                  {nightFuturesCloseValue !== null ? nightFuturesCloseValue.toLocaleString("ko-KR") : "-"}
                 </td>
                 <td>{nightSimple === null ? "-" : nightSimple.toLocaleString("ko-KR")}</td>
                 <td style={{ color: "var(--text)", fontWeight: 700 }}>

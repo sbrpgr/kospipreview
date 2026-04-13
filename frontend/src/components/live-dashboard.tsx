@@ -151,6 +151,8 @@ function getDashboardVersion(
         record.high,
         record.actualOpen,
         record.actualClose ?? "",
+        record.dayFuturesClose ?? "",
+        record.nightFuturesClose ?? "",
         record.hit ? "1" : "0",
       ].join("~"),
     )
@@ -162,6 +164,7 @@ function getDashboardVersion(
         record.observedAt,
         record.pointPrediction ?? "",
         record.nightFuturesSimplePoint ?? "",
+        record.nightFuturesClose ?? "",
       ].join("~"),
     )
     .join(";");
@@ -173,6 +176,7 @@ function getDashboardVersion(
     prediction.pointPrediction,
     prediction.nightFuturesSimplePoint ?? "",
     prediction.nightFuturesSimpleChangePct ?? "",
+    prediction.nightFuturesClose ?? "",
     prediction.futuresDayClose ?? "",
     prediction.futuresDayCloseDate ?? "",
     getIndicatorsVersion(indicators),
