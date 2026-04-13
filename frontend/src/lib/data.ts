@@ -115,6 +115,7 @@ export async function getHistoryData() {
       low: number;
       high: number;
       actualOpen: number;
+      actualClose?: number | null;
       hit: boolean;
     }>;
   }>("history.json");

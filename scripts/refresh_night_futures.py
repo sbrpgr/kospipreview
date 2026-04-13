@@ -47,6 +47,8 @@ ESIGNAL_KOSPI_DAY_PAGE_URL = "https://esignal.co.kr/kospi200-futures/"
 ESIGNAL_KOSPI_DAY_CACHE_URL = "https://esignal.co.kr/data/cache/kospif_day.js"
 ESIGNAL_SOCKET_IO_URL = "https://esignal.co.kr/proxy/8889/socket.io/"
 ESIGNAL_ORIGIN_URL = "https://esignal.co.kr"
+NAVER_KOSPI_INDEX_URL = "https://polling.finance.naver.com/api/realtime/domestic/index/KOSPI"
+NAVER_FINANCE_REFERER = "https://finance.naver.com/"
 ESIGNAL_DAY_SYMBOL = "A0166"
 ESIGNAL_REQUEST_TIMEOUT = 10
 ESIGNAL_USER_AGENT = (
@@ -227,6 +229,12 @@ def to_float(value: object) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def parse_number_text(value: object) -> float | None:
+    if isinstance(value, str):
+        value = value.replace(",", "").strip()
+    return to_float(value)
 
 
 def rollforward_business_day(base: date) -> date:
@@ -726,6 +734,12 @@ def resolve_fixed_prediction_entry(
 
 
 def fetch_kospi_actual_open(target_date: date) -> float | None:
+    naver_snapshot = fetch_naver_kospi_index_snapshot()
+    if isinstance(naver_snapshot, dict) and naver_snapshot.get("session_date") == target_date.isoformat():
+        open_value = to_float(naver_snapshot.get("open"))
+        if open_value is not None:
+            return open_value
+
     points = fetch_yahoo_chart_points("^KS11")
     if not points:
         return None
@@ -741,6 +755,107 @@ def fetch_kospi_actual_open(target_date: date) -> float | None:
     after_open = [(ts_kst, value) for ts_kst, value in kst_points if ts_kst.time() >= KOSPI_OPEN_FIX_TIME]
     selected = after_open[0] if after_open else kst_points[0]
     return float(selected[1])
+
+
+def fetch_naver_kospi_index_snapshot() -> dict | None:
+    req = urllib.request.Request(
+        NAVER_KOSPI_INDEX_URL,
+        headers={
+            "User-Agent": ESIGNAL_USER_AGENT,
+            "Accept": "application/json,text/javascript,*/*;q=0.1",
+            "Referer": NAVER_FINANCE_REFERER,
+            "Cache-Control": "no-cache",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=ESIGNAL_REQUEST_TIMEOUT) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, ValueError, TypeError):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    rows = payload.get("datas")
+    row = rows[0] if isinstance(rows, list) and rows and isinstance(rows[0], dict) else payload
+    if not isinstance(row, dict):
+        return None
+
+    close_value = parse_number_text(row.get("closePriceRaw") or row.get("closePrice"))
+    open_value = parse_number_text(row.get("openPriceRaw") or row.get("openPrice"))
+    change_pct = parse_number_text(row.get("fluctuationsRatioRaw") or row.get("fluctuationsRatio"))
+    if close_value is None:
+        return None
+
+    traded_at_raw = row.get("localTradedAt")
+    traded_at: datetime | None = None
+    if isinstance(traded_at_raw, str) and traded_at_raw:
+        try:
+            parsed = datetime.fromisoformat(traded_at_raw)
+        except ValueError:
+            parsed = None
+        if parsed is not None:
+            traded_at = parsed.replace(tzinfo=KST) if parsed.tzinfo is None else parsed.astimezone(KST)
+
+    if traded_at is None:
+        traded_at = datetime.now(timezone.utc).astimezone(KST)
+
+    return {
+        "close": close_value,
+        "open": open_value,
+        "change_pct": change_pct,
+        "updated_at": traded_at.astimezone(timezone.utc).isoformat(),
+        "session_date": traded_at.date().isoformat(),
+        "market_status": row.get("marketStatus"),
+        "provider": "naver-index",
+    }
+
+
+def fetch_kospi_actual_close_quote(target_date: date) -> dict | None:
+    target_iso = target_date.isoformat()
+
+    naver_snapshot = fetch_naver_kospi_index_snapshot()
+    if isinstance(naver_snapshot, dict) and naver_snapshot.get("session_date") == target_iso:
+        updated_at = parse_iso_datetime_utc(naver_snapshot.get("updated_at"))
+        updated_kst = updated_at.astimezone(KST) if updated_at is not None else None
+        market_status = str(naver_snapshot.get("market_status") or "").upper()
+        if market_status == "CLOSE" or (
+            updated_kst is not None and updated_kst.time() >= KOSPI_DAY_FUTURES_SESSION_CLOSE
+        ):
+            return naver_snapshot
+
+    points = fetch_yahoo_chart_points("^KS11")
+    kst_points = [
+        (ts_utc.astimezone(KST), ts_utc, value)
+        for ts_utc, value in points
+        if ts_utc.astimezone(KST).date() == target_date
+    ]
+    after_close = [
+        (ts_kst, ts_utc, value)
+        for ts_kst, ts_utc, value in kst_points
+        if ts_kst.time() >= KOSPI_DAY_FUTURES_SESSION_CLOSE
+    ]
+    if not after_close:
+        return None
+
+    ts_kst, ts_utc, value = after_close[-1]
+    return {
+        "close": float(value),
+        "open": None,
+        "change_pct": None,
+        "updated_at": ts_utc.isoformat(),
+        "session_date": ts_kst.date().isoformat(),
+        "market_status": "CLOSE",
+        "provider": "yahoo-chart",
+    }
+
+
+def fetch_kospi_actual_close(target_date: date) -> float | None:
+    quote = fetch_kospi_actual_close_quote(target_date)
+    if not quote:
+        return None
+    return to_float(quote.get("close"))
 
 
 def compare_date_desc(left: str, right: str) -> int:
@@ -775,6 +890,19 @@ def update_history_with_actual_open(
     if actual_open is None:
         return history_payload
 
+    records = history_payload.get("records")
+    if not isinstance(records, list):
+        records = []
+
+    existing_record = next(
+        (row for row in records if isinstance(row, dict) and row.get("date") == target_iso),
+        None,
+    )
+    existing_actual_close = to_float(existing_record.get("actualClose")) if isinstance(existing_record, dict) else None
+    actual_close = fetch_kospi_actual_close(target_date)
+    if actual_close is None:
+        actual_close = existing_actual_close
+
     low = to_float(fixed_prediction.get("rangeLow"))
     high = to_float(fixed_prediction.get("rangeHigh"))
     point = to_float(fixed_prediction.get("pointPrediction"))
@@ -791,13 +919,10 @@ def update_history_with_actual_open(
         "low": round(low, 2),
         "high": round(high, 2),
         "actualOpen": round(actual_open, 2),
+        "actualClose": round(actual_close, 2) if actual_close is not None else None,
         "hit": bool(low <= actual_open <= high),
         "isSynthetic": False,
     }
-
-    records = history_payload.get("records")
-    if not isinstance(records, list):
-        records = []
 
     next_records = [row for row in records if not (isinstance(row, dict) and row.get("date") == target_iso)]
     next_records.append(record)
@@ -1407,6 +1532,16 @@ def resolve_prediction_baseline_session_date(payload: dict, day_close_quote: dic
     if not valid_dates:
         return None
     return max(valid_dates).isoformat()
+
+
+def resolve_kospi_close_for_prediction_baseline(baseline_session_date: str | None) -> dict | None:
+    if not baseline_session_date:
+        return None
+    try:
+        target_date = date.fromisoformat(baseline_session_date)
+    except ValueError:
+        return None
+    return fetch_kospi_actual_close_quote(target_date)
 
 
 def apply_ewy_alignment_guard(predicted_change: float, ewy_change: float | None) -> float:
@@ -2126,6 +2261,29 @@ def update_prediction_night_fields(
     model_payload["isOperationWindow"] = is_active_prediction_window
     model_payload["operationHours"] = PREDICTION_OPERATION_HOURS_LABEL
 
+    baseline_session_date = resolve_prediction_baseline_session_date(payload, day_close_quote)
+    kospi_close_quote = (
+        resolve_kospi_close_for_prediction_baseline(baseline_session_date)
+        if is_active_prediction_window
+        else None
+    )
+    if kospi_close_quote is not None:
+        resolved_prev_close = to_float(kospi_close_quote.get("close"))
+        resolved_close_date = kospi_close_quote.get("session_date")
+        if resolved_prev_close is not None and resolved_prev_close != 0:
+            prev_close = resolved_prev_close
+            payload["prevClose"] = round(prev_close, 2)
+            if isinstance(resolved_close_date, str) and resolved_close_date:
+                payload["latestRecordDate"] = resolved_close_date
+                payload["prevCloseDate"] = resolved_close_date
+                baseline_session_date = resolved_close_date
+                model_payload["krxBaselineDate"] = resolved_close_date
+            model_payload["kospiCloseSource"] = kospi_close_quote.get("provider")
+            model_payload["kospiCloseUpdatedAt"] = kospi_close_quote.get("updated_at")
+            close_change_pct = to_float(kospi_close_quote.get("change_pct"))
+            if close_change_pct is not None:
+                model_payload["prevCloseChangePct"] = round(close_change_pct, 2)
+
     if (
         is_active_prediction_window
         and isinstance(quote, dict)
@@ -2155,8 +2313,6 @@ def update_prediction_night_fields(
         correction_params = resolve_ewy_fx_correction_params(model_payload)
         residual_artifact = resolve_residual_model_artifact(model_payload)
         mapping_artifact = resolve_k200_mapping_artifact(model_payload)
-
-        baseline_session_date = resolve_prediction_baseline_session_date(payload, day_close_quote)
 
         live_display_returns, live_model_returns = fetch_live_prediction_inputs(
             baseline_session_date, correction_params

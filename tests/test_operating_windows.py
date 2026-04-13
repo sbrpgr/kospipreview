@@ -197,11 +197,18 @@ class OperatingWindowTests(unittest.TestCase):
         }
 
         original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
+        original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
         try:
             refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: (
                 {"krw": 0.2},
                 {"krw": 0.2},
             )
+            refresh_night_futures.fetch_kospi_actual_close_quote = lambda target_date: {
+                "close": 5806.62,
+                "updated_at": "2026-04-13T06:30:00+00:00",
+                "session_date": "2026-04-13",
+                "provider": "test",
+            }
             updated = refresh_night_futures.update_prediction_night_fields(
                 payload,
                 None,
@@ -210,15 +217,73 @@ class OperatingWindowTests(unittest.TestCase):
             )
         finally:
             refresh_night_futures.fetch_live_prediction_inputs = original_fetch_inputs
+            refresh_night_futures.fetch_kospi_actual_close_quote = original_fetch_close_quote
 
         self.assertTrue(updated["model"]["isOperationWindow"])
         self.assertEqual(updated["model"]["operationHours"], "15:30~09:00")
         self.assertEqual(updated["model"]["nightFuturesExcluded"], True)
         self.assertEqual(updated["model"]["krxBaselineDate"], "2026-04-13")
+        self.assertEqual(updated["prevClose"], 5806.62)
+        self.assertEqual(updated["latestRecordDate"], "2026-04-13")
         self.assertIsNotNone(updated["pointPrediction"])
         self.assertIsNotNone(updated["lastCalculatedAt"])
         self.assertIsNone(updated["nightFuturesSimplePoint"])
         self.assertIsNone(updated["nightFuturesSimpleChangePct"])
+
+    def test_night_futures_simple_uses_current_kospi_close_after_domestic_close(self):
+        payload = {
+            "generatedAt": "2026-04-13T09:56:00+00:00",
+            "predictionDateIso": "2026-04-14",
+            "predictionDate": "2026-04-14",
+            "pointPrediction": None,
+            "rangeLow": None,
+            "rangeHigh": None,
+            "predictedChangePct": None,
+            "prevClose": 5858.87,
+            "latestRecordDate": "2026-04-10",
+            "mae30d": 20.0,
+            "model": {},
+        }
+        now_utc = datetime(2026, 4, 13, 9, 57, tzinfo=timezone.utc)  # 18:57 KST
+        day_close_quote = {
+            "close": 874.05,
+            "updated_at": "2026-04-13T06:30:00+00:00",
+            "session_date": "2026-04-13",
+        }
+        quote = {
+            "price": 871.75,
+            "previous_close": 874.05,
+            "change_pct": (871.75 / 874.05 - 1) * 100,
+            "updated_at": "2026-04-13T09:57:00+00:00",
+            "day_close_date": "2026-04-13",
+            "is_live_night": True,
+        }
+
+        original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
+        original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
+        try:
+            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: ({}, {})
+            refresh_night_futures.fetch_kospi_actual_close_quote = lambda target_date: {
+                "close": 5806.62,
+                "updated_at": "2026-04-13T06:30:00+00:00",
+                "session_date": "2026-04-13",
+                "provider": "test",
+            }
+            updated = refresh_night_futures.update_prediction_night_fields(
+                payload,
+                quote,
+                day_close_quote,
+                now_utc,
+            )
+        finally:
+            refresh_night_futures.fetch_live_prediction_inputs = original_fetch_inputs
+            refresh_night_futures.fetch_kospi_actual_close_quote = original_fetch_close_quote
+
+        expected_simple = 5806.62 * (871.75 / 874.05)
+        self.assertEqual(updated["prevClose"], 5806.62)
+        self.assertEqual(updated["latestRecordDate"], "2026-04-13")
+        self.assertAlmostEqual(updated["nightFuturesSimplePoint"], round(expected_simple, 2))
+        self.assertLess(updated["nightFuturesSimplePoint"], 5806.62)
 
     def test_history_uses_preopen_series_for_fixed_actual_row(self):
         now_utc = datetime(2026, 4, 13, 4, 0, tzinfo=timezone.utc)  # 13:00 KST
@@ -252,15 +317,19 @@ class OperatingWindowTests(unittest.TestCase):
         }
 
         original_fetch_open = refresh_night_futures.fetch_kospi_actual_open
+        original_fetch_close = refresh_night_futures.fetch_kospi_actual_close
         try:
             refresh_night_futures.fetch_kospi_actual_open = lambda target_date: 5876.12
+            refresh_night_futures.fetch_kospi_actual_close = lambda target_date: 5806.62
             updated = refresh_night_futures.update_history_with_actual_open(history, archive, now_utc, series)
         finally:
             refresh_night_futures.fetch_kospi_actual_open = original_fetch_open
+            refresh_night_futures.fetch_kospi_actual_close = original_fetch_close
 
         self.assertEqual(updated["records"][0]["date"], "2026-04-13")
         self.assertEqual(updated["records"][0]["modelPrediction"], 5884.0)
         self.assertEqual(updated["records"][0]["actualOpen"], 5876.12)
+        self.assertEqual(updated["records"][0]["actualClose"], 5806.62)
 
 
 if __name__ == "__main__":

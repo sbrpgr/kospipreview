@@ -15,6 +15,7 @@ type DisplayRecord = {
   modelPrediction: number | null;
   nightFuturesSimpleOpen: number | null;
   actualOpen: number | null;
+  actualClose: number | null;
   isPredictionTarget: boolean;
 };
 
@@ -73,6 +74,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       modelPrediction,
       nightFuturesSimpleOpen: isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null,
       actualOpen: isFiniteNumber(record.actualOpen) ? record.actualOpen : null,
+      actualClose: isFiniteNumber(record.actualClose) ? record.actualClose : null,
       isPredictionTarget: predictionDateIso !== null && record.date === predictionDateIso,
     };
   });
@@ -104,6 +106,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       modelPrediction: isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : null,
       nightFuturesSimpleOpen: isFiniteNumber(prediction.nightFuturesSimplePoint) ? prediction.nightFuturesSimplePoint : null,
       actualOpen: null,
+      actualClose: null,
       isPredictionTarget: true,
     });
   }
@@ -165,6 +168,7 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
           <tr>
             <th>날짜</th>
             <th>실제 시초가</th>
+            <th>당일 종가</th>
             <th>야간선물 환산치</th>
             <th>모델 예측치</th>
             <th>야간선물 오차</th>
@@ -184,6 +188,7 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
         <tbody>
           {pagedRecords.map((record) => {
             const actualOpenValue = isFiniteNumber(record.actualOpen) ? record.actualOpen : null;
+            const actualCloseValue = isFiniteNumber(record.actualClose) ? record.actualClose : null;
             const modelPrediction = isFiniteNumber(record.modelPrediction) ? record.modelPrediction : null;
             const nightSimple = isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null;
             const nightError = actualOpenValue !== null && nightSimple !== null ? actualOpenValue - nightSimple : null;
@@ -195,6 +200,9 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                 <td style={{ color: "var(--text-secondary)", fontFamily: "var(--font-sans)" }}>{record.date}</td>
                 <td style={{ color: "var(--text)", fontWeight: 800 }}>
                   {actualOpenValue !== null ? actualOpenValue.toLocaleString("ko-KR") : "-"}
+                </td>
+                <td style={{ color: "var(--text-secondary)", fontWeight: 700 }}>
+                  {actualCloseValue !== null ? actualCloseValue.toLocaleString("ko-KR") : "-"}
                 </td>
                 <td>{nightSimple === null ? "-" : nightSimple.toLocaleString("ko-KR")}</td>
                 <td style={{ color: "var(--text)", fontWeight: 700 }}>

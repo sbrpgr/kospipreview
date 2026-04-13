@@ -150,6 +150,7 @@ function getDashboardVersion(
         record.low,
         record.high,
         record.actualOpen,
+        record.actualClose ?? "",
         record.hit ? "1" : "0",
       ].join("~"),
     )
