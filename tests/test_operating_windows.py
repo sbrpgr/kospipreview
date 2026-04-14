@@ -197,7 +197,12 @@ class OperatingWindowTests(unittest.TestCase):
             "rangeHigh": 5900.0,
             "predictedChangePct": 0.4,
             "signalSummary": "EWY 상승",
-            "model": {},
+            "model": {
+                "trendFollowApplied": True,
+                "trendFollowSignalPct": 3.2,
+                "trendFollowMinPct": 2.5,
+                "trendFollowAdjustmentPct": 1.3,
+            },
         }
         after_open_utc = datetime(2026, 4, 13, 0, 0, tzinfo=timezone.utc)  # 09:00 KST
 
@@ -207,6 +212,10 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertIsNone(rolled["pointPrediction"])
         self.assertIsNone(rolled["lastCalculatedAt"])
         self.assertFalse(rolled["model"]["isOperationWindow"])
+        self.assertFalse(rolled["model"]["trendFollowApplied"])
+        self.assertIsNone(rolled["model"]["trendFollowSignalPct"])
+        self.assertIsNone(rolled["model"]["trendFollowMinPct"])
+        self.assertIsNone(rolled["model"]["trendFollowAdjustmentPct"])
 
     def test_refresh_after_domestic_close_publishes_model_without_night_quote(self):
         payload = {
@@ -665,6 +674,72 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertGreater(components["mapping_intercept_return"], 0)
         self.assertLess(components["mapping_beta_return"], 0)
         self.assertGreater(components["predicted_kospi_simple_pct_pre_guard"], 0)
+        self.assertEqual(
+            components["predicted_kospi_simple_pct_pre_guard"],
+            components["predicted_kospi_simple_pct"],
+        )
+
+    def test_strong_ewy_fx_trend_lifts_compressed_mapping_prediction(self):
+        ewy_return = backtest_and_generate.simple_return_pct_to_log_return_pct(4.02)
+        krw_return = backtest_and_generate.simple_return_pct_to_log_return_pct(-0.73)
+        self.assertIsNotNone(ewy_return)
+        self.assertIsNotNone(krw_return)
+
+        components = backtest_and_generate.compute_prediction_components(
+            {
+                "ewy": float(ewy_return),
+                "krw": float(krw_return),
+            },
+            core_params={
+                "intercept": 0.1706,
+                "ewy_coef": 0.3618,
+                "krw_coef": 0.2,
+                "sample_size": 180,
+                "r2": 0.2341,
+            },
+            residual_artifact={"weight": 0.0},
+            mapping_artifact={
+                "intercept": 0.161147,
+                "beta": 0.344188,
+                "sample_size": 240,
+            },
+        )
+
+        self.assertTrue(components["trend_follow_applied"])
+        self.assertLess(components["predicted_kospi_simple_pct_pre_guard"], 1.3)
+        self.assertGreater(components["predicted_kospi_simple_pct"], 2.45)
+        self.assertGreater(
+            components["predicted_kospi_simple_pct"],
+            components["predicted_kospi_simple_pct_pre_guard"],
+        )
+
+    def test_small_ewy_fx_signal_does_not_trigger_trend_follow_floor(self):
+        ewy_return = backtest_and_generate.simple_return_pct_to_log_return_pct(0.8)
+        krw_return = backtest_and_generate.simple_return_pct_to_log_return_pct(-0.1)
+        self.assertIsNotNone(ewy_return)
+        self.assertIsNotNone(krw_return)
+
+        components = backtest_and_generate.compute_prediction_components(
+            {
+                "ewy": float(ewy_return),
+                "krw": float(krw_return),
+            },
+            core_params={
+                "intercept": 0.1706,
+                "ewy_coef": 0.3618,
+                "krw_coef": 0.2,
+                "sample_size": 180,
+                "r2": 0.2341,
+            },
+            residual_artifact={"weight": 0.0},
+            mapping_artifact={
+                "intercept": 0.161147,
+                "beta": 0.344188,
+                "sample_size": 240,
+            },
+        )
+
+        self.assertFalse(components["trend_follow_applied"])
         self.assertEqual(
             components["predicted_kospi_simple_pct_pre_guard"],
             components["predicted_kospi_simple_pct"],

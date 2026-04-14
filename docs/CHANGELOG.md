@@ -2,6 +2,12 @@
 
 ## 2026-04-14
 
+- Strong trend-follow model floor
+  - The EWY Synthetic K200 model now applies an EWY + USD/KRW trend-follow floor when the EWY + USD/KRW signal is at least `2.0%`.
+  - The floor requires the final model log return to reach at least `78%` of the EWY + USD/KRW signal, capped to a `1.75%` per-update adjustment.
+  - This addresses the `2026-04-14` open miss where the model predicted `5874.72` against an actual open of `5960.00` while EWY + FX and night-futures conversions were near `5995~5998`.
+  - Night futures remain fully excluded from the model path.
+
 - Night futures simple conversion carry-forward
   - `nightFuturesSimplePoint`, `nightFuturesSimpleChangePct`, and `nightFuturesClose` now remain populated after the night futures session closes when the quote belongs to the active target night session.
   - The guard checks the actual target night-session observation window, preventing the previous session's stale quote from being reused during the next day's `15:30~18:00 KST` gap.

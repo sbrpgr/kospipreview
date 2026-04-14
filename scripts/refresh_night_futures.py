@@ -2476,6 +2476,10 @@ def apply_prediction_pending_state(payload: dict, now_utc: datetime) -> dict:
     model_payload["operationHours"] = PREDICTION_OPERATION_HOURS_LABEL
     model_payload["predictionPhase"] = "standby"
     model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()
+    model_payload["trendFollowApplied"] = False
+    model_payload["trendFollowSignalPct"] = None
+    model_payload["trendFollowMinPct"] = None
+    model_payload["trendFollowAdjustmentPct"] = None
     return payload
 
 
@@ -2666,6 +2670,28 @@ def update_prediction_night_fields(
                     2,
                 )
             model_payload["mappingDirectionFlip"] = bool(prediction_components.get("mapping_direction_flip"))
+            model_payload["trendFollowApplied"] = bool(prediction_components.get("trend_follow_applied"))
+            model_payload["trendFollowSignalPct"] = None
+            model_payload["trendFollowMinPct"] = None
+            model_payload["trendFollowAdjustmentPct"] = None
+            trend_signal = to_float(prediction_components.get("trend_follow_signal_return"))
+            if trend_signal is not None:
+                model_payload["trendFollowSignalPct"] = round(
+                    log_return_pct_to_simple_return_pct(trend_signal) or 0.0,
+                    2,
+                )
+            trend_min = to_float(prediction_components.get("trend_follow_min_return"))
+            if trend_min is not None:
+                model_payload["trendFollowMinPct"] = round(
+                    log_return_pct_to_simple_return_pct(trend_min) or 0.0,
+                    2,
+                )
+            trend_adjustment = to_float(prediction_components.get("trend_follow_adjustment_return"))
+            if trend_adjustment is not None:
+                model_payload["trendFollowAdjustmentPct"] = round(
+                    log_return_pct_to_simple_return_pct(trend_adjustment) or 0.0,
+                    2,
+                )
             residual_adj = to_float(prediction_components.get("residual_adj_k200_return"))
             if residual_adj is not None:
                 model_payload["mlResidualAdjPct"] = round(log_return_pct_to_simple_return_pct(residual_adj) or 0.0, 2)

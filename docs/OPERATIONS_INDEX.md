@@ -56,6 +56,8 @@ All times are Asia/Seoul.
 - Night futures are excluded from the model path.
 - Night futures remain comparison and validation data only.
 - `model.nightFuturesExcluded` should be `true`.
+- Strong EWY + USD/KRW trend moves can activate `model.trendFollowApplied`,
+  which lifts compressed model output without using night futures.
 - Night futures simple conversion should carry forward the last observed quote
   from the target night session through `09:00 KST`; session close alone must
   not blank the target operating day's displayed/simple-record value.

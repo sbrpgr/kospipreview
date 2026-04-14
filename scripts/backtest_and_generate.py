@@ -156,6 +156,9 @@ REGIME_CLIP_PREV_CLOSE_SHARE = 0.9
 REGIME_CLIP_CORE_BUFFER_PCT = 1.25
 EWY_ALIGNMENT_TRIGGER_PCT = 1.0
 EWY_ALIGNMENT_MIN_SHARE = 0.80
+EWY_FX_TREND_FOLLOW_TRIGGER_PCT = 2.0
+EWY_FX_TREND_FOLLOW_MIN_SHARE = 0.78
+EWY_FX_TREND_FOLLOW_MAX_ADJUST_PCT = 1.75
 RESIDUAL_MODEL_CAP_MIN_PCT = 0.18
 RESIDUAL_MODEL_CAP_MAX_PCT = 0.95
 RESIDUAL_MODEL_CAP_SHARE = 0.38
@@ -1614,6 +1617,51 @@ def compute_ewy_fx_simple_change_pct(returns: dict[str, float]) -> float | None:
     return log_return_pct_to_simple_return_pct(compute_ewy_fx_simple_log_return(returns))
 
 
+def apply_ewy_fx_trend_follow_floor(
+    predicted_kospi_return: float,
+    ewy_fx_simple_return: float | None,
+) -> tuple[float, dict[str, float | bool | None]]:
+    default_meta: dict[str, float | bool | None] = {
+        "applied": False,
+        "signal_return": ewy_fx_simple_return,
+        "min_return": None,
+        "adjustment_return": 0.0,
+    }
+    if ewy_fx_simple_return is None:
+        return predicted_kospi_return, default_meta
+
+    signal_return = float(ewy_fx_simple_return)
+    signal_magnitude = abs(signal_return)
+    default_meta["signal_return"] = signal_return
+    if signal_magnitude < EWY_FX_TREND_FOLLOW_TRIGGER_PCT:
+        return predicted_kospi_return, default_meta
+
+    direction = 1.0 if signal_return > 0 else -1.0
+    min_aligned_return = direction * signal_magnitude * EWY_FX_TREND_FOLLOW_MIN_SHARE
+    projected_adjustment = min_aligned_return - float(predicted_kospi_return)
+    default_meta["min_return"] = min_aligned_return
+
+    if direction > 0 and projected_adjustment <= 0:
+        return predicted_kospi_return, default_meta
+    if direction < 0 and projected_adjustment >= 0:
+        return predicted_kospi_return, default_meta
+
+    adjustment = float(
+        np.clip(
+            projected_adjustment,
+            -EWY_FX_TREND_FOLLOW_MAX_ADJUST_PCT,
+            EWY_FX_TREND_FOLLOW_MAX_ADJUST_PCT,
+        )
+    )
+    adjusted_return = float(predicted_kospi_return + adjustment)
+    return adjusted_return, {
+        "applied": True,
+        "signal_return": signal_return,
+        "min_return": min_aligned_return,
+        "adjustment_return": adjustment,
+    }
+
+
 def compute_residual_cap(core_k200_return: float | None) -> float:
     magnitude = abs(float(core_k200_return or 0.0))
     return float(
@@ -1649,6 +1697,11 @@ def compute_prediction_components(
             "mapping_beta_return": None,
             "mapping_direction_flip": False,
             "ewy_simple_pct": None,
+            "ewy_fx_simple_return": None,
+            "trend_follow_applied": False,
+            "trend_follow_signal_return": None,
+            "trend_follow_min_return": None,
+            "trend_follow_adjustment_return": 0.0,
             "residual_features": {},
             "residual_weight": None,
         }
@@ -1671,7 +1724,11 @@ def compute_prediction_components(
     mapping_beta_return = float(mapping_beta * predicted_k200_return)
     core_kospi_return = float(map_k200_to_kospi_return(core_k200_return, mapping_artifact))
     predicted_kospi_return_pre_guard = float(map_k200_to_kospi_return(predicted_k200_return, mapping_artifact))
-    predicted_kospi_return = predicted_kospi_return_pre_guard
+    ewy_fx_simple_return = compute_ewy_fx_simple_log_return(signal_returns)
+    predicted_kospi_return, trend_follow = apply_ewy_fx_trend_follow_floor(
+        predicted_kospi_return_pre_guard,
+        ewy_fx_simple_return,
+    )
     mapping_direction_flip = (
         predicted_k200_return != 0
         and predicted_kospi_return != 0
@@ -1697,6 +1754,11 @@ def compute_prediction_components(
         "mapping_beta_return": mapping_beta_return,
         "mapping_direction_flip": bool(mapping_direction_flip),
         "ewy_simple_pct": ewy_simple_pct,
+        "ewy_fx_simple_return": ewy_fx_simple_return,
+        "trend_follow_applied": bool(trend_follow["applied"]),
+        "trend_follow_signal_return": trend_follow["signal_return"],
+        "trend_follow_min_return": trend_follow["min_return"],
+        "trend_follow_adjustment_return": trend_follow["adjustment_return"],
         "residual_features": residual_features,
         "residual_weight": residual_weight,
     }
@@ -2639,6 +2701,14 @@ def build_latest(
         "regime_adjustment_c": None,
         "night_guard_band_c": log_return_pct_to_simple_return_pct(components.get("residual_cap_k200_return")),
         "pre_damping_pred_c": components.get("predicted_kospi_simple_pct_pre_guard"),
+        "trend_follow_applied": bool(components.get("trend_follow_applied")),
+        "trend_follow_signal_c": log_return_pct_to_simple_return_pct(
+            components.get("trend_follow_signal_return")
+        ),
+        "trend_follow_min_c": log_return_pct_to_simple_return_pct(components.get("trend_follow_min_return")),
+        "trend_follow_adjustment_c": log_return_pct_to_simple_return_pct(
+            components.get("trend_follow_adjustment_return")
+        ),
         "prev_close_change_c": prev_close_change,
         "prediction_phase": "session",
         "anchor_source": "ewy_synthetic_k200",
@@ -2775,6 +2845,22 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             ),
             "regimeAdjustmentPct": None,
             "regimeState": None,
+            "trendFollowApplied": bool(latest.get("trend_follow_applied")),
+            "trendFollowSignalPct": (
+                round(float(latest["trend_follow_signal_c"]), 2)
+                if latest.get("trend_follow_signal_c") is not None
+                else None
+            ),
+            "trendFollowMinPct": (
+                round(float(latest["trend_follow_min_c"]), 2)
+                if latest.get("trend_follow_min_c") is not None
+                else None
+            ),
+            "trendFollowAdjustmentPct": (
+                round(float(latest["trend_follow_adjustment_c"]), 2)
+                if latest.get("trend_follow_adjustment_c") is not None
+                else None
+            ),
             "prevCloseChangePct": round(float(latest["prev_close_change_c"]), 2),
             "krxBaselineDate": latest_record_date,
             "predictionPhase": latest.get("prediction_phase"),

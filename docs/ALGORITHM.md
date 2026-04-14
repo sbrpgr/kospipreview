@@ -55,12 +55,14 @@ Indicator cards may still display standard market-session change values. That di
 3. KOSPI mapping
    - Synthetic K200 return is mapped to KOSPI opening return through a Ridge mapping layer.
    - The mapping intercept is allowed to represent learned opening drift.
+   - Strong EWY + USD/KRW trend moves must not be compressed below the configured trend-follow floor.
 
 4. Stabilization
    - Prediction changes are guard-banded.
    - Live refresh applies a small smoothing weight to reduce one-minute jump noise.
    - The model must not force night-futures direction into `pointPrediction`.
    - The model must not force EWY direction matching when the full statistical mapping produces a different valid result.
+   - The strong trend-follow floor uses only EWY + USD/KRW, so night futures remain excluded from the model path.
 
 ## Night Futures Simple Conversion
 
@@ -96,6 +98,27 @@ Required basis:
 - `KOSPI_close(D)` is the current completed KOSPI close after `15:30 KST`.
 - EWY and USD/KRW returns use the same KRX `15:30 KST` baseline as the model inputs.
 - No residual model, K200 mapping, or night-futures value is used.
+
+## Strong Trend Follow Floor
+
+The K200-to-KOSPI mapping can under-react when EWY + USD/KRW makes a large
+overnight move. The model therefore applies a trend-follow floor for strong
+EWY + USD/KRW moves.
+
+Current production rule:
+
+- trigger: absolute EWY + USD/KRW log-return signal at or above `2.0%`;
+- floor: final model log return should reach at least `78%` of that EWY + USD/KRW signal;
+- per-update adjustment cap: `1.75%` log-return;
+- inputs: EWY and USD/KRW only;
+- night futures remain excluded from the model path.
+
+Diagnostics:
+
+- `model.trendFollowApplied`
+- `model.trendFollowSignalPct`
+- `model.trendFollowMinPct`
+- `model.trendFollowAdjustmentPct`
 
 ## Recent Actual Records
 
