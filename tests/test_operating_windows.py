@@ -854,6 +854,8 @@ class OperatingWindowTests(unittest.TestCase):
                     "close": 875.0,
                     "updated_at": "2026-04-14T06:45:00+00:00",
                     "session_date": "2026-04-14",
+                    "provider": "esignal-socket",
+                    "selection": "session-close-socket",
                 },
             )
         finally:
@@ -866,6 +868,114 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(updated["records"][0]["dayFuturesClose"], 875.0)
         self.assertEqual(updated["records"][0]["nightFuturesClose"], 874.75)
         self.assertEqual(updated["records"][0]["ewyFxSimpleOpen"], 5902.5)
+
+    def test_history_keeps_target_preopen_night_close_after_next_night_session_starts(self):
+        now_utc = datetime(2026, 4, 14, 9, 20, tzinfo=timezone.utc)  # 18:20 KST
+        history = {
+            "summary": {"mae30d": 21.0},
+            "records": [
+                {
+                    "date": "2026-04-14",
+                    "nightFuturesClose": 907.75,
+                }
+            ],
+        }
+        archive = [
+            {
+                "predictionDateIso": "2026-04-14",
+                "predictionDate": "2026-04-14",
+                "generatedAt": "2026-04-14T00:00:00+00:00",
+                "pointPrediction": 5874.72,
+                "rangeLow": 5853.39,
+                "rangeHigh": 5896.05,
+            }
+        ]
+        series = {
+            "records": [
+                {
+                    "predictionDateIso": "2026-04-14",
+                    "predictionDate": "2026-04-14",
+                    "observedAt": "2026-04-13T23:59:00+00:00",
+                    "pointPrediction": 5874.72,
+                    "nightFuturesSimplePoint": 5994.8,
+                    "ewyFxSimplePoint": 5998.27,
+                    "nightFuturesClose": 899.95,
+                }
+            ]
+        }
+
+        original_fetch_open = refresh_night_futures.fetch_kospi_actual_open
+        original_fetch_close = refresh_night_futures.fetch_kospi_actual_close
+        try:
+            refresh_night_futures.fetch_kospi_actual_open = lambda target_date: 5960.0
+            refresh_night_futures.fetch_kospi_actual_close = lambda target_date: 5967.75
+            updated = refresh_night_futures.update_history_with_actual_open(
+                history,
+                archive,
+                now_utc,
+                series,
+                day_close_quote={
+                    "close": 901.9,
+                    "updated_at": "2026-04-14T06:45:00+00:00",
+                    "session_date": "2026-04-14",
+                    "provider": "esignal-socket",
+                    "selection": "session-close-socket",
+                },
+                night_quote={
+                    "price": 907.75,
+                    "updated_at": "2026-04-14T09:20:00+00:00",
+                    "day_close_date": "2026-04-14",
+                    "is_live_night": True,
+                },
+            )
+        finally:
+            refresh_night_futures.fetch_kospi_actual_open = original_fetch_open
+            refresh_night_futures.fetch_kospi_actual_close = original_fetch_close
+
+        self.assertEqual(updated["records"][0]["date"], "2026-04-14")
+        self.assertEqual(updated["records"][0]["nightFuturesClose"], 899.95)
+        self.assertEqual(updated["records"][0]["dayFuturesClose"], 901.9)
+        self.assertEqual(updated["records"][0]["nightFuturesSimpleOpen"], 5994.8)
+
+    def test_history_rejects_non_final_day_futures_close(self):
+        now_utc = datetime(2026, 4, 14, 6, 35, tzinfo=timezone.utc)  # 15:35 KST
+        history = {"summary": {"mae30d": 21.0}, "records": []}
+        archive = [
+            {
+                "predictionDateIso": "2026-04-14",
+                "predictionDate": "2026-04-14",
+                "generatedAt": "2026-04-14T00:00:00+00:00",
+                "pointPrediction": 5874.72,
+                "rangeLow": 5853.39,
+                "rangeHigh": 5896.05,
+                "nightFuturesClose": 899.95,
+            }
+        ]
+
+        original_fetch_open = refresh_night_futures.fetch_kospi_actual_open
+        original_fetch_close = refresh_night_futures.fetch_kospi_actual_close
+        try:
+            refresh_night_futures.fetch_kospi_actual_open = lambda target_date: 5960.0
+            refresh_night_futures.fetch_kospi_actual_close = lambda target_date: 5967.75
+            updated = refresh_night_futures.update_history_with_actual_open(
+                history,
+                archive,
+                now_utc,
+                None,
+                day_close_quote={
+                    "close": 901.9,
+                    "updated_at": "2026-04-14T06:35:00+00:00",
+                    "session_date": "2026-04-14",
+                    "provider": "esignal-day-cache",
+                    "selection": "session-close",
+                },
+            )
+        finally:
+            refresh_night_futures.fetch_kospi_actual_open = original_fetch_open
+            refresh_night_futures.fetch_kospi_actual_close = original_fetch_close
+
+        self.assertIsNone(updated["records"][0]["dayFuturesClose"])
+        self.assertEqual(updated["records"][0]["nightFuturesClose"], 899.95)
 
 
 if __name__ == "__main__":

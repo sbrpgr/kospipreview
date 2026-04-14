@@ -107,10 +107,8 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       ewyFxSimpleOpen: isFiniteNumber(prediction.ewyFxSimplePoint)
         ? prediction.ewyFxSimplePoint
         : existing.ewyFxSimpleOpen,
-      dayFuturesClose: isFiniteNumber(prediction.futuresDayClose) ? prediction.futuresDayClose : existing.dayFuturesClose,
-      nightFuturesClose: isFiniteNumber(prediction.nightFuturesClose)
-        ? prediction.nightFuturesClose
-        : existing.nightFuturesClose,
+      dayFuturesClose: existing.dayFuturesClose,
+      nightFuturesClose: existing.nightFuturesClose,
       isPredictionTarget: true,
     };
   } else {
@@ -121,8 +119,8 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       ewyFxSimpleOpen: isFiniteNumber(prediction.ewyFxSimplePoint) ? prediction.ewyFxSimplePoint : null,
       actualOpen: null,
       actualClose: null,
-      dayFuturesClose: isFiniteNumber(prediction.futuresDayClose) ? prediction.futuresDayClose : null,
-      nightFuturesClose: isFiniteNumber(prediction.nightFuturesClose) ? prediction.nightFuturesClose : null,
+      dayFuturesClose: null,
+      nightFuturesClose: null,
       isPredictionTarget: true,
     });
   }

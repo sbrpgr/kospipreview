@@ -952,21 +952,19 @@ def update_history_with_actual_open(
     track_futures_closes = target_date >= HISTORY_FUTURES_CLOSE_TRACKING_START_DATE
 
     day_futures_close = existing_day_futures_close if track_futures_closes else None
-    if track_futures_closes and isinstance(day_close_quote, dict) and day_close_quote.get("session_date") == target_iso:
+    if (
+        track_futures_closes
+        and isinstance(day_close_quote, dict)
+        and day_close_quote.get("session_date") == target_iso
+        and is_final_day_futures_close_quote(day_close_quote)
+    ):
         quoted_day_close = to_float(day_close_quote.get("close"))
         if quoted_day_close is not None:
             day_futures_close = quoted_day_close
 
     night_futures_close = None
     if track_futures_closes:
-        if isinstance(night_quote, dict) and night_quote.get("day_close_date") == target_iso:
-            night_futures_close = to_float(night_quote.get("price"))
-        if night_futures_close is None:
-            night_futures_close = to_float(fixed_prediction.get("nightFuturesClose"))
-        if night_futures_close is None:
-            night_target_iso = resolve_night_futures_target_date_iso(night_quote, day_close_quote)
-            if night_target_iso == target_iso and isinstance(night_quote, dict):
-                night_futures_close = to_float(night_quote.get("price"))
+        night_futures_close = to_float(fixed_prediction.get("nightFuturesClose"))
         if night_futures_close is None:
             night_futures_close = existing_night_futures_close
 
@@ -1800,7 +1798,7 @@ def is_final_day_futures_close_quote(quote: dict | None) -> bool:
 
     provider = str(quote.get("provider") or "")
     selection = str(quote.get("selection") or "")
-    if provider != "esignal-socket" and selection != "session-close-socket":
+    if provider != "esignal-socket" or selection != "session-close-socket":
         return False
 
     updated_at = parse_iso_datetime_utc(quote.get("updated_at"))

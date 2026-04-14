@@ -2,6 +2,11 @@
 
 ## 2026-04-14
 
+- Recent actual futures close guard
+  - Recent actual rows no longer let the next target night's live `nightFuturesClose` overwrite the completed actual date.
+  - `dayFuturesClose` in recent actual rows now accepts only final eSignal socket settlement for the same actual date.
+  - Prediction-target placeholder rows in the frontend no longer display day/night futures close values as if they were actual-record settlements.
+
 - Strong trend-follow model floor
   - The EWY Synthetic K200 model now applies an EWY + USD/KRW trend-follow floor when the EWY + USD/KRW signal is at least `2.0%`.
   - The floor requires the final model log return to reach at least `78%` of the EWY + USD/KRW signal, capped to a `1.75%` per-update adjustment.

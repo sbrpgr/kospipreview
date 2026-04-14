@@ -79,11 +79,14 @@ All times are Asia/Seoul.
 - `history.json` recent actual rows track:
   - `actualOpen`
   - `actualClose`
-  - `dayFuturesClose`
-  - `nightFuturesClose`
+  - `dayFuturesClose`, final same-date day futures settlement only
+  - `nightFuturesClose`, fixed from the actual date's pre-open night session
   - fixed pre-open `modelPrediction`
   - fixed pre-open `nightFuturesSimpleOpen`
   - fixed pre-open `ewyFxSimpleOpen`
+- The next prediction target may show live night-futures comparisons, but those
+  live values must not be treated as recent-actual futures close fields until
+  that target date has an actual open.
 - `dayFuturesClose` and `nightFuturesClose` in `history.json` start from rows dated
   `2026-04-14`; the `2026-04-13` row is intentionally blank for both fields.
 

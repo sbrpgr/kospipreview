@@ -151,10 +151,16 @@ The current actual trading day row should track:
 - `actualOpen`
 - `actualClose`
 - `dayFuturesClose`
-- `nightFuturesClose`
+- `dayFuturesClose`, only after final eSignal socket settlement for that same actual date;
+- `nightFuturesClose`, fixed from the target date's pre-open night session, not from the following night session;
 - fixed pre-open `modelPrediction`
 - fixed pre-open `nightFuturesSimpleOpen`
 - fixed pre-open `ewyFxSimpleOpen`
+
+For example, the `2026-04-14` actual row must use the night-futures close from
+the night session that ended before the `2026-04-14 09:00 KST` open. Once the
+`2026-04-15` night session starts at `2026-04-14 18:00 KST`, those live values
+must not overwrite the `2026-04-14` actual row.
 
 Day/night futures close fields are tracked only for actual rows dated
 `2026-04-14` or later. The `2026-04-13` actual row must keep both fields blank.
