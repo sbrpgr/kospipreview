@@ -463,12 +463,12 @@ export function LiveDashboard({
                 }`}
               >
                 {nightSimpleChangePct === null
-                  ? "(장 시작전)"
+                  ? "(본 장 시작전)"
                   : `${nightSimpleChangePct >= 0 ? "상방" : "하방"} ${Math.abs(nightSimpleChangePct).toFixed(2)}%`}
               </div>
               <div className="heroForecastMeta">
                 {futuresDayClose === null
-                  ? "주간선물 종가 (장 시작전)"
+                  ? "주간선물 종가 (본 장 시작전)"
                   : `주간선물 종가 ${futuresDayClose.toLocaleString("ko-KR")}${futuresDayCloseDate ? ` (${futuresDayCloseDate})` : ""}`}
               </div>
             </div>
@@ -487,7 +487,7 @@ export function LiveDashboard({
               <div className="heroForecastMeta">EWY와 USD/KRW 기준</div>
             </div>
             <div className="heroForecastCard isModel">
-              <div className="heroForecastLabel">모델 예측 (야간선물 브릿지 1회 보정)</div>
+              <div className="heroForecastLabel">모델 예측</div>
               <div className="heroForecastValue">
                 {isModelForecastReady ? modelPoint.toLocaleString("ko-KR") : "-"}
               </div>

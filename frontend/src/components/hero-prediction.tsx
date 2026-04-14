@@ -40,7 +40,7 @@ export function HeroPrediction({ prediction }: HeroPredictionProps) {
               : "-"}
           </div>
           <div className="heroPoint">
-            <span>모델 예측 (야간선물 브릿지 1회 보정)</span>
+            <span>모델 예측</span>
             <strong style={{ color: "#fff", fontSize: "1.1rem" }}>
               {isForecastReady ? pointPrediction?.toLocaleString("ko-KR") : "-"}
             </strong>

@@ -2431,7 +2431,7 @@ def build_k200f_indicator(quote: dict | None, day_close_quote: dict | None) -> d
         "updatedAt": "",
         "sourceUrl": "",
         "dataSource": "실시간 수집",
-        "displayTag": "(장 시작전)",
+        "displayTag": "(본 장 시작전)",
         "isPremarket": False,
         "referenceLabel": reference_label,
         "referenceValue": reference_value,
@@ -2559,7 +2559,7 @@ def update_display_changes_from_market_quote(
                 continue
 
             row["checkedAt"] = now_utc.isoformat()
-            row["displayTag"] = "(장 시작전)" if in_us_premarket_now and key in PREMARKET_TRACK_KEYS else ""
+            row["displayTag"] = "(본 장 시작전)" if in_us_premarket_now and key in PREMARKET_TRACK_KEYS else ""
             row["isPremarket"] = False
 
             snapshot = get_snapshot(key)
@@ -2598,7 +2598,7 @@ def update_display_changes_from_market_quote(
             elif market_session == "post":
                 row["displayTag"] = "(장 마감후)"
             elif market_session == "pre" or premarket_untracked:
-                row["displayTag"] = "(장 시작전)"
+                row["displayTag"] = "(본 장 시작전)"
             else:
                 row["displayTag"] = ""
             row["isPremarket"] = is_premarket_quote or market_session == "pre"

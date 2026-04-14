@@ -7,7 +7,7 @@
   - The bridge starts at `17:00 KST` during U.S. daylight time and `18:00 KST` during U.S. standard time.
   - The bridge samples KOSPI 200 night-futures movement every 2 minutes for 5 slots, then uses the latest bridge sample as the one-time `15:30 -> EWY premarket` synchronization anchor.
   - After the bridge anchor, EWY + FX and live model movement are measured from the bridge timestamp so the missing EWY no-trade gap is not ignored.
-  - `model.nightFuturesBridgeApplied` and `model.nightFuturesBridgePct` document the one-time bridge; the card label now says `모델 예측 (야간선물 브릿지 1회 보정)`.
+  - `model.nightFuturesBridgeApplied` and `model.nightFuturesBridgePct` document the one-time bridge; the card label remains simply `모델 예측`.
 
 - Recent actual futures close guard
   - Recent actual rows no longer let the next target night's live `nightFuturesClose` overwrite the completed actual date.
