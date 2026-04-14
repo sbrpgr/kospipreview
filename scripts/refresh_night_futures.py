@@ -2659,12 +2659,9 @@ def apply_prediction_ewy_bridge_waiting_state(payload: dict, now_utc: datetime, 
 
     bridge_start = parse_iso_datetime_utc(bridge_state.get("startAt"))
     if bridge_start is not None:
-        start_label = bridge_start.astimezone(KST).strftime("%H:%M")
-        payload["signalSummary"] = (
-            f"EWY 프리장 기준점은 {start_label}부터 2분 간격 5회 야간선물 브릿지 보정 후 표시됩니다."
-        )
+        payload["signalSummary"] = "EWY·환율 기준 데이터가 준비되면 예측값이 표시됩니다."
     else:
-        payload["signalSummary"] = "EWY 프리장 기준점이 준비되면 모델 예측값이 표시됩니다."
+        payload["signalSummary"] = "EWY·환율 기준 데이터가 준비되면 예측값이 표시됩니다."
 
     payload["generatedAt"] = now_utc.isoformat()
     model_payload["isOperationWindow"] = is_prediction_operation_window(now_utc)
@@ -2980,18 +2977,7 @@ def update_prediction_night_fields(
             live_krw_change = live_display_returns.get("krw")
             if live_krw_change is not None:
                 model_payload["liveKrwChangePct"] = round(float(live_krw_change), 2)
-            summary_parts: list[str] = []
-            if bridge_change_pct is not None:
-                bridge_direction = "상방" if bridge_change_pct >= 0 else "하방"
-                summary_parts.append(f"야간선물 브릿지 {bridge_direction} {abs(bridge_change_pct):.2f}%")
-            if live_ewy_change is not None:
-                ewy_direction = "상방" if live_ewy_change >= 0 else "하방"
-                summary_parts.append(f"브릿지 이후 EWY {ewy_direction} {abs(float(live_ewy_change)):.2f}%")
-            if live_krw_change is not None:
-                krw_direction = "상방" if live_krw_change >= 0 else "하방"
-                summary_parts.append(f"브릿지 이후 USD/KRW {krw_direction} {abs(float(live_krw_change)):.2f}%")
-            if summary_parts:
-                payload["signalSummary"] = " · ".join(summary_parts)
+            payload["signalSummary"] = "예측값이 최신 시장 데이터 기준으로 갱신 중입니다."
             model_payload["ewyFxIntercept"] = round(float(correction_params["intercept"]), 4)
             model_payload["ewyFxEwyCoef"] = round(float(correction_params["ewy_coef"]), 4)
             model_payload["ewyFxKrwCoef"] = round(float(correction_params["krw_coef"]), 4)

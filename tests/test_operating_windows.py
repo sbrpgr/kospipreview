@@ -561,6 +561,8 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertFalse(updated["model"]["nightFuturesExcluded"])
         self.assertTrue(updated["model"]["nightFuturesBridgeApplied"])
         self.assertEqual(updated["model"]["nightFuturesBridgeStatus"], "late-fallback")
+        self.assertEqual(updated["signalSummary"], "예측값이 최신 시장 데이터 기준으로 갱신 중입니다.")
+        self.assertNotIn("브릿지 이후", updated["signalSummary"])
 
     def test_ewy_fx_simple_conversion_falls_back_to_display_returns(self):
         ewy_log = backtest_and_generate.simple_return_pct_to_log_return_pct(3.0)
