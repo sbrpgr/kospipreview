@@ -48,7 +48,7 @@ class OperatingWindowTests(unittest.TestCase):
 
         outside_window = datetime(2026, 4, 13, 4, 0, tzinfo=timezone.utc)  # 13:00 KST
         after_domestic_close = datetime(2026, 4, 13, 6, 30, tzinfo=timezone.utc)  # 15:30 KST
-        trend_open = datetime(2026, 4, 13, 9, 0, tzinfo=timezone.utc)  # 18:00 KST
+        trend_open = datetime(2026, 4, 13, 8, 0, tzinfo=timezone.utc)  # 17:00 KST, US daylight time
         inside_window = datetime(2026, 4, 12, 23, 0, tzinfo=timezone.utc)  # 08:00 KST
 
         original_loader = refresh_night_futures.load_live_prediction_series
@@ -63,6 +63,46 @@ class OperatingWindowTests(unittest.TestCase):
             self.assertEqual(len(refresh_night_futures.update_live_prediction_series(payload, inside_window)["records"]), 1)
         finally:
             refresh_night_futures.load_live_prediction_series = original_loader
+
+    def test_us_premarket_bridge_start_uses_daylight_saving_time(self):
+        daylight_start = refresh_night_futures.resolve_us_premarket_open_kst(
+            datetime(2026, 4, 14, tzinfo=KST).date()
+        )
+        standard_start = refresh_night_futures.resolve_us_premarket_open_kst(
+            datetime(2026, 12, 14, tzinfo=KST).date()
+        )
+
+        self.assertEqual(daylight_start.time().isoformat(timespec="minutes"), "17:00")
+        self.assertEqual(standard_start.time().isoformat(timespec="minutes"), "18:00")
+
+    def test_ewy_bridge_samples_five_two_minute_slots_from_premarket_open(self):
+        model_payload = {}
+        day_close = 872.0
+
+        for minute, price in [(0, 880.0), (2, 881.0), (4, 882.0), (6, 883.0), (8, 884.0)]:
+            quote = {
+                "price": price,
+                "previous_close": day_close,
+                "change_pct": (price / day_close - 1) * 100,
+                "updated_at": datetime(2026, 4, 13, 8, minute, tzinfo=timezone.utc).isoformat(),
+                "day_close_date": "2026-04-13",
+                "is_live_night": True,
+            }
+            state = refresh_night_futures.update_ewy_fx_night_bridge_state(
+                model_payload,
+                "2026-04-13",
+                "2026-04-14",
+                datetime(2026, 4, 13, 8, minute, tzinfo=timezone.utc),
+                quote,
+                has_target_night_quote=True,
+                night_futures_change=(price / day_close - 1) * 100,
+            )
+
+        self.assertEqual(state["sampleCount"], 5)
+        self.assertEqual(state["status"], "ready")
+        self.assertEqual(state["sampleSlot"], 4)
+        self.assertEqual(state["nightFuturesClose"], 884.0)
+        self.assertTrue(str(state["baselineAtKst"]).startswith("2026-04-13T17:08"))
 
     def test_day_close_session_date_rolls_at_1530(self):
         before_close = datetime(2026, 4, 13, 15, 29, tzinfo=KST)
@@ -217,7 +257,7 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertIsNone(rolled["model"]["trendFollowMinPct"])
         self.assertIsNone(rolled["model"]["trendFollowAdjustmentPct"])
 
-    def test_refresh_after_domestic_close_publishes_model_without_night_quote(self):
+    def test_refresh_after_domestic_close_waits_for_ewy_bridge(self):
         payload = {
             "generatedAt": "2026-04-13T06:29:00+00:00",
             "predictionDateIso": "2026-04-14",
@@ -249,7 +289,7 @@ class OperatingWindowTests(unittest.TestCase):
         original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
         original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
         try:
-            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: (
+            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params, *args, **kwargs: (
                 {"krw": 0.2},
                 {"krw": 0.2},
             )
@@ -271,12 +311,13 @@ class OperatingWindowTests(unittest.TestCase):
 
         self.assertTrue(updated["model"]["isOperationWindow"])
         self.assertEqual(updated["model"]["operationHours"], "15:30~09:00")
-        self.assertEqual(updated["model"]["nightFuturesExcluded"], True)
+        self.assertEqual(updated["model"]["nightFuturesExcluded"], False)
+        self.assertEqual(updated["model"]["predictionPhase"], "awaiting-ewy-bridge")
         self.assertEqual(updated["model"]["krxBaselineDate"], "2026-04-13")
         self.assertEqual(updated["prevClose"], 5806.62)
         self.assertEqual(updated["latestRecordDate"], "2026-04-13")
-        self.assertIsNotNone(updated["pointPrediction"])
-        self.assertIsNotNone(updated["lastCalculatedAt"])
+        self.assertIsNone(updated["pointPrediction"])
+        self.assertIsNone(updated["lastCalculatedAt"])
         self.assertIsNone(updated["nightFuturesSimplePoint"])
         self.assertIsNone(updated["nightFuturesSimpleChangePct"])
 
@@ -312,7 +353,7 @@ class OperatingWindowTests(unittest.TestCase):
         original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
         original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
         try:
-            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: ({}, {})
+            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params, *args, **kwargs: ({}, {})
             refresh_night_futures.fetch_kospi_actual_close_quote = lambda target_date: {
                 "close": 5806.62,
                 "updated_at": "2026-04-13T06:30:00+00:00",
@@ -369,7 +410,7 @@ class OperatingWindowTests(unittest.TestCase):
         original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
         original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
         try:
-            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: ({}, {})
+            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params, *args, **kwargs: ({}, {})
             refresh_night_futures.fetch_kospi_actual_close_quote = lambda target_date: {
                 "close": 5808.62,
                 "updated_at": "2026-04-13T06:30:00+00:00",
@@ -423,7 +464,7 @@ class OperatingWindowTests(unittest.TestCase):
         original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
         original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
         try:
-            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: ({}, {})
+            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params, *args, **kwargs: ({}, {})
             refresh_night_futures.fetch_kospi_actual_close_quote = lambda target_date: {
                 "close": 5820.0,
                 "updated_at": "2026-04-14T06:40:00+00:00",
@@ -444,7 +485,7 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertIsNone(updated["nightFuturesSimpleChangePct"])
         self.assertIsNone(updated["nightFuturesClose"])
 
-    def test_ewy_fx_simple_conversion_uses_ewy_and_krw_without_mapping(self):
+    def test_ewy_fx_simple_conversion_uses_one_time_night_bridge_then_ewy_and_krw(self):
         payload = {
             "generatedAt": "2026-04-13T09:56:00+00:00",
             "predictionDateIso": "2026-04-14",
@@ -472,15 +513,25 @@ class OperatingWindowTests(unittest.TestCase):
             "updated_at": "2026-04-13T06:45:00+00:00",
             "session_date": "2026-04-13",
         }
+        quote = {
+            "price": 880.72,
+            "previous_close": 872.0,
+            "change_pct": (880.72 / 872.0 - 1) * 100,
+            "updated_at": "2026-04-13T09:57:00+00:00",
+            "day_close_date": "2026-04-13",
+            "is_live_night": True,
+        }
         ewy_log = backtest_and_generate.simple_return_pct_to_log_return_pct(3.0)
         krw_log = backtest_and_generate.simple_return_pct_to_log_return_pct(-0.4)
+        bridge_log = backtest_and_generate.simple_return_pct_to_log_return_pct((880.72 / 872.0 - 1) * 100)
         self.assertIsNotNone(ewy_log)
         self.assertIsNotNone(krw_log)
+        self.assertIsNotNone(bridge_log)
 
         original_fetch_inputs = refresh_night_futures.fetch_live_prediction_inputs
         original_fetch_close_quote = refresh_night_futures.fetch_kospi_actual_close_quote
         try:
-            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params: (
+            refresh_night_futures.fetch_live_prediction_inputs = lambda baseline, params, *args, **kwargs: (
                 {"ewy": 3.0, "krw": -0.4},
                 {"ewy": ewy_log, "krw": krw_log},
             )
@@ -492,7 +543,7 @@ class OperatingWindowTests(unittest.TestCase):
             }
             updated = refresh_night_futures.update_prediction_night_fields(
                 payload,
-                None,
+                quote,
                 day_close_quote,
                 now_utc,
             )
@@ -500,14 +551,16 @@ class OperatingWindowTests(unittest.TestCase):
             refresh_night_futures.fetch_live_prediction_inputs = original_fetch_inputs
             refresh_night_futures.fetch_kospi_actual_close_quote = original_fetch_close_quote
 
-        expected_return = float(ewy_log) + float(krw_log)
+        expected_return = float(bridge_log) + float(ewy_log) + float(krw_log)
         expected_change = backtest_and_generate.log_return_pct_to_simple_return_pct(expected_return)
         expected_point = backtest_and_generate.price_from_log_return(5806.62, expected_return)
 
         self.assertAlmostEqual(updated["ewyFxSimpleChangePct"], round(expected_change, 2))
         self.assertAlmostEqual(updated["ewyFxSimplePoint"], round(expected_point, 2))
         self.assertNotEqual(updated["ewyFxSimplePoint"], updated["pointPrediction"])
-        self.assertTrue(updated["model"]["nightFuturesExcluded"])
+        self.assertFalse(updated["model"]["nightFuturesExcluded"])
+        self.assertTrue(updated["model"]["nightFuturesBridgeApplied"])
+        self.assertEqual(updated["model"]["nightFuturesBridgeStatus"], "late-fallback")
 
     def test_ewy_fx_simple_conversion_falls_back_to_display_returns(self):
         ewy_log = backtest_and_generate.simple_return_pct_to_log_return_pct(3.0)
@@ -605,10 +658,10 @@ class OperatingWindowTests(unittest.TestCase):
                 else None
             )
             refresh_night_futures.fetch_yahoo_intraday_return_pct = (
-                lambda symbol, baseline: 0.31 if symbol == "EWY" else None
+                lambda symbol, baseline, *args, **kwargs: 0.31 if symbol == "EWY" else None
             )
             refresh_night_futures.fetch_yahoo_intraday_model_change = (
-                lambda symbol, baseline, diff_mode=False: 0.309 if symbol == "EWY" else None
+                lambda symbol, baseline, diff_mode=False, *args, **kwargs: 0.309 if symbol == "EWY" else None
             )
 
             display_returns, model_returns = refresh_night_futures.fetch_live_prediction_inputs("2026-04-13")
@@ -635,9 +688,9 @@ class OperatingWindowTests(unittest.TestCase):
                 if symbol == "EWY"
                 else None
             )
-            refresh_night_futures.fetch_yahoo_intraday_return_pct = lambda symbol, baseline: None
+            refresh_night_futures.fetch_yahoo_intraday_return_pct = lambda symbol, baseline, *args, **kwargs: None
             refresh_night_futures.fetch_yahoo_intraday_model_change = (
-                lambda symbol, baseline, diff_mode=False: None
+                lambda symbol, baseline, diff_mode=False, *args, **kwargs: None
             )
 
             display_returns, model_returns = refresh_night_futures.fetch_live_prediction_inputs("2026-04-13")

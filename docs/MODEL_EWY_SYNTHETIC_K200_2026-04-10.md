@@ -127,6 +127,9 @@ Diagnostics:
 - `engine`
 - `calculationMode`
 - `nightFuturesExcluded`
+- `nightFuturesBridgeApplied`
+- `nightFuturesBridgePct`
+- `ewyFxBridgeBaselineAt`
 - `liveEwyChangePct`
 - `liveKrwChangePct`
 - `krxBaselineDate`
@@ -143,12 +146,13 @@ Diagnostics:
 
 ## Operating Invariants
 
-- `model.nightFuturesExcluded` must be `true`.
-- `pointPrediction` must not be anchored to `nightFuturesSimplePoint`.
+- Live payloads use a one-time night-futures bridge only for the EWY no-trade gap between `15:30 KST` and U.S. premarket open.
+- `model.nightFuturesBridgeApplied` must be `true` after that bridge is ready.
+- `pointPrediction` must not be anchored to the live `nightFuturesSimplePoint` path after the bridge point.
 - `pointPrediction` must not be forcibly matched to EWY direction when the statistical mapping supports a different result.
 - `nightFuturesSimplePoint` must use current KOSPI close after `15:30 KST`.
 - `nightFuturesSimplePoint` must use final KOSPI 200 day futures close after settlement.
-- `ewyFxSimplePoint` must use only EWY and USD/KRW returns from the KRX close baseline.
-- `ewyFxSimplePoint` must not use residuals, K200 mapping, or night futures.
+- `ewyFxSimplePoint` must use the one-time bridge plus EWY and USD/KRW returns after the bridge timestamp.
+- `ewyFxSimplePoint` must not use residuals or K200 mapping.
 - Same-day KOSPI 200 day futures close is final only after `15:45 KST` socket settlement.
 - The most recent actual history row must track actual open, actual close, EWY + FX conversion, day futures close, and night futures close.

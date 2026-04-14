@@ -6,7 +6,7 @@ Baseline date: 2026-04-13
 
 The production prediction engine is `EWY Synthetic K200 Ridge`.
 
-The main model prediction does not use KOSPI 200 night futures as an input. Night futures are published as a comparison benchmark only.
+The main live model prediction uses a one-time KOSPI 200 night-futures bridge only to cover the EWY no-trade gap between the KRX close and the U.S. premarket open. After that bridge point is set, live movement comes from EWY, USD/KRW, and the auxiliary U.S. signals. Night futures are still published separately as a comparison benchmark.
 
 Primary output:
 
@@ -24,19 +24,23 @@ All production time gates use Asia/Seoul time.
 - `15:30`: start live prediction operation for the next trading day.
 - `15:30`: use the completed KOSPI close as `prevClose`.
 - `15:45`: accept KOSPI 200 day futures close as final settlement only after this time.
-- `18:00~09:00`: append live prediction trend observations.
+- U.S. premarket open through `09:00`: append live prediction trend observations.
+  - During U.S. daylight time this starts at `17:00 KST`.
+  - During U.S. standard time this starts at `18:00 KST`.
 
 ## Model Input Basis
 
-Live model returns are anchored to the KRX close sync basis.
+Live model returns are anchored to the KRX close sync basis, then bridged to the first usable EWY premarket basis while EWY cannot be traded at `15:30 KST`.
 
 For each live symbol, the refresh process uses:
 
-1. first same-day quote at or after `15:30 KST` when available;
-2. otherwise the latest quote before `15:30 KST` inside the allowed lookback window;
-3. Yahoo standard displayed change only as a fallback when no KRX-sync intraday basis is available.
+1. before the U.S. premarket bridge is ready, keep `ewyFxSimplePoint` and `pointPrediction` blank;
+2. from the U.S. premarket open, sample the KOSPI 200 night-futures return every 2 minutes for 5 slots;
+3. use the latest bridge sample as the one-time `15:30 -> EWY premarket` anchor;
+4. after the bridge anchor, calculate EWY, USD/KRW, and auxiliary returns from that bridge timestamp;
+5. Yahoo standard displayed change is used only as a fallback when no synchronized intraday basis is available.
 
-This is important for EWY. Yahoo may display EWY premarket change versus the previous U.S. regular close, but the model must compare EWY from the Korean close sync point.
+This is important for EWY. Yahoo may display EWY premarket change versus the previous U.S. regular close, but the model must not treat that display value as the Korean close-to-current return.
 
 Indicator cards may still display standard market-session change values. That display basis must not be confused with model input basis.
 
@@ -60,9 +64,9 @@ Indicator cards may still display standard market-session change values. That di
 4. Stabilization
    - Prediction changes are guard-banded.
    - Live refresh applies a small smoothing weight to reduce one-minute jump noise.
-   - The model must not force night-futures direction into `pointPrediction`.
+   - The model must not force the live night-futures path into `pointPrediction` after the one-time EWY bridge has been set.
    - The model must not force EWY direction matching when the full statistical mapping produces a different valid result.
-   - The strong trend-follow floor uses only EWY + USD/KRW, so night futures remain excluded from the model path.
+   - The strong trend-follow floor uses EWY + USD/KRW after the bridge point.
 
 ## Night Futures Simple Conversion
 
@@ -83,21 +87,23 @@ Required basis:
 
 ## EWY + FX Simple Conversion
 
-EWY + FX simple conversion is separate from the statistical model. It replaces the
-night-futures input with the KRX-close-synchronized EWY and USD/KRW move.
+EWY + FX simple conversion is separate from the statistical model. Until EWY can be
+collected at `15:30 KST`, it uses the same one-time night-futures bridge as the live
+model, then applies only EWY and USD/KRW movement after that bridge timestamp.
 
 Formula:
 
 ```text
-ewyFxSimpleChangePct = exp((EWY_log_return + USDKRW_log_return) / 100) - 1
+ewyFxSimpleChangePct = exp((bridge_log_return + EWY_log_return_after_bridge + USDKRW_log_return_after_bridge) / 100) - 1
 ewyFxSimplePoint = KOSPI_close(D) * (1 + ewyFxSimpleChangePct)
 ```
 
 Required basis:
 
 - `KOSPI_close(D)` is the current completed KOSPI close after `15:30 KST`.
-- EWY and USD/KRW returns use the same KRX `15:30 KST` baseline as the model inputs.
-- No residual model, K200 mapping, or night-futures value is used.
+- The bridge log return is sampled from KOSPI 200 night futures at U.S. premarket open.
+- EWY and USD/KRW returns are measured from the bridge timestamp onward.
+- No residual model or K200 mapping is used in the EWY + FX simple conversion.
 
 ## Strong Trend Follow Floor
 
@@ -110,8 +116,8 @@ Current production rule:
 - trigger: absolute EWY + USD/KRW log-return signal at or above `2.0%`;
 - floor: final model log return should reach at least `78%` of that EWY + USD/KRW signal;
 - per-update adjustment cap: `1.75%` log-return;
-- inputs: EWY and USD/KRW only;
-- night futures remain excluded from the model path.
+- inputs: EWY and USD/KRW after the one-time bridge point;
+- the night-futures bridge is used only for the premarket synchronization gap.
 
 Diagnostics:
 

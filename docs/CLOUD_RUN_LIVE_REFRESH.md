@@ -103,8 +103,9 @@ Expected behavior:
 
 - KOSPI actual close becomes `prevClose`;
 - `prevCloseDate` and `latestRecordDate` become the current completed KOSPI session date;
-- model prediction can be published even if night futures are not live yet;
-- model input basis is the KRX `15:30 KST` sync baseline.
+- night-futures simple conversion can publish when the target night quote is available;
+- EWY + FX conversion and live model prediction stay blank until the U.S. premarket bridge is ready;
+- model input basis is the KRX `15:30 KST` sync baseline plus the one-time bridge to the EWY premarket basis.
 
 ### 15:45 day futures settlement
 
@@ -117,12 +118,14 @@ Expected behavior:
 - only final same-day socket settlement should be trusted as the final cached day futures close;
 - provisional same-day values must be refetched after settlement.
 
-### 18:00~09:00 trend series
+### U.S. premarket through 09:00 trend series
 
-`live_prediction_series.json` is updated only from `18:00 KST` through `09:00 KST`.
+`live_prediction_series.json` is updated only from U.S. premarket open through `09:00 KST`.
+This is `17:00 KST` during U.S. daylight time and `18:00 KST` during U.S. standard time.
 
 Expected behavior:
 
+- the bridge samples KOSPI 200 night-futures movement every 2 minutes for 5 slots;
 - one row per minute-level `observedAt`;
 - records keep only the active `predictionDateIso`;
 - chart compares `pointPrediction`, `nightFuturesSimplePoint`, and `ewyFxSimplePoint`.

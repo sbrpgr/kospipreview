@@ -42,22 +42,24 @@ All times are Asia/Seoul.
 - `15:30`
   - prediction operating window opens;
   - current KOSPI close becomes `prevClose`;
-  - model prediction can publish without night futures.
+  - night-futures simple conversion can publish when the target night quote is available;
+  - EWY + FX conversion and live model prediction stay blank until the U.S. premarket bridge is ready.
 - `15:45`
   - KOSPI 200 day futures close can be final if the eSignal socket close timestamp is at or after this time.
-- `18:00~09:00`
-  - live prediction trend chart records minute-level observations.
+- U.S. premarket open through `09:00`
+  - live prediction trend chart records minute-level observations;
+  - starts at `17:00 KST` during U.S. daylight time and `18:00 KST` during U.S. standard time.
 
 ## Current Model Rules
 
-- Model input basis: KRX `15:30 KST` sync basis.
+- Model input basis: KRX `15:30 KST` sync basis plus a one-time night-futures bridge to the EWY premarket basis.
 - Indicator card display basis: standard market displayed change.
 - Yahoo EWY premarket displayed change versus prior U.S. close must not be used ahead of the KRX-sync EWY return.
-- Night futures are excluded from the model path.
-- Night futures remain comparison and validation data only.
-- `model.nightFuturesExcluded` should be `true`.
+- Night futures are used only once to bridge the `15:30 -> U.S. premarket open` EWY no-trade gap.
+- Night futures remain separately published as comparison and validation data.
+- `model.nightFuturesBridgeApplied` should be `true` after the bridge is ready.
 - Strong EWY + USD/KRW trend moves can activate `model.trendFollowApplied`,
-  which lifts compressed model output without using night futures.
+  which lifts compressed model output using EWY + USD/KRW after the bridge point.
 - Night futures simple conversion should carry forward the last observed quote
   from the target night session through `09:00 KST`; session close alone must
   not blank the target operating day's displayed/simple-record value.
@@ -74,8 +76,9 @@ All times are Asia/Seoul.
   observed inside that target night session until the `09:00 KST` rollover.
 - EWY + FX simple conversion uses:
   - current KOSPI close;
-  - KRX-close-synchronized EWY return;
-  - KRX-close-synchronized USD/KRW return.
+  - one-time night-futures bridge sampled from U.S. premarket open;
+  - EWY return after the bridge timestamp;
+  - USD/KRW return after the bridge timestamp.
 - `history.json` recent actual rows track:
   - `actualOpen`
   - `actualClose`

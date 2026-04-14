@@ -2,6 +2,13 @@
 
 ## 2026-04-14
 
+- EWY premarket bridge correction
+  - EWY + FX conversion and live model prediction now stay blank after `15:30 KST` until the U.S. premarket bridge is ready.
+  - The bridge starts at `17:00 KST` during U.S. daylight time and `18:00 KST` during U.S. standard time.
+  - The bridge samples KOSPI 200 night-futures movement every 2 minutes for 5 slots, then uses the latest bridge sample as the one-time `15:30 -> EWY premarket` synchronization anchor.
+  - After the bridge anchor, EWY + FX and live model movement are measured from the bridge timestamp so the missing EWY no-trade gap is not ignored.
+  - `model.nightFuturesBridgeApplied` and `model.nightFuturesBridgePct` document the one-time bridge; the card label now says `모델 예측 (야간선물 브릿지 1회 보정)`.
+
 - Recent actual futures close guard
   - Recent actual rows no longer let the next target night's live `nightFuturesClose` overwrite the completed actual date.
   - `dayFuturesClose` in recent actual rows now accepts only final eSignal socket settlement for the same actual date.
@@ -11,7 +18,7 @@
   - The EWY Synthetic K200 model now applies an EWY + USD/KRW trend-follow floor when the EWY + USD/KRW signal is at least `2.0%`.
   - The floor requires the final model log return to reach at least `78%` of the EWY + USD/KRW signal, capped to a `1.75%` per-update adjustment.
   - This addresses the `2026-04-14` open miss where the model predicted `5874.72` against an actual open of `5960.00` while EWY + FX and night-futures conversions were near `5995~5998`.
-  - Night futures remain fully excluded from the model path.
+  - Superseded by the one-time EWY premarket bridge rule above; after the bridge point, live movement still comes from EWY + USD/KRW.
 
 - Night futures simple conversion carry-forward
   - `nightFuturesSimplePoint`, `nightFuturesSimpleChangePct`, and `nightFuturesClose` now remain populated after the night futures session closes when the quote belongs to the active target night session.
@@ -37,7 +44,7 @@
 - Live operating schedule and settlement rules finalized
   - Prediction target rolls to the next business day at `09:00 KST`.
   - Live prediction operation runs `15:30~09:00 KST`.
-  - Live prediction trend observations are recorded only during `18:00~09:00 KST`.
+  - Live prediction trend observations were recorded only during `18:00~09:00 KST`; this was later superseded by the U.S. premarket-open rule.
   - KOSPI close after `15:30 KST` is used as the prediction `prevClose`.
   - KOSPI 200 day futures close is treated as final only from eSignal socket settlement at or after `15:45 KST`.
 
@@ -125,7 +132,7 @@
   - Night futures were fully removed from the model path and kept as comparison-only data.
   - Residual correction now auto-downweights itself when recent time-series validation does not improve accuracy.
   - Live refresh (`scripts/refresh_night_futures.py`) now recomputes prediction values with the same model metadata used by the training pipeline.
-  - Home hero label now explicitly states `모델 예측 (야간 선물 지표 완전 미사용)`.
+  - Home hero label then stated `모델 예측 (야간 선물 지표 완전 미사용)`; this was later superseded by the bridge label.
   - Current model spec documented in `docs/MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`.
 
 - Prediction refresh cadence update
@@ -136,7 +143,7 @@
   - Internal KRX-sync correction is limited to model prediction calculations and is not mixed into dashboard indicator display.
 - Model logic realignment
   - `scripts/backtest_and_generate.py` keeps model prediction on no-night-futures path (`night_futures_change=None` in core blending).
-  - Metadata now reports `EWYCore+AuxSignals+NoNightFutures(KRXCloseSync)` and `nightFuturesExcluded=true`.
+  - Metadata then reported `EWYCore+AuxSignals+NoNightFutures(KRXCloseSync)` and `nightFuturesExcluded=true`; live refresh now reports the one-time bridge fields when active.
   - Anchor metadata bug fixed: `auxiliaryAnchorPct` now maps to auxiliary anchor instead of main anchor.
   - EWY/FX core anchor revised to `EWY + USD/KRW 변화율` (환율 하락분 차감), while U.S. index signals are blended only as auxiliary correction.
   - KRX sync baseline selection now prioritizes the first same-day quote at/after `15:30 KST` (e.g., EWY premarket 17:00 KST), then falls back to pre-15:30 quote if needed.

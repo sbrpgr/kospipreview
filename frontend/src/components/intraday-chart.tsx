@@ -59,7 +59,7 @@ export function IntradayChart({ closePrice, expectedHigh, expectedLow, expectedP
       <div className="intradayChartHeader">
         <div>
           <div className="intradayChartTitle">시초가 수렴 궤적 시뮬레이션</div>
-          <div className="intradayChartSubtitle">야간선물 변동성 기반 모델링 (18:00 → 09:00)</div>
+          <div className="intradayChartSubtitle">프리장 브릿지 기반 모델링 (17:00/18:00 → 09:00)</div>
         </div>
         <span className="intradayChartLive">
           <span className="intradayChartLiveDot" />

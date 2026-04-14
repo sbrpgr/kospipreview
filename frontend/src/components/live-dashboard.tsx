@@ -487,7 +487,7 @@ export function LiveDashboard({
               <div className="heroForecastMeta">EWY와 USD/KRW 기준</div>
             </div>
             <div className="heroForecastCard isModel">
-              <div className="heroForecastLabel">모델 예측 (야간 선물 지표 완전 미사용)</div>
+              <div className="heroForecastLabel">모델 예측 (야간선물 브릿지 1회 보정)</div>
               <div className="heroForecastValue">
                 {isModelForecastReady ? modelPoint.toLocaleString("ko-KR") : "-"}
               </div>

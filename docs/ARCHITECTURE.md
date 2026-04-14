@@ -100,19 +100,22 @@ All times are Asia/Seoul.
 - `15:30`
   - live prediction operation begins;
   - KOSPI close is used as `prevClose`;
-  - the model can publish without night futures.
+  - night-futures simple conversion can publish when the target night quote is available;
+  - EWY + FX conversion and live model prediction remain blank until the U.S. premarket bridge is ready.
 - `15:45`
   - same-day KOSPI 200 day futures close can be accepted as final only when the eSignal socket close timestamp is at or after this time.
-- `18:00~09:00`
+- U.S. premarket open through `09:00`
+  - EWY + FX and live model prediction are enabled after the bridge anchor is sampled;
+  - starts at `17:00 KST` during U.S. daylight time and `18:00 KST` during U.S. standard time;
   - live prediction trend chart records one row per minute.
 
 ## Model And Data Rules
 
 - Current engine: `EWY Synthetic K200 Ridge`.
-- Model input basis: KRX close sync basis at `15:30 KST`.
+- Model input basis: KRX close sync basis at `15:30 KST`, then a one-time night-futures bridge to the U.S. premarket EWY basis.
 - Indicator display basis: market-standard displayed change.
-- Night futures: comparison and validation only.
-- `model.nightFuturesExcluded` must stay `true` for the current production model.
+- Night futures: comparison, validation, and one-time EWY premarket bridge only.
+- `model.nightFuturesExcluded` is `false` for live payloads using the bridge, and `model.nightFuturesBridgeApplied` records that status.
 - Night futures simple conversion uses:
   - current completed KOSPI close;
   - final KOSPI 200 day futures close;
@@ -130,7 +133,7 @@ Rules:
 - duplicate minute rows are replaced;
 - only the active `predictionDateIso` is retained;
 - max retained rows: `1080`;
-- rows are appended only during `18:00~09:00 KST`.
+- rows are appended only from U.S. premarket open through `09:00 KST`.
 
 Fields:
 

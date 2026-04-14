@@ -69,7 +69,7 @@ PREDICTION_OPERATION_END = time(9, 0)
 PREDICTION_OPERATION_HOURS_LABEL = "15:30~09:00"
 PREDICTION_TREND_OPERATION_START = time(18, 0)
 PREDICTION_TREND_OPERATION_END = time(9, 0)
-PREDICTION_TREND_OPERATION_HOURS_LABEL = "18:00~09:00"
+PREDICTION_TREND_OPERATION_HOURS_LABEL = "17:00/18:00~09:00"
 NIGHT_OPERATION_START = time(18, 0)
 NIGHT_OPERATION_END = time(6, 30)
 NIGHT_FUTURES_STALE_MINUTES = 180
@@ -143,6 +143,9 @@ BRIDGE_GUARD_BAND_MIN_PCT = 0.65
 BRIDGE_GUARD_BAND_SHARE = 0.58
 US_PREMARKET_OPEN_ET = time(4, 0)
 US_SESSION_END_ET = time(20, 0)
+EWY_FX_BRIDGE_MODEL_KEY = "ewyFxNightBridge"
+EWY_FX_BRIDGE_SAMPLE_INTERVAL_MINUTES = 2
+EWY_FX_BRIDGE_SAMPLE_COUNT = 5
 MACRO_SHOCK_US10Y_TRIGGER_PCT = 1.2
 MACRO_SHOCK_WTI_TRIGGER_PCT = 3.0
 RISK_OFF_GOLD_TRIGGER_PCT = 0.40
@@ -272,9 +275,18 @@ def is_prediction_operation_window(now_utc: datetime) -> bool:
     return current >= PREDICTION_OPERATION_START or current < PREDICTION_OPERATION_END
 
 
+def resolve_us_premarket_open_kst(session_date: date) -> datetime:
+    premarket_open_et = datetime.combine(session_date, US_PREMARKET_OPEN_ET, tzinfo=US_ET)
+    return premarket_open_et.astimezone(KST)
+
+
 def is_prediction_trend_operation_window(now_utc: datetime) -> bool:
-    current = now_utc.astimezone(KST).time()
-    return current >= PREDICTION_TREND_OPERATION_START or current < PREDICTION_TREND_OPERATION_END
+    now_kst = now_utc.astimezone(KST)
+    if now_kst.time() < PREDICTION_TREND_OPERATION_END:
+        return True
+
+    premarket_open_kst = resolve_us_premarket_open_kst(now_kst.date())
+    return now_kst >= premarket_open_kst
 
 
 def load_live_prediction_series() -> dict:
@@ -1160,12 +1172,53 @@ def format_indicator_value(key: str, value: float) -> str:
     return f"{value:,.2f}"
 
 
-def fetch_yahoo_intraday_return_pct(symbol: str, baseline_session_date: str | None) -> float | None:
+def resolve_yahoo_baseline_kst(
+    baseline_session_date: str | None,
+    baseline_kst_override: datetime | None = None,
+) -> datetime | None:
+    if baseline_kst_override is not None:
+        return baseline_kst_override.astimezone(KST)
     if not baseline_session_date:
         return None
     try:
         baseline_date = date.fromisoformat(baseline_session_date)
     except ValueError:
+        return None
+    return datetime.combine(baseline_date, KRX_SYNC_BASELINE_TIME, tzinfo=KST)
+
+
+def select_yahoo_intraday_baseline_point(
+    points: list[tuple[datetime, float]],
+    baseline_kst: datetime,
+) -> tuple[datetime, float] | None:
+    points_kst = [(ts_utc.astimezone(KST), ts_utc, close) for ts_utc, close in points]
+    same_day_points = [row for row in points_kst if row[0].date() == baseline_kst.date()]
+
+    if same_day_points:
+        forward_points = [row for row in same_day_points if row[0] >= baseline_kst]
+        if forward_points:
+            ts_kst, ts_utc, close = forward_points[0]
+            delay_hours = (ts_kst - baseline_kst).total_seconds() / 3600
+            if delay_hours <= KRX_SYNC_MAX_FORWARD_HOURS:
+                return ts_utc, close
+
+    backward_points = [row for row in points_kst if row[0] <= baseline_kst]
+    if backward_points:
+        ts_kst, ts_utc, close = backward_points[-1]
+        lookback_hours = (baseline_kst - ts_kst).total_seconds() / 3600
+        if lookback_hours <= KRX_SYNC_MAX_LOOKBACK_HOURS:
+            return ts_utc, close
+
+    return None
+
+
+def fetch_yahoo_intraday_return_pct(
+    symbol: str,
+    baseline_session_date: str | None,
+    baseline_kst_override: datetime | None = None,
+) -> float | None:
+    baseline_kst = resolve_yahoo_baseline_kst(baseline_session_date, baseline_kst_override)
+    if baseline_kst is None:
         return None
 
     points = fetch_yahoo_chart_points(symbol)
@@ -1173,28 +1226,8 @@ def fetch_yahoo_intraday_return_pct(symbol: str, baseline_session_date: str | No
     if not points:
         return None
 
-    baseline_kst = datetime.combine(baseline_date, KRX_SYNC_BASELINE_TIME, tzinfo=KST)
     latest_ts_utc, latest_close = points[-1]
-
-    points_kst = [(ts_utc.astimezone(KST), ts_utc, close) for ts_utc, close in points]
-    same_day_points = [row for row in points_kst if row[0].date() == baseline_date]
-
-    baseline_point: tuple[datetime, float] | None = None
-    if same_day_points:
-        forward_points = [row for row in same_day_points if row[0] >= baseline_kst]
-        if forward_points:
-            ts_kst, ts_utc, close = forward_points[0]
-            delay_hours = (ts_kst - baseline_kst).total_seconds() / 3600
-            if delay_hours <= KRX_SYNC_MAX_FORWARD_HOURS:
-                baseline_point = (ts_utc, close)
-
-    if baseline_point is None:
-        backward_points = [row for row in points_kst if row[0] <= baseline_kst]
-        if backward_points:
-            ts_kst, ts_utc, close = backward_points[-1]
-            lookback_hours = (baseline_kst - ts_kst).total_seconds() / 3600
-            if lookback_hours <= KRX_SYNC_MAX_LOOKBACK_HOURS:
-                baseline_point = (ts_utc, close)
+    baseline_point = select_yahoo_intraday_baseline_point(points, baseline_kst)
 
     if baseline_point is None:
         return None
@@ -1211,12 +1244,10 @@ def fetch_yahoo_intraday_model_change(
     baseline_session_date: str | None,
     *,
     diff_mode: bool = False,
+    baseline_kst_override: datetime | None = None,
 ) -> float | None:
-    if not baseline_session_date:
-        return None
-    try:
-        baseline_date = date.fromisoformat(baseline_session_date)
-    except ValueError:
+    baseline_kst = resolve_yahoo_baseline_kst(baseline_session_date, baseline_kst_override)
+    if baseline_kst is None:
         return None
 
     points = fetch_yahoo_chart_points(symbol)
@@ -1224,28 +1255,8 @@ def fetch_yahoo_intraday_model_change(
     if not points:
         return None
 
-    baseline_kst = datetime.combine(baseline_date, KRX_SYNC_BASELINE_TIME, tzinfo=KST)
     latest_ts_utc, latest_close = points[-1]
-
-    points_kst = [(ts_utc.astimezone(KST), ts_utc, close) for ts_utc, close in points]
-    same_day_points = [row for row in points_kst if row[0].date() == baseline_date]
-
-    baseline_point: tuple[datetime, float] | None = None
-    if same_day_points:
-        forward_points = [row for row in same_day_points if row[0] >= baseline_kst]
-        if forward_points:
-            ts_kst, ts_utc, close = forward_points[0]
-            delay_hours = (ts_kst - baseline_kst).total_seconds() / 3600
-            if delay_hours <= KRX_SYNC_MAX_FORWARD_HOURS:
-                baseline_point = (ts_utc, close)
-
-    if baseline_point is None:
-        backward_points = [row for row in points_kst if row[0] <= baseline_kst]
-        if backward_points:
-            ts_kst, ts_utc, close = backward_points[-1]
-            lookback_hours = (baseline_kst - ts_kst).total_seconds() / 3600
-            if lookback_hours <= KRX_SYNC_MAX_LOOKBACK_HOURS:
-                baseline_point = (ts_utc, close)
+    baseline_point = select_yahoo_intraday_baseline_point(points, baseline_kst)
 
     if baseline_point is None:
         return None
@@ -1607,6 +1618,7 @@ def fetch_live_prediction_inputs(
     baseline_session_date: str | None,
     correction_params: dict[str, float] | None = None,
     market_snapshot_cache: dict[str, dict | None] | None = None,
+    baseline_kst_override: datetime | None = None,
 ) -> tuple[dict[str, float], dict[str, float]]:
     ticker_map = {
         "ewy": "EWY",
@@ -1633,7 +1645,7 @@ def fetch_live_prediction_inputs(
         # Live model inputs are anchored to the KOSPI close sync point.
         # Yahoo's displayed pre/after-market change is versus the prior US close,
         # so use it only when the intraday KRX-baseline series is unavailable.
-        display_value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date)
+        display_value = fetch_yahoo_intraday_return_pct(ticker, baseline_session_date, baseline_kst_override)
         if display_value is None:
             display_value = to_float(snapshot.get("change_pct")) if isinstance(snapshot, dict) else None
 
@@ -1641,6 +1653,7 @@ def fetch_live_prediction_inputs(
             ticker,
             baseline_session_date,
             diff_mode=(key == "us10y"),
+            baseline_kst_override=baseline_kst_override,
         )
         if model_value is None:
             model_value = market_snapshot_change_for_model(snapshot, diff_mode=(key == "us10y"))
@@ -1700,6 +1713,155 @@ def resolve_kospi_close_for_prediction_baseline(baseline_session_date: str | Non
     except ValueError:
         return None
     return fetch_kospi_actual_close_quote(target_date)
+
+
+def resolve_ewy_fx_bridge_start_kst(baseline_session_date: str | None) -> datetime | None:
+    if not baseline_session_date:
+        return None
+    try:
+        session_date = date.fromisoformat(baseline_session_date)
+    except ValueError:
+        return None
+    return resolve_us_premarket_open_kst(session_date)
+
+
+def clear_ewy_fx_bridge_effective_fields(state: dict) -> None:
+    for key in (
+        "baselineAt",
+        "baselineAtKst",
+        "changePct",
+        "logReturnPct",
+        "nightFuturesClose",
+        "sampleSlot",
+        "sampleMode",
+    ):
+        state.pop(key, None)
+
+
+def get_ewy_fx_bridge_samples(state: dict) -> list[dict]:
+    samples = state.get("samples")
+    if not isinstance(samples, list):
+        samples = []
+    valid_samples = [sample for sample in samples if isinstance(sample, dict)]
+    valid_samples.sort(key=lambda sample: (int(to_float(sample.get("slot")) or 0), str(sample.get("observedAt", ""))))
+    state["samples"] = valid_samples
+    return valid_samples
+
+
+def is_ewy_fx_bridge_ready(state: dict | None) -> bool:
+    if not isinstance(state, dict):
+        return False
+    return to_float(state.get("logReturnPct")) is not None and parse_iso_datetime_utc(state.get("baselineAt")) is not None
+
+
+def update_ewy_fx_night_bridge_state(
+    model_payload: dict,
+    baseline_session_date: str | None,
+    prediction_target_date_iso: str | None,
+    now_utc: datetime,
+    quote: dict | None,
+    *,
+    has_target_night_quote: bool,
+    night_futures_change: float | None,
+) -> dict:
+    bridge_start_kst = resolve_ewy_fx_bridge_start_kst(baseline_session_date)
+    bridge_start_at = bridge_start_kst.astimezone(timezone.utc).isoformat() if bridge_start_kst else None
+    existing = model_payload.get(EWY_FX_BRIDGE_MODEL_KEY)
+    if not isinstance(existing, dict):
+        existing = {}
+
+    if (
+        existing.get("baselineDate") != baseline_session_date
+        or existing.get("predictionDate") != prediction_target_date_iso
+    ):
+        state: dict = {"samples": []}
+    else:
+        state = dict(existing)
+        state["samples"] = list(get_ewy_fx_bridge_samples(state))
+
+    state["baselineDate"] = baseline_session_date
+    state["predictionDate"] = prediction_target_date_iso
+    state["startAt"] = bridge_start_at
+    state["startAtKst"] = bridge_start_kst.isoformat() if bridge_start_kst else None
+    state["sampleIntervalMinutes"] = EWY_FX_BRIDGE_SAMPLE_INTERVAL_MINUTES
+    state["sampleTargetCount"] = EWY_FX_BRIDGE_SAMPLE_COUNT
+    state["updatedAt"] = now_utc.isoformat()
+
+    if bridge_start_kst is None:
+        state["status"] = "awaiting-baseline"
+        clear_ewy_fx_bridge_effective_fields(state)
+        model_payload[EWY_FX_BRIDGE_MODEL_KEY] = state
+        return state
+
+    now_kst = now_utc.astimezone(KST)
+    if now_kst < bridge_start_kst:
+        state["status"] = "awaiting-premarket"
+        clear_ewy_fx_bridge_effective_fields(state)
+        model_payload[EWY_FX_BRIDGE_MODEL_KEY] = state
+        return state
+
+    samples = get_ewy_fx_bridge_samples(state)
+    can_sample = has_target_night_quote and night_futures_change is not None
+    elapsed_seconds = max(0.0, (now_kst - bridge_start_kst).total_seconds())
+    sample_slot = int(elapsed_seconds // (EWY_FX_BRIDGE_SAMPLE_INTERVAL_MINUTES * 60))
+    is_scheduled_slot = 0 <= sample_slot < EWY_FX_BRIDGE_SAMPLE_COUNT
+    should_take_late_fallback = not samples and not is_scheduled_slot
+
+    if can_sample and (is_scheduled_slot or should_take_late_fallback):
+        bridge_log_return = simple_return_pct_to_log_return_pct(float(night_futures_change))
+        if bridge_log_return is not None:
+            observed_at = now_utc.replace(microsecond=0)
+            observed_at_kst = observed_at.astimezone(KST)
+            night_futures_close = to_float((quote or {}).get("price"))
+            sample = {
+                "slot": sample_slot if is_scheduled_slot else EWY_FX_BRIDGE_SAMPLE_COUNT,
+                "mode": "scheduled" if is_scheduled_slot else "late-fallback",
+                "observedAt": observed_at.isoformat(),
+                "observedAtKst": observed_at_kst.isoformat(),
+                "nightFuturesClose": round(night_futures_close, 2) if night_futures_close is not None else None,
+                "changePct": round(float(night_futures_change), 4),
+                "logReturnPct": round(float(bridge_log_return), 6),
+            }
+            by_slot = {int(to_float(item.get("slot")) or 0): item for item in samples}
+            by_slot[int(sample["slot"])] = sample
+            samples = sorted(by_slot.values(), key=lambda item: (int(to_float(item.get("slot")) or 0), item["observedAt"]))
+            state["samples"] = samples
+
+    if not samples:
+        state["status"] = "awaiting-night-quote"
+        clear_ewy_fx_bridge_effective_fields(state)
+        model_payload[EWY_FX_BRIDGE_MODEL_KEY] = state
+        return state
+
+    effective_sample = samples[-1]
+    state["baselineAt"] = effective_sample.get("observedAt")
+    state["baselineAtKst"] = effective_sample.get("observedAtKst")
+    state["changePct"] = effective_sample.get("changePct")
+    state["logReturnPct"] = effective_sample.get("logReturnPct")
+    state["nightFuturesClose"] = effective_sample.get("nightFuturesClose")
+    state["sampleSlot"] = effective_sample.get("slot")
+    state["sampleMode"] = effective_sample.get("mode")
+    state["sampleCount"] = len(samples)
+
+    complete_seconds = (EWY_FX_BRIDGE_SAMPLE_COUNT - 1) * EWY_FX_BRIDGE_SAMPLE_INTERVAL_MINUTES * 60
+    if effective_sample.get("mode") == "late-fallback":
+        state["status"] = "late-fallback"
+    elif int(to_float(effective_sample.get("slot")) or 0) >= EWY_FX_BRIDGE_SAMPLE_COUNT - 1:
+        state["status"] = "ready"
+    elif elapsed_seconds >= complete_seconds:
+        state["status"] = "ready-partial"
+    else:
+        state["status"] = "sampling"
+
+    model_payload[EWY_FX_BRIDGE_MODEL_KEY] = state
+    return state
+
+
+def resolve_ewy_fx_bridge_baseline_kst(state: dict | None) -> datetime | None:
+    if not is_ewy_fx_bridge_ready(state):
+        return None
+    baseline_at = parse_iso_datetime_utc(state.get("baselineAt"))
+    return baseline_at.astimezone(KST) if baseline_at is not None else None
 
 
 def apply_ewy_alignment_guard(predicted_change: float, ewy_change: float | None) -> float:
@@ -2481,6 +2643,46 @@ def apply_prediction_pending_state(payload: dict, now_utc: datetime) -> dict:
     return payload
 
 
+def apply_prediction_ewy_bridge_waiting_state(payload: dict, now_utc: datetime, bridge_state: dict) -> dict:
+    model_payload = payload.get("model")
+    if not isinstance(model_payload, dict):
+        model_payload = {}
+        payload["model"] = model_payload
+
+    payload["pointPrediction"] = None
+    payload["ewyFxSimplePoint"] = None
+    payload["ewyFxSimpleChangePct"] = None
+    payload["rangeLow"] = None
+    payload["rangeHigh"] = None
+    payload["predictedChangePct"] = None
+    payload["lastCalculatedAt"] = None
+
+    bridge_start = parse_iso_datetime_utc(bridge_state.get("startAt"))
+    if bridge_start is not None:
+        start_label = bridge_start.astimezone(KST).strftime("%H:%M")
+        payload["signalSummary"] = (
+            f"EWY 프리장 기준점은 {start_label}부터 2분 간격 5회 야간선물 브릿지 보정 후 표시됩니다."
+        )
+    else:
+        payload["signalSummary"] = "EWY 프리장 기준점이 준비되면 모델 예측값이 표시됩니다."
+
+    payload["generatedAt"] = now_utc.isoformat()
+    model_payload["isOperationWindow"] = is_prediction_operation_window(now_utc)
+    model_payload["operationHours"] = PREDICTION_OPERATION_HOURS_LABEL
+    model_payload["predictionPhase"] = "awaiting-ewy-bridge"
+    model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()
+    model_payload["calculationMode"] = "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(WaitingForEwyPremarketBridge)"
+    model_payload["nightFuturesExcluded"] = False
+    model_payload["nightFuturesBridgeApplied"] = False
+    model_payload["nightFuturesBridgePct"] = None
+    model_payload["ewyFxBridgeBaselineAt"] = None
+    model_payload["trendFollowApplied"] = False
+    model_payload["trendFollowSignalPct"] = None
+    model_payload["trendFollowMinPct"] = None
+    model_payload["trendFollowAdjustmentPct"] = None
+    return payload
+
+
 def ensure_prediction_target_rollover(payload: dict, now_utc: datetime) -> dict:
     target_date = resolve_prediction_target_date(now_utc.astimezone(KST))
     target_iso = target_date.isoformat()
@@ -2577,6 +2779,29 @@ def update_prediction_night_fields(
                 payload["futuresDayCloseDate"] = session_date
         return apply_prediction_pending_state(payload, now_utc)
 
+    bridge_state = update_ewy_fx_night_bridge_state(
+        model_payload,
+        baseline_session_date,
+        prediction_target_date_iso,
+        now_utc,
+        quote,
+        has_target_night_quote=has_target_night_quote,
+        night_futures_change=night_futures_change,
+    )
+    bridge_log_return = to_float(bridge_state.get("logReturnPct"))
+    bridge_baseline_kst = resolve_ewy_fx_bridge_baseline_kst(bridge_state)
+
+    if not is_ewy_fx_bridge_ready(bridge_state) or bridge_log_return is None or bridge_baseline_kst is None:
+        if day_close_quote:
+            try:
+                payload["futuresDayClose"] = round(float(day_close_quote.get("close")), 2)
+            except (TypeError, ValueError):
+                pass
+            session_date = day_close_quote.get("session_date")
+            if isinstance(session_date, str) and session_date:
+                payload["futuresDayCloseDate"] = session_date
+        return apply_prediction_ewy_bridge_waiting_state(payload, now_utc, bridge_state)
+
     payload["ewyFxSimpleChangePct"] = None
     payload["ewyFxSimplePoint"] = None
 
@@ -2587,14 +2812,20 @@ def update_prediction_night_fields(
 
         if market_snapshot_cache is not None:
             live_display_returns, live_model_returns = fetch_live_prediction_inputs(
-                baseline_session_date, correction_params, market_snapshot_cache
+                baseline_session_date,
+                correction_params,
+                market_snapshot_cache,
+                baseline_kst_override=bridge_baseline_kst,
             )
         else:
             live_display_returns, live_model_returns = fetch_live_prediction_inputs(
-                baseline_session_date, correction_params
+                baseline_session_date,
+                correction_params,
+                baseline_kst_override=bridge_baseline_kst,
             )
-        ewy_fx_simple_return = compute_ewy_fx_simple_log_return(live_model_returns, live_display_returns)
-        if ewy_fx_simple_return is not None:
+        ewy_fx_after_bridge_return = compute_ewy_fx_simple_log_return(live_model_returns, live_display_returns)
+        if ewy_fx_after_bridge_return is not None:
+            ewy_fx_simple_return = float(bridge_log_return) + float(ewy_fx_after_bridge_return)
             ewy_fx_simple_change = log_return_pct_to_simple_return_pct(ewy_fx_simple_return)
             payload["ewyFxSimpleChangePct"] = (
                 round(ewy_fx_simple_change, 2) if ewy_fx_simple_change is not None else None
@@ -2611,7 +2842,16 @@ def update_prediction_night_fields(
             mapping_artifact=mapping_artifact,
         )
         if prediction_components.get("ready"):
-            refreshed_change = to_float(prediction_components.get("predicted_kospi_simple_pct"))
+            after_bridge_change = to_float(prediction_components.get("predicted_kospi_simple_pct"))
+            after_bridge_return = (
+                simple_return_pct_to_log_return_pct(after_bridge_change)
+                if after_bridge_change is not None
+                else to_float(prediction_components.get("predicted_kospi_return"))
+            )
+            if after_bridge_return is None:
+                after_bridge_return = 0.0
+            refreshed_return = float(bridge_log_return) + float(after_bridge_return)
+            refreshed_change = log_return_pct_to_simple_return_pct(refreshed_return)
             if refreshed_change is None:
                 refreshed_change = to_float(payload.get("predictedChangePct")) or 0.0
 
@@ -2624,7 +2864,7 @@ def update_prediction_night_fields(
 
             refreshed_return = simple_return_pct_to_log_return_pct(refreshed_change)
             if refreshed_return is None:
-                refreshed_return = to_float(prediction_components.get("predicted_kospi_return")) or 0.0
+                refreshed_return = float(bridge_log_return) + float(after_bridge_return)
 
             point_prediction = price_from_log_return(prev_close, refreshed_return)
             range_low = to_float(payload.get("rangeLow"))
@@ -2642,17 +2882,42 @@ def update_prediction_night_fields(
             payload["lastCalculatedAt"] = now_utc.isoformat()
 
             model_payload["engine"] = "EWY Synthetic K200 Ridge"
-            model_payload["calculationMode"] = "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(NoNightFuturesLiveRefresh)"
-            model_payload["nightFuturesExcluded"] = True
+            model_payload["calculationMode"] = (
+                "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(OneShotNightFuturesBridge)"
+            )
+            model_payload["nightFuturesExcluded"] = False
+            model_payload["nightFuturesBridgeApplied"] = True
+            bridge_change_pct = log_return_pct_to_simple_return_pct(float(bridge_log_return))
+            model_payload["nightFuturesBridgePct"] = (
+                round(bridge_change_pct, 2) if bridge_change_pct is not None else None
+            )
+            model_payload["nightFuturesBridgeStatus"] = bridge_state.get("status")
+            model_payload["nightFuturesBridgeSampleCount"] = bridge_state.get("sampleCount")
+            model_payload["ewyFxBridgeBaselineAt"] = bridge_state.get("baselineAt")
+            model_payload["ewyFxBridgeBaselineAtKst"] = bridge_state.get("baselineAtKst")
             model_payload["nightFuturesAnchorPct"] = None
             model_payload["auxiliaryAnchorPct"] = None
-            model_payload["bridgeAnchorPct"] = None
+            model_payload["bridgeAnchorPct"] = model_payload["nightFuturesBridgePct"]
             core_anchor = to_float(prediction_components.get("core_kospi_return"))
             if core_anchor is not None:
-                model_payload["coreAnchorPct"] = round(log_return_pct_to_simple_return_pct(core_anchor) or 0.0, 2)
+                model_payload["coreAfterBridgePct"] = round(
+                    log_return_pct_to_simple_return_pct(core_anchor) or 0.0,
+                    2,
+                )
+                model_payload["coreAnchorPct"] = round(
+                    log_return_pct_to_simple_return_pct(float(bridge_log_return) + core_anchor) or 0.0,
+                    2,
+                )
             raw_model_pct = to_float(prediction_components.get("predicted_kospi_simple_pct_pre_guard"))
             if raw_model_pct is not None:
-                model_payload["rawModelPct"] = round(raw_model_pct, 2)
+                raw_model_return = simple_return_pct_to_log_return_pct(raw_model_pct)
+                raw_total_pct = (
+                    log_return_pct_to_simple_return_pct(float(bridge_log_return) + raw_model_return)
+                    if raw_model_return is not None
+                    else raw_model_pct
+                )
+                model_payload["rawModelPct"] = round(raw_total_pct or 0.0, 2)
+                model_payload["rawModelAfterBridgePct"] = round(raw_model_pct, 2)
             model_payload.pop("mappingDirectionGuardApplied", None)
             model_payload.pop("mappingDirectionGuardPct", None)
             mapping_intercept = to_float(prediction_components.get("mapping_intercept_return"))
@@ -2715,6 +2980,18 @@ def update_prediction_night_fields(
             live_krw_change = live_display_returns.get("krw")
             if live_krw_change is not None:
                 model_payload["liveKrwChangePct"] = round(float(live_krw_change), 2)
+            summary_parts: list[str] = []
+            if bridge_change_pct is not None:
+                bridge_direction = "상방" if bridge_change_pct >= 0 else "하방"
+                summary_parts.append(f"야간선물 브릿지 {bridge_direction} {abs(bridge_change_pct):.2f}%")
+            if live_ewy_change is not None:
+                ewy_direction = "상방" if live_ewy_change >= 0 else "하방"
+                summary_parts.append(f"브릿지 이후 EWY {ewy_direction} {abs(float(live_ewy_change)):.2f}%")
+            if live_krw_change is not None:
+                krw_direction = "상방" if live_krw_change >= 0 else "하방"
+                summary_parts.append(f"브릿지 이후 USD/KRW {krw_direction} {abs(float(live_krw_change)):.2f}%")
+            if summary_parts:
+                payload["signalSummary"] = " · ".join(summary_parts)
             model_payload["ewyFxIntercept"] = round(float(correction_params["intercept"]), 4)
             model_payload["ewyFxEwyCoef"] = round(float(correction_params["ewy_coef"]), 4)
             model_payload["ewyFxKrwCoef"] = round(float(correction_params["krw_coef"]), 4)
