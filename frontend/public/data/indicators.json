@@ -45,7 +45,7 @@
       "checkedAt": "2026-04-14T10:52:35.943194+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EGSPC",
       "dataSource": "Yahoo Finance",
-      "displayTag": "(장 시작전)",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     }
   ],
@@ -59,7 +59,7 @@
       "checkedAt": "2026-04-14T10:52:35.943194+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
-      "displayTag": "(장 시작전)",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     },
     {
@@ -110,7 +110,7 @@
       "checkedAt": "2026-04-14T10:52:35.943194+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EDJI",
       "dataSource": "Yahoo Finance",
-      "displayTag": "(장 시작전)",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     },
     {
@@ -146,7 +146,7 @@
       "checkedAt": "2026-04-14T10:52:35.943194+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ESOX",
       "dataSource": "Yahoo Finance",
-      "displayTag": "(장 시작전)",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     }
   ],
