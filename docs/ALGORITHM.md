@@ -114,8 +114,8 @@ EWY + USD/KRW move is large enough to make near-flat model output unreliable.
 
 Current production rule:
 
-- medium trigger: absolute EWY + USD/KRW log-return signal at or above `0.70%`;
-- medium floor: final model log return should reach at least `62%` of that EWY + USD/KRW signal;
+- medium trigger: absolute EWY + USD/KRW log-return signal at or above `0.45%`;
+- medium floor: final model log return should reach at least `70%` of that EWY + USD/KRW signal;
 - high trigger: absolute EWY + USD/KRW log-return signal at or above `2.0%`;
 - high floor: final model log return should reach at least `78%` of that EWY + USD/KRW signal;
 - per-update adjustment cap: `1.75%` log-return;

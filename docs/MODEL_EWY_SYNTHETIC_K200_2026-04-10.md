@@ -88,8 +88,8 @@ unreliable, the model applies a floor to keep the final prediction responsive.
 
 Production rule:
 
-- medium trigger: absolute EWY + USD/KRW log-return signal at or above `0.70%`;
-- medium floor: final model log return should reach at least `62%` of the EWY + USD/KRW signal;
+- medium trigger: absolute EWY + USD/KRW log-return signal at or above `0.45%`;
+- medium floor: final model log return should reach at least `70%` of the EWY + USD/KRW signal;
 - high trigger: absolute EWY + USD/KRW log-return signal at or above `2.0%`;
 - high floor: final model log return should reach at least `78%` of the EWY + USD/KRW signal;
 - adjustment cap: `1.75%` log-return per prediction update;

@@ -827,11 +827,11 @@ class OperatingWindowTests(unittest.TestCase):
 
         self.assertTrue(components["trend_follow_applied"])
         self.assertLess(components["predicted_kospi_simple_pct_pre_guard"], -0.04)
-        self.assertLess(components["predicted_kospi_simple_pct"], -0.5)
-        self.assertGreater(components["predicted_kospi_simple_pct"], -0.7)
+        self.assertLess(components["predicted_kospi_simple_pct"], -0.58)
+        self.assertGreater(components["predicted_kospi_simple_pct"], -0.75)
 
     def test_small_ewy_fx_signal_does_not_trigger_trend_follow_floor(self):
-        ewy_return = backtest_and_generate.simple_return_pct_to_log_return_pct(0.8)
+        ewy_return = backtest_and_generate.simple_return_pct_to_log_return_pct(0.35)
         krw_return = backtest_and_generate.simple_return_pct_to_log_return_pct(-0.1)
         self.assertIsNotNone(ewy_return)
         self.assertIsNotNone(krw_return)

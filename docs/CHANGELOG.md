@@ -9,7 +9,7 @@
 
 - Medium EWY + FX trend floor
   - The live model now guards against medium EWY + USD/KRW moves being compressed to a near-flat KOSPI prediction by the K200-to-KOSPI mapping layer.
-  - The medium floor starts at a `0.70%` EWY + USD/KRW log-return signal and requires at least `62%` signal participation; the existing `2.0%` high-move floor keeps its `78%` participation rule.
+  - The medium floor starts at a `0.45%` EWY + USD/KRW log-return signal and requires at least `70%` signal participation; the existing `2.0%` high-move floor keeps its `78%` participation rule.
 
 ## 2026-04-14
 
