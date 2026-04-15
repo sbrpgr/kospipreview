@@ -1,8 +1,8 @@
 {
   "summary": {
-    "mae30d": 26.32
+    "mae30d": 26.3
   },
-  "generatedAt": "2026-04-15T08:55:15.062560+00:00",
+  "generatedAt": "2026-04-15T10:15:25.122437+00:00",
   "records": [
     {
       "date": "2026-04-15",
@@ -53,8 +53,8 @@
       "modelPrediction": 6094.56,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6429.61,
-      "low": 6063.77,
-      "high": 6125.35,
+      "low": 6063.79,
+      "high": 6125.33,
       "actualOpen": 5826.45,
       "hit": false,
       "isSynthetic": false
