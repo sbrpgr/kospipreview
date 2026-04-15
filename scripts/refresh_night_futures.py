@@ -280,6 +280,47 @@ def resolve_us_premarket_open_kst(session_date: date) -> datetime:
     return premarket_open_et.astimezone(KST)
 
 
+def resolve_ewy_fx_bridge_sampling_windows_kst(baseline_session_date: str | None) -> list[datetime]:
+    if not baseline_session_date:
+        return []
+    try:
+        session_date = date.fromisoformat(baseline_session_date)
+    except ValueError:
+        return []
+
+    candidates = [
+        resolve_us_premarket_open_kst(session_date),
+        datetime.combine(session_date, NIGHT_OPERATION_START, tzinfo=KST),
+    ]
+    unique: dict[str, datetime] = {}
+    for candidate in candidates:
+        unique[candidate.isoformat()] = candidate
+    return sorted(unique.values())
+
+
+def resolve_ewy_fx_bridge_sample_slot(now_kst: datetime, windows_kst: list[datetime]) -> dict | None:
+    interval_seconds = EWY_FX_BRIDGE_SAMPLE_INTERVAL_MINUTES * 60
+    for window_index, window_start in enumerate(windows_kst):
+        elapsed_seconds = (now_kst - window_start).total_seconds()
+        sample_slot = int(elapsed_seconds // interval_seconds)
+        if 0 <= sample_slot < EWY_FX_BRIDGE_SAMPLE_COUNT:
+            return {
+                "windowIndex": window_index,
+                "windowStartKst": window_start,
+                "windowSlot": sample_slot,
+                "slot": window_index * EWY_FX_BRIDGE_SAMPLE_COUNT + sample_slot,
+            }
+    return None
+
+
+def resolve_ewy_fx_bridge_final_window_end_kst(windows_kst: list[datetime]) -> datetime | None:
+    if not windows_kst:
+        return None
+    interval_seconds = EWY_FX_BRIDGE_SAMPLE_INTERVAL_MINUTES * 60
+    final_start = windows_kst[-1]
+    return final_start + timedelta(seconds=interval_seconds * EWY_FX_BRIDGE_SAMPLE_COUNT)
+
+
 def is_prediction_trend_operation_window(now_utc: datetime) -> bool:
     now_kst = now_utc.astimezone(KST)
     if now_kst.time() < PREDICTION_TREND_OPERATION_END:
@@ -1734,6 +1775,8 @@ def clear_ewy_fx_bridge_effective_fields(state: dict) -> None:
         "nightFuturesClose",
         "sampleSlot",
         "sampleMode",
+        "sampleWindowIndex",
+        "sampleWindowSlot",
     ):
         state.pop(key, None)
 
@@ -1746,6 +1789,35 @@ def get_ewy_fx_bridge_samples(state: dict) -> list[dict]:
     valid_samples.sort(key=lambda sample: (int(to_float(sample.get("slot")) or 0), str(sample.get("observedAt", ""))))
     state["samples"] = valid_samples
     return valid_samples
+
+
+def normalize_ewy_fx_bridge_samples_for_windows(state: dict, windows_kst: list[datetime]) -> list[dict]:
+    normalized: dict[int, dict] = {}
+    for sample in get_ewy_fx_bridge_samples(state):
+        next_sample = dict(sample)
+        observed_at = parse_iso_datetime_utc(next_sample.get("observedAt"))
+        slot_info = (
+            resolve_ewy_fx_bridge_sample_slot(observed_at.astimezone(KST), windows_kst)
+            if observed_at is not None
+            else None
+        )
+        if slot_info is not None and (
+            next_sample.get("mode") == "late-fallback" or next_sample.get("windowIndex") is None
+        ):
+            next_sample["slot"] = int(slot_info["slot"])
+            next_sample["mode"] = "scheduled"
+            next_sample["windowIndex"] = slot_info["windowIndex"]
+            next_sample["windowSlot"] = slot_info["windowSlot"]
+            next_sample["windowStartAtKst"] = slot_info["windowStartKst"].isoformat()
+
+        slot = int(to_float(next_sample.get("slot")) or 0)
+        current = normalized.get(slot)
+        if current is None or str(next_sample.get("observedAt", "")) >= str(current.get("observedAt", "")):
+            normalized[slot] = next_sample
+
+    samples = sorted(normalized.values(), key=lambda sample: (int(to_float(sample.get("slot")) or 0), str(sample.get("observedAt", ""))))
+    state["samples"] = samples
+    return samples
 
 
 def is_ewy_fx_bridge_ready(state: dict | None) -> bool:
@@ -1764,7 +1836,8 @@ def update_ewy_fx_night_bridge_state(
     has_target_night_quote: bool,
     night_futures_change: float | None,
 ) -> dict:
-    bridge_start_kst = resolve_ewy_fx_bridge_start_kst(baseline_session_date)
+    bridge_windows_kst = resolve_ewy_fx_bridge_sampling_windows_kst(baseline_session_date)
+    bridge_start_kst = bridge_windows_kst[0] if bridge_windows_kst else None
     bridge_start_at = bridge_start_kst.astimezone(timezone.utc).isoformat() if bridge_start_kst else None
     existing = model_payload.get(EWY_FX_BRIDGE_MODEL_KEY)
     if not isinstance(existing, dict):
@@ -1783,6 +1856,15 @@ def update_ewy_fx_night_bridge_state(
     state["predictionDate"] = prediction_target_date_iso
     state["startAt"] = bridge_start_at
     state["startAtKst"] = bridge_start_kst.isoformat() if bridge_start_kst else None
+    state["samplingWindows"] = [
+        {
+            "index": index,
+            "startAt": window_start.astimezone(timezone.utc).isoformat(),
+            "startAtKst": window_start.isoformat(),
+        }
+        for index, window_start in enumerate(bridge_windows_kst)
+    ]
+    state["sampleWindowCount"] = len(bridge_windows_kst)
     state["sampleIntervalMinutes"] = EWY_FX_BRIDGE_SAMPLE_INTERVAL_MINUTES
     state["sampleTargetCount"] = EWY_FX_BRIDGE_SAMPLE_COUNT
     state["updatedAt"] = now_utc.isoformat()
@@ -1800,12 +1882,17 @@ def update_ewy_fx_night_bridge_state(
         model_payload[EWY_FX_BRIDGE_MODEL_KEY] = state
         return state
 
-    samples = get_ewy_fx_bridge_samples(state)
+    samples = normalize_ewy_fx_bridge_samples_for_windows(state, bridge_windows_kst)
     can_sample = has_target_night_quote and night_futures_change is not None
-    elapsed_seconds = max(0.0, (now_kst - bridge_start_kst).total_seconds())
-    sample_slot = int(elapsed_seconds // (EWY_FX_BRIDGE_SAMPLE_INTERVAL_MINUTES * 60))
-    is_scheduled_slot = 0 <= sample_slot < EWY_FX_BRIDGE_SAMPLE_COUNT
-    should_take_late_fallback = not samples and not is_scheduled_slot
+    slot_info = resolve_ewy_fx_bridge_sample_slot(now_kst, bridge_windows_kst)
+    final_window_end_kst = resolve_ewy_fx_bridge_final_window_end_kst(bridge_windows_kst)
+    is_scheduled_slot = slot_info is not None
+    should_take_late_fallback = (
+        not samples
+        and not is_scheduled_slot
+        and final_window_end_kst is not None
+        and now_kst >= final_window_end_kst
+    )
 
     if can_sample and (is_scheduled_slot or should_take_late_fallback):
         bridge_log_return = simple_return_pct_to_log_return_pct(float(night_futures_change))
@@ -1813,8 +1900,13 @@ def update_ewy_fx_night_bridge_state(
             observed_at = now_utc.replace(microsecond=0)
             observed_at_kst = observed_at.astimezone(KST)
             night_futures_close = to_float((quote or {}).get("price"))
+            slot = (
+                int(slot_info["slot"])
+                if slot_info is not None
+                else len(bridge_windows_kst) * EWY_FX_BRIDGE_SAMPLE_COUNT
+            )
             sample = {
-                "slot": sample_slot if is_scheduled_slot else EWY_FX_BRIDGE_SAMPLE_COUNT,
+                "slot": slot,
                 "mode": "scheduled" if is_scheduled_slot else "late-fallback",
                 "observedAt": observed_at.isoformat(),
                 "observedAtKst": observed_at_kst.isoformat(),
@@ -1822,6 +1914,10 @@ def update_ewy_fx_night_bridge_state(
                 "changePct": round(float(night_futures_change), 4),
                 "logReturnPct": round(float(bridge_log_return), 6),
             }
+            if slot_info is not None:
+                sample["windowIndex"] = slot_info["windowIndex"]
+                sample["windowSlot"] = slot_info["windowSlot"]
+                sample["windowStartAtKst"] = slot_info["windowStartKst"].isoformat()
             by_slot = {int(to_float(item.get("slot")) or 0): item for item in samples}
             by_slot[int(sample["slot"])] = sample
             samples = sorted(by_slot.values(), key=lambda item: (int(to_float(item.get("slot")) or 0), item["observedAt"]))
@@ -1841,14 +1937,15 @@ def update_ewy_fx_night_bridge_state(
     state["nightFuturesClose"] = effective_sample.get("nightFuturesClose")
     state["sampleSlot"] = effective_sample.get("slot")
     state["sampleMode"] = effective_sample.get("mode")
+    state["sampleWindowIndex"] = effective_sample.get("windowIndex")
+    state["sampleWindowSlot"] = effective_sample.get("windowSlot")
     state["sampleCount"] = len(samples)
 
-    complete_seconds = (EWY_FX_BRIDGE_SAMPLE_COUNT - 1) * EWY_FX_BRIDGE_SAMPLE_INTERVAL_MINUTES * 60
     if effective_sample.get("mode") == "late-fallback":
         state["status"] = "late-fallback"
-    elif int(to_float(effective_sample.get("slot")) or 0) >= EWY_FX_BRIDGE_SAMPLE_COUNT - 1:
+    elif len(samples) >= EWY_FX_BRIDGE_SAMPLE_COUNT:
         state["status"] = "ready"
-    elif elapsed_seconds >= complete_seconds:
+    elif final_window_end_kst is not None and now_kst >= final_window_end_kst:
         state["status"] = "ready-partial"
     else:
         state["status"] = "sampling"

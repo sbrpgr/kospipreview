@@ -156,8 +156,10 @@ REGIME_CLIP_PREV_CLOSE_SHARE = 0.9
 REGIME_CLIP_CORE_BUFFER_PCT = 1.25
 EWY_ALIGNMENT_TRIGGER_PCT = 1.0
 EWY_ALIGNMENT_MIN_SHARE = 0.80
-EWY_FX_TREND_FOLLOW_TRIGGER_PCT = 2.0
-EWY_FX_TREND_FOLLOW_MIN_SHARE = 0.78
+EWY_FX_TREND_FOLLOW_TRIGGER_PCT = 0.70
+EWY_FX_TREND_FOLLOW_MIN_SHARE = 0.62
+EWY_FX_TREND_FOLLOW_HIGH_TRIGGER_PCT = 2.0
+EWY_FX_TREND_FOLLOW_HIGH_MIN_SHARE = 0.78
 EWY_FX_TREND_FOLLOW_MAX_ADJUST_PCT = 1.75
 RESIDUAL_MODEL_CAP_MIN_PCT = 0.18
 RESIDUAL_MODEL_CAP_MAX_PCT = 0.95
@@ -1637,7 +1639,10 @@ def apply_ewy_fx_trend_follow_floor(
         return predicted_kospi_return, default_meta
 
     direction = 1.0 if signal_return > 0 else -1.0
-    min_aligned_return = direction * signal_magnitude * EWY_FX_TREND_FOLLOW_MIN_SHARE
+    min_share = EWY_FX_TREND_FOLLOW_MIN_SHARE
+    if signal_magnitude >= EWY_FX_TREND_FOLLOW_HIGH_TRIGGER_PCT:
+        min_share = EWY_FX_TREND_FOLLOW_HIGH_MIN_SHARE
+    min_aligned_return = direction * signal_magnitude * min_share
     projected_adjustment = min_aligned_return - float(predicted_kospi_return)
     default_meta["min_return"] = min_aligned_return
 

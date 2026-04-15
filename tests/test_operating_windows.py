@@ -104,6 +104,37 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(state["nightFuturesClose"], 884.0)
         self.assertTrue(str(state["baselineAtKst"]).startswith("2026-04-13T17:08"))
 
+    def test_ewy_bridge_samples_five_two_minute_slots_from_night_open_if_premarket_missing(self):
+        model_payload = {}
+        day_close = 872.0
+
+        for minute, price in [(0, 871.5), (2, 871.25), (4, 871.0), (6, 870.75), (8, 870.5)]:
+            quote = {
+                "price": price,
+                "previous_close": day_close,
+                "change_pct": (price / day_close - 1) * 100,
+                "updated_at": datetime(2026, 4, 13, 9, minute, tzinfo=timezone.utc).isoformat(),
+                "day_close_date": "2026-04-13",
+                "is_live_night": True,
+            }
+            state = refresh_night_futures.update_ewy_fx_night_bridge_state(
+                model_payload,
+                "2026-04-13",
+                "2026-04-14",
+                datetime(2026, 4, 13, 9, minute, tzinfo=timezone.utc),
+                quote,
+                has_target_night_quote=True,
+                night_futures_change=(price / day_close - 1) * 100,
+            )
+
+        self.assertEqual(state["sampleCount"], 5)
+        self.assertEqual(state["status"], "ready")
+        self.assertEqual(state["sampleSlot"], 9)
+        self.assertEqual(state["sampleWindowIndex"], 1)
+        self.assertEqual(state["sampleWindowSlot"], 4)
+        self.assertEqual(state["nightFuturesClose"], 870.5)
+        self.assertTrue(str(state["baselineAtKst"]).startswith("2026-04-13T18:08"))
+
     def test_day_close_session_date_rolls_at_1530(self):
         before_close = datetime(2026, 4, 13, 15, 29, tzinfo=KST)
         at_close = datetime(2026, 4, 13, 15, 30, tzinfo=KST)
@@ -767,6 +798,37 @@ class OperatingWindowTests(unittest.TestCase):
             components["predicted_kospi_simple_pct"],
             components["predicted_kospi_simple_pct_pre_guard"],
         )
+
+    def test_medium_ewy_fx_trend_is_not_compressed_to_near_flat_prediction(self):
+        ewy_return = backtest_and_generate.simple_return_pct_to_log_return_pct(-1.03)
+        krw_return = backtest_and_generate.simple_return_pct_to_log_return_pct(0.19)
+        self.assertIsNotNone(ewy_return)
+        self.assertIsNotNone(krw_return)
+
+        components = backtest_and_generate.compute_prediction_components(
+            {
+                "ewy": float(ewy_return),
+                "krw": float(krw_return),
+            },
+            core_params={
+                "intercept": 0.1706,
+                "ewy_coef": 0.3618,
+                "krw_coef": 0.2,
+                "sample_size": 180,
+                "r2": 0.2341,
+            },
+            residual_artifact={"weight": 0.0},
+            mapping_artifact={
+                "intercept": 0.161147,
+                "beta": 0.344188,
+                "sample_size": 240,
+            },
+        )
+
+        self.assertTrue(components["trend_follow_applied"])
+        self.assertLess(components["predicted_kospi_simple_pct_pre_guard"], -0.04)
+        self.assertLess(components["predicted_kospi_simple_pct"], -0.5)
+        self.assertGreater(components["predicted_kospi_simple_pct"], -0.7)
 
     def test_small_ewy_fx_signal_does_not_trigger_trend_follow_floor(self):
         ewy_return = backtest_and_generate.simple_return_pct_to_log_return_pct(0.8)

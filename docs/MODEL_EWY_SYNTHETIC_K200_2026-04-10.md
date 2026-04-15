@@ -80,16 +80,18 @@ Mapping diagnostics:
 - this can produce a valid positive KOSPI prediction even when EWY is slightly negative from the KRX sync baseline;
 - diagnostics are exposed through `model.mappingInterceptPct`, `model.mappingBetaContributionPct`, and `model.mappingDirectionFlip`.
 
-## Strong Trend Follow Floor
+## EWY + FX Trend Follow Floor
 
-The mapping layer can over-compress strong overnight trend moves. When the EWY
-+ USD/KRW simple signal is large, the model applies a floor to keep the final
-prediction responsive.
+The mapping layer can over-compress overnight trend moves. When the EWY
++ USD/KRW simple signal is large enough to make near-flat model output
+unreliable, the model applies a floor to keep the final prediction responsive.
 
 Production rule:
 
-- trigger: absolute EWY + USD/KRW log-return signal at or above `2.0%`;
-- floor: final model log return should reach at least `78%` of the EWY + USD/KRW signal;
+- medium trigger: absolute EWY + USD/KRW log-return signal at or above `0.70%`;
+- medium floor: final model log return should reach at least `62%` of the EWY + USD/KRW signal;
+- high trigger: absolute EWY + USD/KRW log-return signal at or above `2.0%`;
+- high floor: final model log return should reach at least `78%` of the EWY + USD/KRW signal;
 - adjustment cap: `1.75%` log-return per prediction update;
 - inputs: EWY and USD/KRW only.
 

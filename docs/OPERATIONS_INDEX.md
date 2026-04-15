@@ -49,6 +49,7 @@ All times are Asia/Seoul.
 - U.S. premarket open through `09:00`
   - live prediction trend chart records minute-level observations;
   - starts at `17:00 KST` during U.S. daylight time and `18:00 KST` during U.S. standard time.
+  - during U.S. daylight time, the `18:00~18:08 KST` night-futures-open window is also a scheduled bridge sampling window when the `17:00 KST` window was not complete.
 
 ## Current Model Rules
 

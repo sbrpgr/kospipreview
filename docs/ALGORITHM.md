@@ -36,6 +36,7 @@ For each live symbol, the refresh process uses:
 
 1. before the U.S. premarket bridge is ready, keep `ewyFxSimplePoint` and `pointPrediction` blank;
 2. from the U.S. premarket open, sample the KOSPI 200 night-futures return every 2 minutes for 5 slots;
+   during U.S. daylight time, also sample the `18:00~18:08 KST` night-futures-open window if the `17:00 KST` window did not provide a complete scheduled bridge;
 3. use the latest bridge sample as the one-time `15:30 -> EWY premarket` anchor;
 4. after the bridge anchor, calculate EWY, USD/KRW, and auxiliary returns from that bridge timestamp;
 5. Yahoo standard displayed change is used only as a fallback when no synchronized intraday basis is available.
@@ -105,16 +106,18 @@ Required basis:
 - EWY and USD/KRW returns are measured from the bridge timestamp onward.
 - No residual model or K200 mapping is used in the EWY + FX simple conversion.
 
-## Strong Trend Follow Floor
+## EWY + FX Trend Follow Floor
 
 The K200-to-KOSPI mapping can under-react when EWY + USD/KRW makes a large
-overnight move. The model therefore applies a trend-follow floor for strong
-EWY + USD/KRW moves.
+overnight move. The model therefore applies a trend-follow floor when the
+EWY + USD/KRW move is large enough to make near-flat model output unreliable.
 
 Current production rule:
 
-- trigger: absolute EWY + USD/KRW log-return signal at or above `2.0%`;
-- floor: final model log return should reach at least `78%` of that EWY + USD/KRW signal;
+- medium trigger: absolute EWY + USD/KRW log-return signal at or above `0.70%`;
+- medium floor: final model log return should reach at least `62%` of that EWY + USD/KRW signal;
+- high trigger: absolute EWY + USD/KRW log-return signal at or above `2.0%`;
+- high floor: final model log return should reach at least `78%` of that EWY + USD/KRW signal;
 - per-update adjustment cap: `1.75%` log-return;
 - inputs: EWY and USD/KRW after the one-time bridge point;
 - the night-futures bridge is used only for the premarket synchronization gap.

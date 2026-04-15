@@ -107,6 +107,7 @@ All times are Asia/Seoul.
 - U.S. premarket open through `09:00`
   - EWY + FX and live model prediction are enabled after the bridge anchor is sampled;
   - starts at `17:00 KST` during U.S. daylight time and `18:00 KST` during U.S. standard time;
+  - during U.S. daylight time, the `18:00~18:08 KST` night-futures-open window is also treated as scheduled bridge sampling if the `17:00 KST` window was not complete;
   - live prediction trend chart records one row per minute.
 
 ## Model And Data Rules

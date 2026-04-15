@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-04-15
+
+- EWY bridge sampling window fix
+  - During U.S. daylight time, the bridge now treats both the `17:00 KST` U.S. premarket window and the `18:00 KST` night-futures-open window as scheduled sampling windows.
+  - If the `17:00 KST` window cannot provide a valid night-futures quote, `18:00~18:08 KST` is still sampled as five scheduled two-minute slots instead of being marked as a single late fallback.
+  - Existing late-fallback samples that were actually observed inside a scheduled window are normalized to the matching scheduled slot on the next refresh.
+
+- Medium EWY + FX trend floor
+  - The live model now guards against medium EWY + USD/KRW moves being compressed to a near-flat KOSPI prediction by the K200-to-KOSPI mapping layer.
+  - The medium floor starts at a `0.70%` EWY + USD/KRW log-return signal and requires at least `62%` signal participation; the existing `2.0%` high-move floor keeps its `78%` participation rule.
+
 ## 2026-04-14
 
 - EWY premarket bridge correction

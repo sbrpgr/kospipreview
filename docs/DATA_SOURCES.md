@@ -28,7 +28,7 @@ Important distinction:
 
 - dashboard cards may show market-standard displayed change;
 - live model inputs use the KRX `15:30 KST` sync basis when available;
-- while EWY is not tradable at `15:30 KST`, the live EWY + FX path waits for U.S. premarket open, then uses a one-time KOSPI 200 night-futures bridge sampled every 2 minutes for 5 slots.
+- while EWY is not tradable at `15:30 KST`, the live EWY + FX path waits for U.S. premarket open, then uses a one-time KOSPI 200 night-futures bridge sampled every 2 minutes for 5 slots; during U.S. daylight time, the `18:00~18:08 KST` night-futures-open window is also scheduled if the `17:00 KST` bridge window was not complete.
 
 ### Naver Finance
 
