@@ -7,8 +7,8 @@
     "gold_z",
     "us10y_z"
   ],
-  "rmse": 46.5005,
-  "mae": 26.2958,
+  "rmse": 47.9046,
+  "mae": 29.5833,
   "featureImportance": {
     "ewy_core": 0.376891,
     "krw_core": 0.2,
@@ -76,5 +76,5 @@
     "sample_size": 240
   },
   "modelMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping",
-  "generatedAt": "2026-04-15T10:15:25.132644+00:00"
+  "generatedAt": "2026-04-15T11:18:45.781147+00:00"
 }
