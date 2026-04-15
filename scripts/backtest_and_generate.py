@@ -76,6 +76,12 @@ INDICATOR_SOURCE_URLS["k200f"] = ""
 
 LOOKBACK_DAYS = 3 * 365
 ALL_FEATURES = list(MODEL_TICKERS.keys())
+REQUIRED_DAILY_MARKET_COLUMNS = {
+    "kospi": ("Open", "Close"),
+    "kospi200": ("Open", "Close"),
+    "ewy": ("Close",),
+    "krw": ("Close",),
+}
 HISTORY_RECORDS = 30
 HISTORY_ACCUMULATION_START_DATE = date(2026, 4, 9)
 RECENT_HISTORY_FILL_DAYS = 5
@@ -226,6 +232,15 @@ def main() -> None:
 
     print("Fetching daily market history...")
     market = fetch_market_data()
+    missing_required = get_missing_required_market_history(market)
+    if missing_required:
+        print(
+            "Skipping model rebuild: required daily market history unavailable: "
+            + ", ".join(missing_required)
+        )
+        print("Existing JSON artifacts are left unchanged.")
+        return
+
     print("Fetching intraday indicators...")
     live_market, live_overrides = fetch_live_indicators()
     print("Building training dataset...")
@@ -454,6 +469,23 @@ def write_prediction_archive_json(archive: list[dict]) -> None:
         "records": archive,
     }
     write_output_json("prediction_archive.json", payload)
+
+
+def has_usable_market_frame(frame: object, required_columns: tuple[str, ...], min_rows: int = 2) -> bool:
+    if not isinstance(frame, pd.DataFrame) or frame.empty:
+        return False
+    if not set(required_columns).issubset(frame.columns):
+        return False
+    usable = frame.loc[:, list(required_columns)].dropna()
+    return len(usable) >= min_rows
+
+
+def get_missing_required_market_history(market: dict[str, pd.DataFrame]) -> list[str]:
+    missing: list[str] = []
+    for key, required_columns in REQUIRED_DAILY_MARKET_COLUMNS.items():
+        if not has_usable_market_frame(market.get(key), required_columns):
+            missing.append(key)
+    return missing
 
 
 def fetch_market_data() -> dict[str, pd.DataFrame]:
@@ -1168,7 +1200,10 @@ def build_dataset(market: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
     features = []
     for name in ALL_FEATURES:
-        frame = market[name].copy()
+        raw_frame = market.get(name)
+        if not isinstance(raw_frame, pd.DataFrame) or raw_frame.empty:
+            continue
+        frame = raw_frame.copy()
         if "Close" not in frame:
             continue
 

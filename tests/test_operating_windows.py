@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from datetime import datetime, timezone
 
+import pandas as pd
+
 from scripts import backtest_and_generate
 from scripts import refresh_night_futures
 from scripts.backtest_and_generate import KST, is_prediction_operation_window, resolve_prediction_target_timestamp
@@ -74,6 +76,35 @@ class OperatingWindowTests(unittest.TestCase):
 
         self.assertEqual(daylight_start.time().isoformat(timespec="minutes"), "17:00")
         self.assertEqual(standard_start.time().isoformat(timespec="minutes"), "18:00")
+
+    def test_backtest_detects_missing_required_market_history(self):
+        index = pd.date_range("2026-04-10", periods=2, freq="B")
+        market = {
+            "kospi": pd.DataFrame({"Open": [5800.0, 5900.0], "Close": [5850.0, 5950.0]}, index=index),
+            "kospi200": pd.DataFrame({"Open": [870.0, 880.0], "Close": [875.0, 885.0]}, index=index),
+            "ewy": pd.DataFrame({"Close": [140.0, 141.0]}, index=index),
+        }
+
+        self.assertEqual(backtest_and_generate.get_missing_required_market_history(market), ["krw"])
+
+    def test_backtest_main_skips_rebuild_when_required_market_history_is_missing(self):
+        original_fetch_market_data = backtest_and_generate.fetch_market_data
+        original_build_dataset = backtest_and_generate.build_dataset
+        called = {"build_dataset": False}
+
+        def fail_build_dataset(market):
+            called["build_dataset"] = True
+            raise AssertionError("build_dataset should not run without required market history")
+
+        try:
+            backtest_and_generate.fetch_market_data = lambda: {}
+            backtest_and_generate.build_dataset = fail_build_dataset
+            backtest_and_generate.main()
+        finally:
+            backtest_and_generate.fetch_market_data = original_fetch_market_data
+            backtest_and_generate.build_dataset = original_build_dataset
+
+        self.assertFalse(called["build_dataset"])
 
     def test_ewy_bridge_samples_five_two_minute_slots_from_premarket_open(self):
         model_payload = {}
