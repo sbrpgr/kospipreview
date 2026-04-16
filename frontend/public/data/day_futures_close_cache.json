@@ -1,8 +1,8 @@
 {
-  "close": 924.75,
-  "updated_at": "2026-04-15T06:45:00+00:00",
-  "session_date": "2026-04-15",
+  "close": 943.8,
+  "updated_at": "2026-04-16T06:45:00+00:00",
+  "session_date": "2026-04-16",
   "provider": "esignal-socket",
   "selection": "session-close-socket",
-  "cached_at": "2026-04-15T07:11:48.091960+00:00"
+  "cached_at": "2026-04-16T07:14:58.707692+00:00"
 }
