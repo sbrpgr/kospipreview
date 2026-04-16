@@ -3,38 +3,38 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$145.61",
-      "changePct": -0.73,
-      "updatedAt": "2026-04-15T23:59:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "value": "$147.07",
+      "changePct": 1.48,
+      "updatedAt": "2026-04-16T08:56:19+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,472.48원",
-      "changePct": 0.21,
-      "updatedAt": "2026-04-16T07:14:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "value": "1,474.75원",
+      "changePct": 0.36,
+      "updatedAt": "2026-04-16T08:58:00+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$91.88",
-      "changePct": 0.65,
-      "updatedAt": "2026-04-16T07:04:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "value": "$89.35",
+      "changePct": -2.13,
+      "updatedAt": "2026-04-16T08:48:00+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "sp500",
@@ -42,10 +42,10 @@
       "value": "7,022.95",
       "changePct": 0.8,
       "updatedAt": "2026-04-15T20:41:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EGSPC",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     }
   ],
@@ -55,36 +55,36 @@
       "label": "NASDAQ 100",
       "value": "26,204.58",
       "changePct": 1.4,
-      "updatedAt": "2026-04-15T21:16:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "updatedAt": "2026-04-15T21:15:00+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     },
     {
       "key": "vix",
       "label": "VIX",
-      "value": "18.17",
-      "changePct": -1.03,
-      "updatedAt": "2026-04-15T20:14:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "value": "18.10",
+      "changePct": -0.39,
+      "updatedAt": "2026-04-16T08:43:00+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$453.26",
-      "changePct": -2.25,
-      "updatedAt": "2026-04-15T23:59:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "value": "$462.70",
+      "changePct": 3.77,
+      "updatedAt": "2026-04-16T08:58:22+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "k200f",
@@ -92,7 +92,7 @@
       "value": "N/A",
       "changePct": 0,
       "updatedAt": "",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "",
       "dataSource": "실시간 수집",
       "displayTag": "(본 장 시작전)",
@@ -107,23 +107,23 @@
       "value": "48,463.72",
       "changePct": -0.15,
       "updatedAt": "2026-04-15T20:42:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EDJI",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     },
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,850.30",
-      "changePct": 1.05,
-      "updatedAt": "2026-04-16T07:04:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "value": "$4,834.30",
+      "changePct": 0.71,
+      "updatedAt": "2026-04-16T08:48:00+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "us10y",
@@ -131,7 +131,7 @@
       "value": "4.28%",
       "changePct": 0.61,
       "updatedAt": "2026-04-15T18:59:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ETNX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -142,14 +142,14 @@
       "label": "PHLX Semiconductor",
       "value": "9,239.28",
       "changePct": 0.16,
-      "updatedAt": "2026-04-15T21:15:00+00:00",
-      "checkedAt": "2026-04-16T07:14:59.467149+00:00",
+      "updatedAt": "2026-04-15T21:16:00+00:00",
+      "checkedAt": "2026-04-16T08:58:31.871168+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ESOX",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-04-16T07:14:59.467149+00:00",
-  "isUsPremarketNow": false
+  "generatedAt": "2026-04-16T08:58:31.871168+00:00",
+  "isUsPremarketNow": true
 }
