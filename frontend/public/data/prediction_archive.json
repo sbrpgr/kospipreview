@@ -1,6 +1,16 @@
 {
-  "generatedAt": "2026-04-17T04:54:30.764262+00:00",
+  "generatedAt": "2026-04-17T06:56:11.142492+00:00",
   "records": [
+    {
+      "predictionDateIso": "2026-04-20",
+      "predictionDate": "2026년 04월 20일",
+      "generatedAt": "2026-04-17T06:56:11.137383+00:00",
+      "rangeLow": 6189.38,
+      "rangeHigh": 6249.08,
+      "pointPrediction": 6219.23,
+      "nightFuturesSimplePoint": null,
+      "ewyFxSimplePoint": 6215.1
+    },
     {
       "predictionDateIso": "2026-04-17",
       "predictionDate": "2026년 04월 17일",
