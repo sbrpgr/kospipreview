@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-17T01:58:55.545905+00:00",
+  "generatedAt": "2026-04-17T04:54:30.763237+00:00",
   "predictionDate": "2026년 04월 20일",
   "predictionDateIso": "2026-04-20",
   "pointPrediction": null,
@@ -28,8 +28,8 @@
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,
-    "coreAnchorPct": 0.21,
-    "rawModelPct": 0.21,
+    "coreAnchorPct": 0.24,
+    "rawModelPct": 0.24,
     "rawResidualPct": 0.0,
     "ewyFxIntercept": 0.1906,
     "ewyFxEwyCoef": 0.3734,
@@ -42,30 +42,30 @@
     "regimeAdjustmentPct": null,
     "regimeState": null,
     "trendFollowApplied": false,
-    "trendFollowSignalPct": 0.04,
+    "trendFollowSignalPct": 0.14,
     "trendFollowMinPct": null,
     "trendFollowAdjustmentPct": 0.0,
-    "prevCloseChangePct": 0.34,
+    "prevCloseChangePct": 0.44,
     "krxBaselineDate": "2026-04-16",
     "predictionPhase": "session",
     "anchorSource": "ewy_synthetic_k200",
     "residualModel": {
       "intercept": -0.101979,
       "coefficients": {
-        "broad_factor": 0.019329,
-        "tech_factor": -0.045298,
-        "semi_factor": -0.478908,
-        "wti_z": 0.47716,
-        "gold_z": -0.198015,
-        "us10y_z": 0.400147
+        "broad_factor": 0.004102,
+        "tech_factor": -0.058112,
+        "semi_factor": -0.491747,
+        "wti_z": 0.424199,
+        "gold_z": -0.189708,
+        "us10y_z": 0.411347
       },
       "means": {
         "sp500": 0.079987,
         "nasdaq": 0.10779,
         "dow": 0.050133,
-        "sox": 0.369817,
-        "wti": 0.315546,
-        "gold": 0.10819,
+        "sox": 0.369818,
+        "wti": 0.400151,
+        "gold": 0.103968,
         "us10y": 0.002277
       },
       "stds": {
@@ -73,8 +73,8 @@
         "nasdaq": 1.186719,
         "dow": 0.892769,
         "sox": 2.343203,
-        "wti": 4.337268,
-        "gold": 2.163124,
+        "wti": 4.350209,
+        "gold": 2.163669,
         "us10y": 0.04083
       },
       "broadPcaComponents": [
