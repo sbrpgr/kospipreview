@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-20T02:31:03.565542+00:00",
+  "generatedAt": "2026-04-20T05:27:44.788423+00:00",
   "predictionDate": "2026년 04월 21일",
   "predictionDateIso": "2026-04-21",
   "pointPrediction": null,
@@ -28,8 +28,8 @@
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,
-    "coreAnchorPct": 1.11,
-    "rawModelPct": 1.11,
+    "coreAnchorPct": 1.18,
+    "rawModelPct": 1.18,
     "rawResidualPct": 0.0,
     "ewyFxIntercept": 0.1778,
     "ewyFxEwyCoef": 0.3694,
@@ -42,30 +42,30 @@
     "regimeAdjustmentPct": null,
     "regimeState": null,
     "trendFollowApplied": true,
-    "trendFollowSignalPct": 3.09,
-    "trendFollowMinPct": 2.4,
-    "trendFollowAdjustmentPct": 1.27,
-    "prevCloseChangePct": -1.24,
+    "trendFollowSignalPct": 3.33,
+    "trendFollowMinPct": 2.58,
+    "trendFollowAdjustmentPct": 1.39,
+    "prevCloseChangePct": -1.01,
     "krxBaselineDate": "2026-04-17",
     "predictionPhase": "session",
     "anchorSource": "ewy_synthetic_k200",
     "residualModel": {
       "intercept": -0.137684,
       "coefficients": {
-        "broad_factor": 0.003754,
-        "tech_factor": -0.04374,
-        "semi_factor": -0.49337,
-        "wti_z": 0.477851,
-        "gold_z": -0.181563,
-        "us10y_z": 0.420677
+        "broad_factor": 0.00446,
+        "tech_factor": -0.041495,
+        "semi_factor": -0.491384,
+        "wti_z": 0.466484,
+        "gold_z": -0.19151,
+        "us10y_z": 0.420088
       },
       "means": {
         "sp500": 0.097857,
         "nasdaq": 0.126391,
         "dow": 0.077632,
         "sox": 0.403718,
-        "wti": 0.176909,
-        "gold": 0.08974,
+        "wti": 0.201221,
+        "gold": 0.126596,
         "us10y": 0.001227
       },
       "stds": {
@@ -73,8 +73,8 @@
         "nasdaq": 1.186959,
         "dow": 0.912104,
         "sox": 2.339141,
-        "wti": 4.665123,
-        "gold": 2.150358,
+        "wti": 4.596324,
+        "gold": 2.154496,
         "us10y": 0.041345
       },
       "broadPcaComponents": [
