@@ -372,7 +372,7 @@ class OperatingWindowTests(unittest.TestCase):
             refresh_night_futures.fetch_kospi_actual_close_quote = original_fetch_close_quote
 
         self.assertTrue(updated["model"]["isOperationWindow"])
-        self.assertEqual(updated["model"]["operationHours"], "15:30~09:00")
+        self.assertEqual(updated["model"]["operationHours"], "17:00~09:00(변동 가능)")
         self.assertEqual(updated["model"]["nightFuturesExcluded"], False)
         self.assertEqual(updated["model"]["predictionPhase"], "awaiting-ewy-bridge")
         self.assertEqual(updated["model"]["krxBaselineDate"], "2026-04-13")

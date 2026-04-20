@@ -24,7 +24,7 @@
     "calculationMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(NoNightFutures)",
     "nightFuturesExcluded": true,
     "isOperationWindow": true,
-    "operationHours": "15:30~09:00",
+    "operationHours": "17:00~09:00(변동 가능)",
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,

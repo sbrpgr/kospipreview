@@ -54,7 +54,7 @@
 
 - Live operating schedule and settlement rules finalized
   - Prediction target rolls to the next business day at `09:00 KST`.
-  - Live prediction operation runs `15:30~09:00 KST`.
+  - Live prediction operation logic opens at `15:30 KST`; the displayed operation-hours label is `17:00~09:00(변동 가능)`.
   - Live prediction trend observations were recorded only during `18:00~09:00 KST`; this was later superseded by the U.S. premarket-open rule.
   - KOSPI close after `15:30 KST` is used as the prediction `prevClose`.
   - KOSPI 200 day futures close is treated as final only from eSignal socket settlement at or after `15:45 KST`.
