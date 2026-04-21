@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-21T02:24:09.562310+00:00",
+  "generatedAt": "2026-04-21T05:13:19.625258+00:00",
   "predictionDate": "2026년 04월 22일",
   "predictionDateIso": "2026-04-22",
   "pointPrediction": null,
@@ -12,7 +12,7 @@
   "rangeLow": null,
   "rangeHigh": null,
   "predictedChangePct": null,
-  "prevClose": 6317.37,
+  "prevClose": 6360.74,
   "signalSummary": "예측 운영 시간은 17:00~09:00(변동 가능)입니다. 다음 운영 구간부터 모델 예측이 갱신됩니다.",
   "lastCalculatedAt": null,
   "latestRecordDate": "2026-04-21",
@@ -20,7 +20,7 @@
   "model": {
     "engine": "EWY Synthetic K200 Ridge",
     "vix": 18.88,
-    "lgbmRmse": 49.13,
+    "lgbmRmse": 49.12,
     "calculationMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(NoNightFutures)",
     "nightFuturesExcluded": true,
     "isOperationWindow": false,
@@ -52,20 +52,20 @@
     "residualModel": {
       "intercept": -0.087713,
       "coefficients": {
-        "broad_factor": 0.009192,
-        "tech_factor": -0.045652,
-        "semi_factor": -0.405677,
-        "wti_z": 0.50819,
-        "gold_z": -0.212826,
-        "us10y_z": 0.393025
+        "broad_factor": 0.019741,
+        "tech_factor": -0.043397,
+        "semi_factor": -0.403172,
+        "wti_z": 0.552439,
+        "gold_z": -0.2209,
+        "us10y_z": 0.380387
       },
       "means": {
         "sp500": 0.092991,
         "nasdaq": 0.119412,
         "dow": 0.077352,
         "sox": 0.40359,
-        "wti": 0.252602,
-        "gold": 0.115203,
+        "wti": 0.305612,
+        "gold": 0.108436,
         "us10y": 0.001207
       },
       "stds": {
@@ -73,8 +73,8 @@
         "nasdaq": 1.17929,
         "dow": 0.904644,
         "sox": 2.321371,
-        "wti": 4.578675,
-        "gold": 2.140268,
+        "wti": 4.63293,
+        "gold": 2.143291,
         "us10y": 0.040988
       },
       "broadPcaComponents": [
