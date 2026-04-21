@@ -1,9 +1,20 @@
 {
   "summary": {
-    "mae30d": 29.88
+    "mae30d": 30.21
   },
-  "generatedAt": "2026-04-20T23:55:24.023561+00:00",
+  "generatedAt": "2026-04-21T02:24:09.564069+00:00",
   "records": [
+    {
+      "date": "2026-04-21",
+      "modelPrediction": 6301.27,
+      "nightFuturesSimpleOpen": null,
+      "ewyFxSimpleOpen": 6332.46,
+      "low": 6271.39,
+      "high": 6331.15,
+      "actualOpen": 6302.54,
+      "hit": true,
+      "isSynthetic": false
+    },
     {
       "date": "2026-04-20",
       "modelPrediction": 6324.47,
@@ -11,7 +22,7 @@
       "ewyFxSimpleOpen": 6362.36,
       "low": 6294.62,
       "high": 6354.32,
-      "actualOpen": 6216.38,
+      "actualOpen": 6219.09,
       "hit": false,
       "isSynthetic": false
     },
@@ -50,11 +61,11 @@
     },
     {
       "date": "2026-04-14",
-      "modelPrediction": 5877.12,
+      "modelPrediction": 5917.84,
       "nightFuturesSimpleOpen": null,
-      "ewyFxSimpleOpen": 6006.14,
-      "low": 5855.79,
-      "high": 5898.45,
+      "ewyFxSimpleOpen": 5949.02,
+      "low": 5890.65,
+      "high": 5945.03,
       "actualOpen": 5960.0,
       "hit": false,
       "isSynthetic": false
@@ -64,8 +75,8 @@
       "modelPrediction": 5830.41,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5818.26,
-      "low": 5803.51,
-      "high": 5857.31,
+      "low": 5803.22,
+      "high": 5857.6,
       "actualOpen": 5737.28,
       "hit": false,
       "isSynthetic": false
@@ -75,19 +86,19 @@
       "modelPrediction": 5688.35,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5663.31,
-      "low": 5661.45,
-      "high": 5715.25,
+      "low": 5661.16,
+      "high": 5715.54,
       "actualOpen": 5876.12,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-04-09",
-      "modelPrediction": 6098.89,
+      "modelPrediction": 6099.81,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6429.61,
-      "low": 6063.93,
-      "high": 6133.86,
+      "low": 6064.46,
+      "high": 6135.16,
       "actualOpen": 5826.45,
       "hit": false,
       "isSynthetic": false
