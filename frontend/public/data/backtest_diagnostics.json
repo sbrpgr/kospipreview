@@ -7,37 +7,37 @@
     "gold_z",
     "us10y_z"
   ],
-  "rmse": 48.7344,
-  "mae": 30.0629,
+  "rmse": 48.7543,
+  "mae": 30.0703,
   "featureImportance": {
-    "ewy_core": 0.369747,
+    "ewy_core": 0.369426,
     "krw_core": 0.2,
-    "broad_factor": 0.004432,
-    "tech_factor": 0.043159,
-    "semi_factor": 0.491762,
-    "wti_z": 0.463553,
-    "gold_z": 0.191156,
-    "us10y_z": 0.419687,
+    "broad_factor": 0.00446,
+    "tech_factor": 0.041495,
+    "semi_factor": 0.491384,
+    "wti_z": 0.466484,
+    "gold_z": 0.19151,
+    "us10y_z": 0.420088,
     "basis_ewma": 0.0,
-    "k200_to_kospi_beta": 0.349168
+    "k200_to_kospi_beta": 0.348798
   },
   "ewyFxCorrection": {
-    "intercept": 0.17891098092644814,
-    "ewy_coef": 0.3697466624565266,
+    "intercept": 0.17782614665089785,
+    "ewy_coef": 0.36942632467122277,
     "krw_coef": 0.2,
     "sample_size": 180,
-    "r2": 0.24526541026293858,
-    "mae": 1.0427808741177422
+    "r2": 0.24500435996473657,
+    "mae": 1.0431110886125736
   },
   "residualModel": {
-    "intercept": -0.13677855978952225,
+    "intercept": -0.13768420468662979,
     "coefficients": {
-      "broad_factor": 0.004431996740236348,
-      "tech_factor": -0.04315917903301781,
-      "semi_factor": -0.49176192014788755,
-      "wti_z": 0.4635527574021288,
-      "gold_z": -0.1911556435355533,
-      "us10y_z": 0.41968730357662143
+      "broad_factor": 0.004459673277579525,
+      "tech_factor": -0.04149524003359208,
+      "semi_factor": -0.4913843490273615,
+      "wti_z": 0.46648442238796706,
+      "gold_z": -0.19151035544477232,
+      "us10y_z": 0.42008752839207875
     },
     "means": {
       "sp500": 0.09785677136168902,
@@ -66,15 +66,15 @@
     "basis_ewma": 0.0,
     "weight": 0.0,
     "sample_size": 180,
-    "mae": 1.5102307340719285,
-    "core_mae": 1.766070450662362,
-    "full_mae": 1.5102307340719285
+    "mae": 1.5105774110149652,
+    "core_mae": 1.7665681937212563,
+    "full_mae": 1.5105774110149652
   },
   "k200Mapping": {
-    "intercept": 0.1732034316474383,
-    "beta": 0.34916794944021323,
+    "intercept": 0.17222697036297685,
+    "beta": 0.34879819722796773,
     "sample_size": 240
   },
   "modelMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping",
-  "generatedAt": "2026-04-21T20:46:36.612826+00:00"
+  "generatedAt": "2026-04-21T21:33:58.630628+00:00"
 }
