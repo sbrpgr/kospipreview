@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-04-22T13:52:28.398367+00:00",
+  "generatedAt": "2026-04-22T15:04:02.236544+00:00",
   "records": [
     {
       "predictionDateIso": "2026-04-23",
       "predictionDate": "2026년 04월 23일",
-      "generatedAt": "2026-04-22T13:52:28.397395+00:00",
-      "rangeLow": 6403.54,
-      "rangeHigh": 6464.14,
-      "pointPrediction": 6433.84,
-      "nightFuturesSimplePoint": 6424.89,
-      "ewyFxSimplePoint": 6422.71
+      "generatedAt": "2026-04-22T15:04:02.235409+00:00",
+      "rangeLow": 6434.75,
+      "rangeHigh": 6495.34,
+      "pointPrediction": 6465.04,
+      "nightFuturesSimplePoint": 6492.21,
+      "ewyFxSimplePoint": 6485.34
     },
     {
       "predictionDateIso": "2026-04-22",
