@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY cloudrun ./cloudrun
 COPY model ./model
 COPY scripts ./scripts
+COPY news ./news
 COPY frontend/public/data ./frontend/public/data
 
 EXPOSE 8080

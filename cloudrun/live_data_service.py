@@ -5,12 +5,14 @@ import json
 import logging
 import mimetypes
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, request
@@ -228,6 +230,12 @@ def load_news_index_bytes() -> tuple[bytes, str] | tuple[None, None]:
         payload = BUNDLED_NEWS_INDEX_PATH.read_bytes()
         source = "bundled"
 
+    if payload is None:
+        bundled_index = build_bundled_news_index_payload()
+        if bundled_index is not None:
+            payload = bundled_index
+            source = "bundled-generated"
+
     if payload is None or source is None:
         return None, None
 
@@ -254,6 +262,127 @@ def normalize_report_path(report_path: str) -> str | None:
         normalized = f"{normalized}/index.html"
 
     return normalized
+
+
+def parse_timestamp(value: str | None) -> float:
+    if not value:
+        return 0.0
+
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return 0.0
+
+
+def to_display_date(date_text: str) -> str:
+    match = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", date_text)
+    if not match:
+        return date_text
+    return f"{match.group(1)}년 {match.group(2)}월 {match.group(3)}일"
+
+
+def to_summary_lead(summary: str) -> str:
+    if not summary:
+        return ""
+
+    for line in summary.splitlines():
+        trimmed = line.strip()
+        if trimmed and not trimmed.startswith("[") and not trimmed.startswith("- "):
+            return trimmed
+
+    return ""
+
+
+def build_bundled_news_index_payload() -> bytes | None:
+    if not BUNDLED_NEWS_DIR.exists():
+        return None
+
+    reports = []
+
+    for date_dir in sorted(BUNDLED_NEWS_DIR.iterdir()):
+        if not date_dir.is_dir() or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_dir.name):
+            continue
+
+        for run_dir in sorted(date_dir.iterdir()):
+            if not run_dir.is_dir():
+                continue
+
+            digest_path = run_dir / "digest_db.json"
+            if not digest_path.exists():
+                continue
+
+            try:
+                digest = json.loads(digest_path.read_text(encoding="utf8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+
+            report_date = str(digest.get("report_date") or date_dir.name)
+            run_name = run_dir.name
+            report_id = f"{report_date}-{run_name}"
+            report_href = f"/api/news/reports/{report_date}/{run_name}/index.html"
+            report_generated_at = str(digest.get("generated_at") or "")
+            item_payloads = []
+
+            for index, item in enumerate(digest.get("items") or []):
+                item_payloads.append(
+                    {
+                        "id": f"{report_id}-{item.get('id') or index + 1}",
+                        "reportId": report_id,
+                        "reportDate": report_date,
+                        "reportDateDisplay": to_display_date(report_date),
+                        "reportGeneratedAt": report_generated_at,
+                        "reportHref": report_href,
+                        "youtuber": item.get("youtuber") or "유튜버",
+                        "headline": item.get("headline") or item.get("original_title") or "제목 없음",
+                        "videoPublishedAt": item.get("video_published_at") or "",
+                        "videoPublishedDisplay": item.get("video_published_display") or "",
+                        "sourceUrl": item.get("source_url") or "",
+                        "originalTitle": item.get("original_title") or "",
+                        "summaryLead": to_summary_lead(item.get("summary") or ""),
+                    }
+                )
+
+            reports.append(
+                {
+                    "id": report_id,
+                    "date": report_date,
+                    "dateDisplay": to_display_date(report_date),
+                    "generatedAt": report_generated_at,
+                    "period": str(digest.get("period") or ""),
+                    "count": int(digest.get("count") or len(item_payloads)),
+                    "href": report_href,
+                    "title": f"경제 유튜버 일일 요약 - {to_display_date(report_date)}",
+                    "items": item_payloads,
+                }
+            )
+
+    reports.sort(
+        key=lambda report: (
+            parse_timestamp(str(report.get("generatedAt") or "")),
+            str(report.get("id") or ""),
+        ),
+        reverse=True,
+    )
+
+    latest_items = []
+    for report in reports:
+        latest_items.extend(report.get("items") or [])
+
+    latest_items.sort(
+        key=lambda item: (
+            parse_timestamp(str(item.get("videoPublishedAt") or "")),
+            parse_timestamp(str(item.get("reportGeneratedAt") or "")),
+        ),
+        reverse=True,
+    )
+
+    payload = {
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "latestItems": latest_items,
+        "reports": reports,
+    }
+
+    return f"{json.dumps(payload, ensure_ascii=False, indent=2)}\n".encode("utf8")
 
 
 def load_news_report_bytes(report_path: str) -> tuple[bytes, str, str] | tuple[None, None, None]:
