@@ -12,6 +12,7 @@ export type YoutubeNewsItem = {
   sourceUrl: string;
   originalTitle: string;
   summaryLead: string;
+  summary?: string;
 };
 
 export type YoutubeNewsReport = {

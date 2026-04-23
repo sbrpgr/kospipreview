@@ -109,6 +109,7 @@ async function buildNewsIndex() {
         sourceUrl: item.source_url ?? "",
         originalTitle: item.original_title ?? "",
         summaryLead: toSummaryLead(item.summary ?? ""),
+        summary: item.summary ?? "",
       }));
 
       reports.push({

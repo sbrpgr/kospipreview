@@ -9,6 +9,7 @@ import { PredictionTrendChart } from "@/components/prediction-trend-chart";
 import { SiteHeader } from "@/components/site-header";
 import { YoutubeNewsSummary } from "@/components/youtube-news-summary";
 import { getClientDataUrl, getStaticDataUrl } from "@/lib/data-paths";
+import { dedupeYoutubeNewsItems } from "@/lib/youtube-news-board";
 import { fetchYoutubeNewsIndex } from "@/lib/youtube-news-client";
 import type { YoutubeNewsItem } from "@/lib/youtube-news-types";
 import {
@@ -319,7 +320,7 @@ export function LiveDashboard({
   const [history, setHistory] = useState(initialHistory);
   const [livePredictionSeries, setLivePredictionSeries] = useState(initialLivePredictionSeries);
   const [freshness, setFreshness] = useState(initialFreshness);
-  const [youtubeNewsItems, setYoutubeNewsItems] = useState(initialYoutubeNews);
+  const [youtubeNewsItems, setYoutubeNewsItems] = useState(() => dedupeYoutubeNewsItems(initialYoutubeNews).slice(0, 10));
   const [hasSyncedOnce, setHasSyncedOnce] = useState(false);
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
@@ -328,7 +329,7 @@ export function LiveDashboard({
   const versionRef = useRef(
     getDashboardVersion(initialPrediction, initialIndicators, initialHistory, initialLivePredictionSeries, initialFreshness),
   );
-  const newsVersionRef = useRef(initialYoutubeNews.map((item) => item.id).join("|"));
+  const newsVersionRef = useRef(dedupeYoutubeNewsItems(initialYoutubeNews).map((item) => item.id).join("|"));
 
   useEffect(() => {
     let cancelled = false;
@@ -417,7 +418,7 @@ export function LiveDashboard({
           return;
         }
 
-        const nextItems = nextIndex.latestItems.slice(0, 10);
+        const nextItems = dedupeYoutubeNewsItems(nextIndex.latestItems).slice(0, 10);
         const nextVersion = nextItems.map((item) => item.id).join("|");
         if (nextVersion !== newsVersionRef.current) {
           newsVersionRef.current = nextVersion;

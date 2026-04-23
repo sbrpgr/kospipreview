@@ -1,3 +1,4 @@
+import { getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
 import type { YoutubeNewsItem } from "@/lib/youtube-news-types";
 
 type YoutubeNewsSummaryProps = {
@@ -25,7 +26,7 @@ export function YoutubeNewsSummary({ items }: YoutubeNewsSummaryProps) {
 
       <div className="youtubeNewsSummaryList">
         {summaryItems.map((item) => (
-          <a className="youtubeNewsSummaryItem" href={item.reportHref} key={item.id}>
+          <a className="youtubeNewsSummaryItem" href={getYoutubeNewsPostHref(item.id)} key={item.id}>
             <span className="youtubeNewsSummaryMeta">
               {item.youtuber} · {item.videoPublishedDisplay || item.reportDateDisplay}
             </span>

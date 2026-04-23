@@ -339,6 +339,7 @@ def build_bundled_news_index_payload() -> bytes | None:
                         "sourceUrl": item.get("source_url") or "",
                         "originalTitle": item.get("original_title") or "",
                         "summaryLead": to_summary_lead(item.get("summary") or ""),
+                        "summary": item.get("summary") or "",
                     }
                 )
 

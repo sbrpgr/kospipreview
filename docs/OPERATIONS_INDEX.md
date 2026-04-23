@@ -30,6 +30,7 @@ If work resumes later, read these documents in order:
 - YouTube news public sync: `frontend/scripts/sync-news.mjs`
 - YouTube news dynamic API: `/api/news/youtube-news.json`, `/api/news/reports/**`
 - YouTube news page: `/youtube-news`
+- YouTube news post detail: `/youtube-news/post?item=<id>`
 - Current prediction engine: `EWY Synthetic K200 Ridge`
 - Cloud Run service: `kospi-live-data`
 - Cloud Scheduler job: `kospi-live-refresh`
@@ -123,7 +124,8 @@ All times are Asia/Seoul.
 - The homepage displays the `유튜버 뉴스` section below the hero forecast and above `예측 추이`.
   - Desktop: up to 10 items (`2 x 5`).
   - Mobile: first 5 items.
-- `/youtube-news` displays the full archive and daily report cards.
+- `/youtube-news` displays 게시판형 목록 and daily report cards.
+- Each 게시글 opens internal post detail (`/youtube-news/post?item=<id>`) with a back button.
 - Dynamic news API fallback files are local deploy artifacts and should not be committed:
   - `frontend/public/data/youtube-news.json`
 - The root `news/` directory is the durable source content and should be preserved.

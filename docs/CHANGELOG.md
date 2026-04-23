@@ -15,6 +15,13 @@
     - `gs://kospipreview-live-data/youtube-news/youtube-news.json`
     - `gs://kospipreview-live-data/youtube-news/reports/**`
 
+- YouTube news board UX overhaul
+  - `/youtube-news` now behaves as a 게시판형 목록 and links each item to an internal post view.
+  - Added post detail route: `/youtube-news/post?item=<id>`.
+  - Added explicit "목록으로 돌아가기" button in post detail view.
+  - Homepage `유튜버 뉴스` links now open internal post detail pages instead of raw report HTML.
+  - Duplicate news entries are deduplicated by source URL (or youtuber+title fallback) before display.
+
 - YouTube news archive added
   - Added top navigation link `유튜브 뉴스`.
   - Added `/youtube-news` archive page for generated economic YouTube news reports.

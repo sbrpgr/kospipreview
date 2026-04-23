@@ -776,6 +776,83 @@ p {
   font-weight: 650;
 }
 
+.newsPostSection {
+  margin-top: 14px;
+}
+
+.newsPostBackButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.newsPostBackButton:hover {
+  border-color: rgba(49, 130, 246, 0.4);
+  color: var(--brand-strong);
+}
+
+.newsPostCard {
+  margin-bottom: 0;
+}
+
+.newsPostMeta {
+  color: var(--brand-strong);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.newsPostCard h1 {
+  margin-top: 10px;
+  font-size: clamp(1.42rem, 3.3vw, 2rem);
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.newsPostSummary {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.newsPostSummary p {
+  color: var(--text-secondary);
+  font-size: 0.96rem;
+  line-height: 1.78;
+}
+
+.newsPostActions {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.newsPostActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(49, 130, 246, 0.24);
+  background: var(--brand-bg);
+  color: var(--brand-strong);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.newsPostActionButton:hover {
+  border-color: rgba(49, 130, 246, 0.45);
+  background: #e8f2ff;
+}
+
 .indicatorGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));

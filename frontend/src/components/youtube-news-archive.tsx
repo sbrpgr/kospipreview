@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { dedupeYoutubeNewsItems, getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
 import { fetchYoutubeNewsIndex } from "@/lib/youtube-news-client";
 import type { YoutubeNewsIndex } from "@/lib/youtube-news-types";
 
@@ -38,6 +39,7 @@ function toIndexVersion(index: YoutubeNewsIndex) {
 export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
   const [newsIndex, setNewsIndex] = useState(initialIndex);
   const versionRef = useRef(toIndexVersion(initialIndex));
+  const boardItems = dedupeYoutubeNewsItems(newsIndex.latestItems);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,15 +109,15 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
       <section className="newsArchiveSection">
         <div className="newsSectionHeader">
           <div>
-            <h2>최근 뉴스</h2>
-            <p>영상 게시 시각 기준 최신순입니다.</p>
+            <h2>게시판</h2>
+            <p>각 뉴스는 별도 게시글 상세 화면에서 확인할 수 있습니다.</p>
           </div>
         </div>
 
-        {newsIndex.latestItems.length ? (
+        {boardItems.length ? (
           <div className="newsArchiveList">
-            {newsIndex.latestItems.map((item) => (
-              <a className="newsArchiveItem" href={item.reportHref} key={item.id}>
+            {boardItems.map((item) => (
+              <a className="newsArchiveItem" href={getYoutubeNewsPostHref(item.id)} key={item.id}>
                 <span className="newsArchiveMeta">
                   {item.youtuber} · {item.videoPublishedDisplay || item.reportDateDisplay}
                 </span>
