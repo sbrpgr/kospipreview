@@ -92,7 +92,34 @@ NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxxxxxxxxxxxxxx
 npx firebase-tools deploy --project kospipreview --only hosting
 ```
 
-## 7. 보안 운영 참조 문서
+## 7. 배포 후 운영 도메인 확인
+
+현재 운영 도메인 `kospipreview.com`은 Cloudflare 프록시 뒤에 있고,
+Firebase 기본 도메인은 `kospipreview.web.app`입니다. 배포 후에는 두 경로를 모두 확인해야 합니다.
+
+필수 확인 URL:
+
+- `https://kospipreview.web.app/`
+- `https://kospipreview.com/`
+- `https://kospipreview.web.app/youtube-news`
+- `https://kospipreview.com/youtube-news`
+
+확인 기준:
+
+- 응답 헤더의 `last-modified`가 방금 배포 시각에 가깝다.
+- `kospipreview.com` 응답 헤더에 `Server: cloudflare`와 `CF-RAY`가 보인다.
+- 메인 루트에 최신 네비게이션과 주요 섹션이 실제 HTML로 포함되어 있다.
+- YouTube news 배포 시에는 루트에 `최근 유튜브 뉴스`, `/youtube-news`, 최신 5개 뉴스가 보인다.
+- Firebase clean URL 설정 때문에 `/news/YYYY-MM-DD/HHMMSS/index.html`은 `/news/YYYY-MM-DD/HHMMSS`로 301 이동할 수 있으며, 최종 clean URL이 `200 OK`이면 정상이다.
+
+Cloudflare 관련 주의:
+
+- Cloudflare가 `cf-cache-status: DYNAMIC`이어도 브라우저/edge 상태가 일시적으로 다르게 보일 수 있다.
+- 사용자가 새 섹션을 못 본다고 하면 먼저 `kospipreview.web.app`과 `kospipreview.com`의 루트 HTML을 둘 다 비교한다.
+- 필요하면 Cloudflare 캐시 purge 후 다시 확인한다.
+- Firebase 배포 직후 다른 자동 배포가 이어지면 live release가 다시 덮일 수 있으므로, 최종 확인은 항상 마지막 배포 이후에 한다.
+
+## 8. 보안 운영 참조 문서
 
 - 취약점 점검/사고대응/키 회전/서버운영 표준:
   - `docs/SECURITY_OPERATIONS_RUNBOOK.md`

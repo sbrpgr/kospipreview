@@ -81,6 +81,7 @@ export function SiteHeader({
 
       <nav className="headerNav" aria-label="주요 메뉴">
         <a href="/">홈</a>
+        <a href="/youtube-news">유튜브 뉴스</a>
         <a href="/history">기록</a>
         <a href="/about">모델</a>
         <a href="/contact">문의</a>

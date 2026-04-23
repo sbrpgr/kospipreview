@@ -7,6 +7,7 @@ import { IndicatorList } from "@/components/indicator-list";
 import { NoticeContent } from "@/components/notice-content";
 import { PredictionTrendChart } from "@/components/prediction-trend-chart";
 import { SiteHeader } from "@/components/site-header";
+import { YoutubeNewsSummary } from "@/components/youtube-news-summary";
 import { getClientDataUrl, getStaticDataUrl } from "@/lib/data-paths";
 import {
   type HistoryData,
@@ -14,6 +15,7 @@ import {
   type LivePredictionSeriesData,
   type PredictionData,
 } from "@/lib/data";
+import type { YoutubeNewsItem } from "@/lib/youtube-news";
 
 type FreshnessData = {
   status: "fresh" | "aging" | "stale";
@@ -28,6 +30,7 @@ type LiveDashboardProps = {
   initialHistory: HistoryData;
   initialLivePredictionSeries: LivePredictionSeriesData;
   initialFreshness: FreshnessData;
+  initialYoutubeNews: YoutubeNewsItem[];
 };
 
 const POLL_INTERVAL_MS = 30_000;
@@ -307,6 +310,7 @@ export function LiveDashboard({
   initialHistory,
   initialLivePredictionSeries,
   initialFreshness,
+  initialYoutubeNews,
 }: LiveDashboardProps) {
   const [prediction, setPrediction] = useState(initialPrediction);
   const [indicators, setIndicators] = useState(initialIndicators);
@@ -519,6 +523,8 @@ export function LiveDashboard({
           <div className="heroFootnote">{statusMessage}</div>
         </section>
 
+        <YoutubeNewsSummary items={initialYoutubeNews} />
+
         <PredictionTrendChart prediction={prediction} series={livePredictionSeries} />
 
         <div className="sectionTitleRow">
@@ -570,6 +576,7 @@ export function LiveDashboard({
         </div>
         <div className="footerLinks">
           <a href="/history">최근 예측 기록</a>
+          <a href="/youtube-news">유튜브 뉴스</a>
           <a href="/about">모델 설명</a>
           <a href="/terms">이용약관</a>
           <a href="/privacy">개인정보처리방침</a>

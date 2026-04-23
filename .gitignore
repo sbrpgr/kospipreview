@@ -18,6 +18,8 @@ frontend/yarn-error.log*
 frontend/.pnp.*
 frontend/.eslintcache
 frontend/.vercel
+frontend/public/news/
+frontend/public/data/youtube-news.json
 
 # Python / AI / Backend
 __pycache__/

@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-04-23
+
+- YouTube news archive added
+  - Added top navigation link `유튜브 뉴스`.
+  - Added `/youtube-news` archive page for generated economic YouTube news reports.
+  - Added homepage `최근 유튜브 뉴스` section below the hero forecast and above `예측 추이`.
+  - Homepage shows the latest five news items by video publish time.
+  - News items link to the static daily report HTML.
+
+- Static news sync pipeline
+  - Added `frontend/scripts/sync-news.mjs`.
+  - Source reports live under root `news/YYYY-MM-DD/HHMMSS/`.
+  - Build sync copies source reports into `frontend/public/news/`.
+  - Build sync generates `frontend/public/data/youtube-news.json` from each `digest_db.json`.
+  - `npm run dev` and `npm run build` run news sync automatically through `predev` and `prebuild`.
+  - Generated public copies are ignored by git; root `news/` remains the source archive.
+
+- Deployment verification note
+  - Firebase Hosting was redeployed with release message `Restore YouTube news section`.
+  - Verified `https://kospipreview.com/` includes the nav link and homepage news section.
+  - Verified `https://kospipreview.web.app/` includes the same content.
+  - Verified `https://kospipreview.com/youtube-news`.
+  - Verified report clean URL `/news/2026-04-23/042441`.
+  - Because `kospipreview.com` is proxied through Cloudflare, future deploy checks must verify both the Firebase default host and the Cloudflare-backed custom domain.
+
 ## 2026-04-15
 
 - EWY bridge sampling window fix

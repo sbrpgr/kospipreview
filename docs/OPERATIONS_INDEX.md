@@ -26,6 +26,9 @@ If work resumes later, read these documents in order:
 - Full rebuild path: GitHub Actions `retrain-model`
 - Production deploy workflow: GitHub Actions `deploy-production`
 - Fallback-only refresh workflow: GitHub Actions `refresh-night-futures`
+- YouTube news source archive: root `news/YYYY-MM-DD/HHMMSS/`
+- YouTube news public sync: `frontend/scripts/sync-news.mjs`
+- YouTube news page: `/youtube-news`
 - Current prediction engine: `EWY Synthetic K200 Ridge`
 - Cloud Run service: `kospi-live-data`
 - Cloud Scheduler job: `kospi-live-refresh`
@@ -99,10 +102,25 @@ All times are Asia/Seoul.
 - `scripts/refresh_night_futures.py`
 - `scripts/backtest_and_generate.py`
 - `cloudrun/live_data_service.py`
+- `frontend/scripts/sync-news.mjs`
 - `frontend/src/lib/data.ts`
+- `frontend/src/lib/youtube-news.ts`
 - `frontend/src/components/live-dashboard.tsx`
+- `frontend/src/components/youtube-news-summary.tsx`
 - `frontend/src/components/accuracy-table.tsx`
 - `frontend/src/components/prediction-trend-chart.tsx`
+
+## YouTube News Archive Rules
+
+- Daily source reports live under `news/YYYY-MM-DD/HHMMSS/`.
+- Each report directory should include `digest_db.json` and `index.html`.
+- `npm run dev` and `npm run build` run `npm run sync-news` automatically.
+- `sync-news` copies root `news/` into `frontend/public/news/`.
+- `sync-news` generates `frontend/public/data/youtube-news.json`.
+- The homepage displays the latest five `latestItems` below the hero forecast and above `예측 추이`.
+- `/youtube-news` displays the full archive and daily report cards.
+- `frontend/public/news/` and `frontend/public/data/youtube-news.json` are generated deploy artifacts and should not be committed.
+- The root `news/` directory is the durable source content and should be preserved.
 
 ## Important Docs
 
@@ -116,19 +134,22 @@ All times are Asia/Seoul.
 
 ## Latest Verified Production State
 
-Last verified on 2026-04-14 KST:
+Last verified on 2026-04-23 KST:
 
-- GitHub deploy workflow: `deploy-production` succeeded for commit `81ee130`.
-- GitHub Actions run: `24364299502`.
-- Cloud Run latest ready revision: `kospi-live-data-00026-nf2`.
-- Cloud Run traffic: 100% to latest revision.
-- Scheduler: enabled, weekday every minute.
-- Refresh POST latency after Yahoo fetch optimization: observed `12.1s` to `14.9s`.
-- Refresh latency target: normally under `60s`; investigate if repeated runs exceed that.
-- `/api/live/prediction.json`: served from bucket with no-store cache headers.
-- `/api/live/prediction.json`: latest verified `generatedAt` was `2026-04-13T20:13:04.412177+00:00`.
-- Root host: Cloudflare dynamic, no cache for live API.
-- `www` host: Cloudflare dynamic, no cache for live API.
+- Firebase Hosting manual release message: `Restore YouTube news section`.
+- Firebase Hosting release time: `2026-04-22T20:41:41Z` (`2026-04-23 05:41 KST`).
+- Custom domain root verified: `https://kospipreview.com/`.
+- Firebase default host verified: `https://kospipreview.web.app/`.
+- Both roots include:
+  - top navigation link `/youtube-news`;
+  - homepage `최근 유튜브 뉴스` section;
+  - latest five report items above `예측 추이`.
+- `/youtube-news` verified on the custom domain.
+- Static report verified with Firebase clean URL:
+  - `/news/2026-04-23/042441`
+- Cloudflare is in front of the custom domain:
+  - response headers include `Server: cloudflare` and `CF-RAY`;
+  - production verification must check both `kospipreview.web.app` and `kospipreview.com`.
 
 ## Operating Principles
 
@@ -136,4 +157,4 @@ Last verified on 2026-04-14 KST:
 - Treat Cloud Run live refresh as the primary freshness path.
 - Treat `retrain-model` as the primary full rebuild and static publish path.
 - Use fallback workflow only when Cloud Run live refresh is degraded.
-- Keep docs updated whenever time gates, model inputs, settlement rules, IAM, or deploy flow changes.
+- Keep docs updated whenever time gates, model inputs, settlement rules, IAM, deploy flow, or content archive flow changes.

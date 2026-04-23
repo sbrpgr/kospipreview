@@ -7,6 +7,7 @@ import {
   getLivePredictionSeriesData,
   getPredictionData,
 } from "@/lib/data";
+import { getYoutubeNewsIndex } from "@/lib/youtube-news";
 import {
   CONTACT_EMAIL,
   SITE_DESCRIPTION,
@@ -70,12 +71,13 @@ const FAQ_ITEMS = [
 ] as const;
 
 export default async function Home() {
-  const [prediction, indicators, history, livePredictionSeries, freshness] = await Promise.all([
+  const [prediction, indicators, history, livePredictionSeries, freshness, youtubeNews] = await Promise.all([
     getPredictionData(),
     getIndicatorData(),
     getHistoryData(),
     getLivePredictionSeriesData(),
     getDataFreshness(),
+    getYoutubeNewsIndex(),
   ]);
 
   const dateModified = prediction.generatedAt ?? indicators.generatedAt ?? history.generatedAt;
@@ -167,6 +169,7 @@ export default async function Home() {
         initialHistory={history}
         initialLivePredictionSeries={livePredictionSeries}
         initialFreshness={freshness}
+        initialYoutubeNews={youtubeNews.latestItems.slice(0, 5)}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
     </>

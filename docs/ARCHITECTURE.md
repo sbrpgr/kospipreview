@@ -17,17 +17,24 @@ The platform uses a split architecture.
    - Cloud Storage bucket: `kospipreview-live-data`
    - Scheduler cadence: every minute on weekdays.
 
-3. Full model rebuild and static publish
+3. YouTube news static archive
+   - Source reports are stored under the repository root `news/YYYY-MM-DD/HHMMSS/`.
+   - `frontend/scripts/sync-news.mjs` copies that tree into `frontend/public/news`.
+   - The same script builds `frontend/public/data/youtube-news.json` from each `digest_db.json`.
+   - `npm run dev` and `npm run build` run the sync step automatically through `predev` and `prebuild`.
+   - Firebase Hosting publishes the copied news HTML and the generated index as static files.
+
+4. Full model rebuild and static publish
    - GitHub Actions workflow: `retrain-model`
    - Rebuilds model artifacts and static fallback JSON.
    - Deploys Firebase Hosting.
 
-4. Production deploy
+5. Production deploy
    - GitHub Actions workflow: `deploy-production`
    - Deploys Cloud Run and Firebase Hosting.
    - Firebase Hosting rewrites are pinned to the latest Cloud Run revision by tag.
 
-5. Fallback refresh path
+6. Fallback refresh path
    - GitHub Actions workflow: `refresh-night-futures`
    - Manual fallback only.
    - Not the primary production freshness path.
@@ -51,6 +58,22 @@ Both hosts should return live API data from the Cloud Run bucket-backed path.
 2. Firebase Hosting serves `frontend/out`.
 3. `/_next/static/**` assets can be immutable cached.
 4. HTML, text, and `/data/**` fallback JSON are served with strict no-cache headers.
+
+### YouTube news flow
+
+1. A daily YouTube news report is added under `news/YYYY-MM-DD/HHMMSS/`.
+2. `frontend/scripts/sync-news.mjs` scans all `digest_db.json` files.
+3. The script copies raw report assets to `frontend/public/news`.
+4. The script writes `frontend/public/data/youtube-news.json` with:
+   - all report cards for `/youtube-news`;
+   - `latestItems`, sorted by video publish time, for the homepage.
+5. The homepage renders the latest five items below the hero forecast and above `예측 추이`.
+6. `/youtube-news` renders the full archive and links each item to the static report HTML.
+
+Generated frontend public copies are deploy artifacts and are ignored by git:
+
+- `frontend/public/news/`
+- `frontend/public/data/youtube-news.json`
 
 ### Live flow
 
@@ -82,6 +105,12 @@ Served through `/api/live/**`:
 - `history.json`
 - `live_prediction_series.json`
 - `backtest_diagnostics.json`
+
+Static frontend data served through `/data/**`:
+
+- `youtube-news.json`
+  - generated from root `news/**/digest_db.json`;
+  - used by the homepage recent news list and `/youtube-news`.
 
 Synced by the refresh worker:
 
@@ -173,8 +202,12 @@ For each actual trading date, the row should include:
 - `scripts/backtest_and_generate.py`
 - `scripts/refresh_night_futures.py`
 - `frontend/src/components/live-dashboard.tsx`
+- `frontend/src/components/youtube-news-summary.tsx`
 - `frontend/src/components/prediction-trend-chart.tsx`
 - `frontend/src/components/accuracy-table.tsx`
+- `frontend/src/lib/youtube-news.ts`
+- `frontend/scripts/sync-news.mjs`
+- `news/`
 
 ## Current Truth Source
 
