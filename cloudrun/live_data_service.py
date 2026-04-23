@@ -328,6 +328,52 @@ def to_summary_lead(summary: str) -> str:
     return ""
 
 
+def normalize_news_dedupe_text(value: object) -> str:
+    return re.sub(r"\s+", " ", str(value or "")).strip().casefold()
+
+
+def news_item_dedupe_key(item: dict) -> str:
+    original_title = normalize_news_dedupe_text(item.get("originalTitle"))
+    if original_title:
+        return f"original:{original_title}"
+
+    source_url = normalize_news_dedupe_text(item.get("sourceUrl"))
+    if source_url:
+        return f"source:{source_url}"
+
+    headline = normalize_news_dedupe_text(item.get("headline"))
+    if headline:
+        youtuber = normalize_news_dedupe_text(item.get("youtuber"))
+        return f"headline:{youtuber}|{headline}"
+
+    return f"id:{item.get('reportId') or ''}|{item.get('id') or ''}"
+
+
+def dedupe_news_items(items: list[dict]) -> list[dict]:
+    seen = set()
+    unique_items = []
+
+    sorted_items = sorted(
+        items,
+        key=lambda item: (
+            parse_timestamp(str(item.get("videoPublishedAt") or "")),
+            parse_timestamp(str(item.get("reportGeneratedAt") or "")),
+            str(item.get("id") or ""),
+        ),
+        reverse=True,
+    )
+
+    for item in sorted_items:
+        dedupe_key = news_item_dedupe_key(item)
+        if dedupe_key in seen:
+            continue
+
+        seen.add(dedupe_key)
+        unique_items.append(item)
+
+    return unique_items
+
+
 def build_bundled_news_index_payload() -> bytes | None:
     if not BUNDLED_NEWS_DIR.exists():
         return None
@@ -405,13 +451,7 @@ def build_bundled_news_index_payload() -> bytes | None:
     for report in reports:
         latest_items.extend(report.get("items") or [])
 
-    latest_items.sort(
-        key=lambda item: (
-            parse_timestamp(str(item.get("videoPublishedAt") or "")),
-            parse_timestamp(str(item.get("reportGeneratedAt") or "")),
-        ),
-        reverse=True,
-    )
+    latest_items = dedupe_news_items(latest_items)
 
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
