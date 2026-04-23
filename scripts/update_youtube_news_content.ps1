@@ -25,23 +25,6 @@ function Invoke-CheckedCommand {
   }
 }
 
-function Resolve-DynamicReportHref {
-  param(
-    [string]$ReportId,
-    [string]$FallbackHref
-  )
-
-  if ($ReportId -match '^(?<date>\d{4}-\d{2}-\d{2})-(?<run>[^/]+)$') {
-    return "/api/news/reports/$($Matches['date'])/$($Matches['run'])/index.html"
-  }
-
-  if ($FallbackHref -match '^/news/(?<date>\d{4}-\d{2}-\d{2})/(?<run>[^/]+)/') {
-    return "/api/news/reports/$($Matches['date'])/$($Matches['run'])/index.html"
-  }
-
-  return $FallbackHref
-}
-
 $repoRoot = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($Date)) {
   $Date = (Get-Date).ToString("yyyy-MM-dd")
@@ -80,7 +63,12 @@ New-Item -ItemType Directory -Force -Path $targetDateDir | Out-Null
 
 $runs = Get-ChildItem $sourceDateDir -Directory | Sort-Object Name
 foreach ($run in $runs) {
-  Copy-Item -Path $run.FullName -Destination $targetDateDir -Recurse -Force
+  $targetRunDir = Join-Path $targetDateDir $run.Name
+  if (Test-Path $targetRunDir) {
+    Remove-Item -LiteralPath $targetRunDir -Recurse -Force
+  }
+
+  Copy-Item -Path $run.FullName -Destination $targetRunDir -Recurse -Force
 }
 
 $reportCount = 0
@@ -122,7 +110,6 @@ if ($UploadDynamic) {
     throw "gcloud command not found. Install Google Cloud SDK first."
   }
 
-  $newsRootDir = Join-Path $repoRoot "news"
   $publicIndexPath = Join-Path $repoRoot "frontend\public\data\youtube-news.json"
   if (-not (Test-Path $publicIndexPath)) {
     throw "Generated news index not found: $publicIndexPath"
@@ -131,21 +118,19 @@ if ($UploadDynamic) {
   $newsIndex = Get-Content $publicIndexPath -Raw -Encoding utf8 | ConvertFrom-Json
 
   foreach ($report in @($newsIndex.reports)) {
-    $report.href = Resolve-DynamicReportHref -ReportId $report.id -FallbackHref $report.href
+    $report.href = "/youtube-news"
   }
 
   foreach ($item in @($newsIndex.latestItems)) {
-    $item.reportHref = Resolve-DynamicReportHref -ReportId $item.reportId -FallbackHref $item.reportHref
+    $item.reportHref = "/youtube-news/post?item=$($item.id)"
   }
 
   $tmpIndexPath = Join-Path ([System.IO.Path]::GetTempPath()) ("youtube-news.dynamic.$Date.$([guid]::NewGuid().ToString('N')).json")
   $newsIndex | ConvertTo-Json -Depth 100 | Set-Content -Path $tmpIndexPath -Encoding utf8
 
   try {
-    $reportsUri = "gs://$DynamicBucketName/$DynamicPrefix/reports"
     $indexUri = "gs://$DynamicBucketName/$DynamicPrefix/youtube-news.json"
 
-    Invoke-CheckedCommand "gcloud" "storage" "rsync" $newsRootDir $reportsUri "--recursive"
     Invoke-CheckedCommand "gcloud" "storage" "cp" $tmpIndexPath $indexUri "--cache-control=no-store" "--content-type=application/json; charset=utf-8"
   }
   finally {

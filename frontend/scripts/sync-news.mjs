@@ -1,4 +1,4 @@
-import { promises as fs } from "node:fs";
+﻿import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -92,25 +92,28 @@ async function buildNewsIndex() {
 
       const digest = await readJson(digestPath);
       const reportId = `${dateDir}-${runDir}`;
-      const reportHref = `/news/${dateDir}/${runDir}/index.html`;
+      const reportHref = "/youtube-news";
       const reportGeneratedAt = digest.generated_at ?? "";
 
-      const items = (digest.items ?? []).map((item, index) => ({
-        id: `${reportId}-${item.id ?? index + 1}`,
-        reportId,
-        reportDate: digest.report_date ?? dateDir,
-        reportDateDisplay: toDisplayDate(digest.report_date ?? dateDir),
-        reportGeneratedAt,
-        reportHref,
-        youtuber: item.youtuber ?? "유튜브",
-        headline: item.headline ?? item.original_title ?? "제목 없음",
-        videoPublishedAt: item.video_published_at ?? "",
-        videoPublishedDisplay: item.video_published_display ?? "",
-        sourceUrl: item.source_url ?? "",
-        originalTitle: item.original_title ?? "",
-        summaryLead: toSummaryLead(item.summary ?? ""),
-        summary: item.summary ?? "",
-      }));
+      const items = (digest.items ?? []).map((item, index) => {
+        const itemId = `${reportId}-${item.id ?? index + 1}`;
+        return {
+          id: itemId,
+          reportId,
+          reportDate: digest.report_date ?? dateDir,
+          reportDateDisplay: toDisplayDate(digest.report_date ?? dateDir),
+          reportGeneratedAt,
+          reportHref: `/youtube-news/post?item=${encodeURIComponent(itemId)}`,
+          youtuber: item.youtuber ?? "유튜브",
+          headline: item.headline ?? item.original_title ?? "제목 없음",
+          videoPublishedAt: item.video_published_at ?? "",
+          videoPublishedDisplay: item.video_published_display ?? "",
+          sourceUrl: item.source_url ?? "",
+          originalTitle: item.original_title ?? "",
+          summaryLead: toSummaryLead(item.summary ?? ""),
+          summary: item.summary ?? "",
+        };
+      });
 
       reports.push({
         id: reportId,
@@ -152,18 +155,12 @@ async function buildNewsIndex() {
 }
 
 async function syncNewsFiles() {
-  assertInside(publicDir, publicNewsDir);
   assertInside(publicDir, publicIndexPath);
 
   await fs.mkdir(publicDir, { recursive: true });
   await fs.mkdir(publicDataDir, { recursive: true });
-
   if (await exists(publicNewsDir)) {
     await fs.rm(publicNewsDir, { recursive: true, force: true });
-  }
-
-  if (await exists(sourceNewsDir)) {
-    await fs.cp(sourceNewsDir, publicNewsDir, { recursive: true });
   }
 
   const index = await buildNewsIndex();
@@ -176,3 +173,4 @@ syncNewsFiles().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+

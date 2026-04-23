@@ -71,7 +71,9 @@ jobs:
         working-directory: frontend
         env:
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
-        run: npm run build
+        run: |
+          rm -rf out
+          npm run build
 
       - name: Deploy Firebase Hosting
         run: npx firebase-tools@latest deploy --project kospipreview --only hosting --non-interactive

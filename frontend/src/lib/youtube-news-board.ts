@@ -8,7 +8,9 @@ import {
 
 function dedupeKey(item: YoutubeNewsItem) {
   if (item.sourceUrl) {
-    return `source:${item.sourceUrl}`;
+    const title = getYoutubeNewsCleanHeadline(item).trim();
+    const publishedAt = item.videoPublishedAt ?? "";
+    return `source:${item.sourceUrl}|title:${title}|publishedAt:${publishedAt}`;
   }
 
   const title = getYoutubeNewsCleanHeadline(item) || item.originalTitle || item.headline;
@@ -33,9 +35,16 @@ export function dedupeYoutubeNewsItems(items: YoutubeNewsItem[]) {
     .sort(compareYoutubeNewsByRecency);
 }
 
-export function getBoardYoutubeNewsItems(items: YoutubeNewsItem[], limit?: number) {
+export function getBoardYoutubeNewsItems(
+  items: YoutubeNewsItem[],
+  limit?: number,
+  options: { filterBoardReady?: boolean } = {},
+) {
   const deduped = dedupeYoutubeNewsItems(items);
-  const boardReadyItems = deduped.filter((item) => isBoardReadyYoutubeNewsItem(item));
+  const shouldFilterBoardReady = options.filterBoardReady ?? true;
+  const boardReadyItems = shouldFilterBoardReady
+    ? deduped.filter((item) => isBoardReadyYoutubeNewsItem(item))
+    : deduped;
   const fallbackMinCount = Math.min(5, deduped.length);
   const selected = boardReadyItems.length >= fallbackMinCount ? boardReadyItems : deduped;
 

@@ -7,6 +7,7 @@ import { getYoutubeNewsCleanHeadline, getYoutubeNewsDisplayDate, getYoutubeNewsL
 import type { YoutubeNewsIndex } from "@/lib/youtube-news-types";
 
 const NEWS_POLL_INTERVAL_MS = 120_000;
+const NEWS_BOARD_LIMIT = 10;
 
 type YoutubeNewsArchiveProps = {
   initialIndex: YoutubeNewsIndex;
@@ -40,7 +41,17 @@ function toIndexVersion(index: YoutubeNewsIndex) {
 export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
   const [newsIndex, setNewsIndex] = useState(initialIndex);
   const versionRef = useRef(toIndexVersion(initialIndex));
-  const boardItems = getBoardYoutubeNewsItems(newsIndex.latestItems);
+  const indexRef = useRef(initialIndex);
+  const boardItems = getBoardYoutubeNewsItems(newsIndex.latestItems, NEWS_BOARD_LIMIT, { filterBoardReady: false });
+
+  const applyNewsIndex = (nextIndex: YoutubeNewsIndex) => {
+    const nextVersion = toIndexVersion(nextIndex);
+    if (nextVersion !== versionRef.current) {
+      versionRef.current = nextVersion;
+      indexRef.current = nextIndex;
+      setNewsIndex(nextIndex);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -48,16 +59,11 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
 
     const syncNews = async () => {
       try {
-        const nextIndex = await fetchYoutubeNewsIndex();
+        const nextIndex = await fetchYoutubeNewsIndex(indexRef.current);
         if (cancelled) {
           return;
         }
-
-        const nextVersion = toIndexVersion(nextIndex);
-        if (nextVersion !== versionRef.current) {
-          versionRef.current = nextVersion;
-          setNewsIndex(nextIndex);
-        }
+        applyNewsIndex(nextIndex);
       } catch {
         // keep static fallback already rendered at build time
       }
@@ -94,6 +100,10 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
     };
   }, []);
 
+  useEffect(() => {
+    indexRef.current = newsIndex;
+  }, [newsIndex]);
+
   return (
     <main>
       <section className="newsArchiveHero">
@@ -119,7 +129,7 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
           <div className="newsBoardList">
             {boardItems.map((item, index) => (
               <a className="newsBoardRow" href={getYoutubeNewsPostHref(item.id)} key={item.id}>
-                <span className="newsBoardNo">{String(boardItems.length - index).padStart(2, "0")}</span>
+                <span className="newsBoardNo">{String(index + 1).padStart(2, "0")}</span>
                 <div className="newsBoardBody">
                   <strong>{getYoutubeNewsCleanHeadline(item)}</strong>
                   <p>{getYoutubeNewsLead(item) || "요약 리드가 준비 중입니다."}</p>

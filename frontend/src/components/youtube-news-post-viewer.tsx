@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getBoardYoutubeNewsItems, getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
 import { fetchYoutubeNewsIndex } from "@/lib/youtube-news-client";
@@ -10,7 +10,10 @@ import {
   getYoutubeNewsLead,
   parseYoutubeNewsSummarySections,
 } from "@/lib/youtube-news-format";
+import type { YoutubeNewsIndex } from "@/lib/youtube-news-types";
 import type { YoutubeNewsItem } from "@/lib/youtube-news-types";
+
+const NEWS_BOARD_LIMIT = 10;
 
 type YoutubeNewsPostViewerProps = {
   initialItems: YoutubeNewsItem[];
@@ -19,10 +22,19 @@ type YoutubeNewsPostViewerProps = {
 export function YoutubeNewsPostViewer({ initialItems }: YoutubeNewsPostViewerProps) {
   const searchParams = useSearchParams();
   const targetItemId = searchParams.get("item") ?? "";
-  const boardInitialItems = useMemo(() => getBoardYoutubeNewsItems(initialItems), [initialItems]);
+  const [index, setIndex] = useState<YoutubeNewsIndex>({
+    generatedAt: "",
+    latestItems: initialItems,
+    reports: [],
+  });
+  const indexRef = useRef(index);
 
-  const [items, setItems] = useState<YoutubeNewsItem[]>(boardInitialItems);
+  const items = useMemo(() => getBoardYoutubeNewsItems(index.latestItems, NEWS_BOARD_LIMIT, { filterBoardReady: false }), [index]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,15 +42,15 @@ export function YoutubeNewsPostViewer({ initialItems }: YoutubeNewsPostViewerPro
     const sync = async () => {
       setIsLoading(true);
       try {
-        const index = await fetchYoutubeNewsIndex();
+        const nextIndex = await fetchYoutubeNewsIndex(indexRef.current);
         if (cancelled) {
           return;
         }
 
-        setItems(getBoardYoutubeNewsItems(index.latestItems));
+        setIndex(nextIndex);
       } catch {
         if (!cancelled) {
-          setItems(boardInitialItems);
+          setIndex(indexRef.current);
         }
       } finally {
         if (!cancelled) {
@@ -51,7 +63,7 @@ export function YoutubeNewsPostViewer({ initialItems }: YoutubeNewsPostViewerPro
     return () => {
       cancelled = true;
     };
-  }, [boardInitialItems]);
+  }, [initialItems]);
 
   const item = items.find((candidate) => candidate.id === targetItemId) ?? null;
   const itemIndex = item ? items.findIndex((candidate) => candidate.id === item.id) : -1;

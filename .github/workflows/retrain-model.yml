@@ -44,15 +44,7 @@ jobs:
       - name: Rebuild model artifacts
         run: python ./scripts/backtest_and_generate.py
 
-      - name: Restore static export cache
-        id: static-export-cache
-        uses: actions/cache@v5
-        with:
-          path: frontend/out
-          key: next-export-${{ runner.os }}-${{ hashFiles('frontend/src/**', 'frontend/package-lock.json', 'frontend/next.config.ts', 'frontend/tsconfig.json') }}-${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
-
       - name: Setup Node
-        if: steps.static-export-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -60,12 +52,13 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
-        if: steps.static-export-cache.outputs.cache-hit != 'true'
         working-directory: frontend
         run: npm ci
 
+      - name: Clean stale static export output
+        run: rm -rf frontend/out
+
       - name: Build frontend
-        if: steps.static-export-cache.outputs.cache-hit != 'true'
         working-directory: frontend
         env:
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}

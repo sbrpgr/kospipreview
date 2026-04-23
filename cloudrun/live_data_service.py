@@ -3,7 +3,6 @@ from __future__ import annotations
 import hmac
 import json
 import logging
-import mimetypes
 import os
 import re
 import shutil
@@ -219,49 +218,87 @@ def load_news_index_bytes() -> tuple[bytes, str] | tuple[None, None]:
                 if now - cached_at <= NEWS_CACHE_SECONDS:
                     return payload, source
 
-    payload: bytes | None = None
-    source: str | None = None
+    bucket_payload = download_news_blob_bytes(NEWS_INDEX_FILE_NAME)
+    bundled_payload = None
 
-    payload = download_news_blob_bytes(NEWS_INDEX_FILE_NAME)
-    if payload is not None:
-        source = "bucket"
+    if BUNDLED_NEWS_INDEX_PATH.exists():
+        bundled_payload = BUNDLED_NEWS_INDEX_PATH.read_bytes()
 
-    if payload is None and BUNDLED_NEWS_INDEX_PATH.exists():
-        payload = BUNDLED_NEWS_INDEX_PATH.read_bytes()
-        source = "bundled"
+    if bundled_payload is None:
+        bundled_payload = build_bundled_news_index_payload()
 
-    if payload is None:
-        bundled_index = build_bundled_news_index_payload()
-        if bundled_index is not None:
-            payload = bundled_index
-            source = "bundled-generated"
-
-    if payload is None or source is None:
+    selected_payload, selected_source = select_news_index_payload(bucket_payload, bundled_payload)
+    if selected_payload is None or selected_source is None:
         return None, None
 
     if NEWS_CACHE_SECONDS > 0:
         with _news_cache_lock:
-            _news_cache[cache_key] = (now, payload, source)
+            _news_cache[cache_key] = (now, selected_payload, selected_source)
 
-    return payload, source
+    return selected_payload, selected_source
 
 
-def normalize_report_path(report_path: str) -> str | None:
-    normalized = (report_path or "").strip().replace("\\", "/").lstrip("/")
-    if not normalized:
-        return None
+def select_news_index_payload(
+    bucket_payload: bytes | None,
+    bundled_payload: bytes | None,
+) -> tuple[bytes | None, str | None]:
+    if bucket_payload is None:
+        if bundled_payload is None:
+            return None, None
+        return bundled_payload, "bundled"
 
-    parts = [part for part in normalized.split("/") if part]
-    if any(part == ".." for part in parts):
-        return None
+    if bundled_payload is None:
+        return bucket_payload, "bucket"
 
-    normalized = "/".join(parts)
-    if report_path.endswith("/"):
-        normalized = f"{normalized}/index.html"
-    elif "." not in parts[-1]:
-        normalized = f"{normalized}/index.html"
+    bucket_latest_items_count = extract_news_index_latest_items_count(bucket_payload)
+    bundled_latest_items_count = extract_news_index_latest_items_count(bundled_payload)
+    if bucket_latest_items_count >= 0 and bundled_latest_items_count >= 0:
+        count_diff = abs(bucket_latest_items_count - bundled_latest_items_count)
+        if count_diff >= 3:
+            return (
+                (bucket_payload, "bucket")
+                if bucket_latest_items_count > bundled_latest_items_count
+                else (bundled_payload, "bundled")
+            )
 
-    return normalized
+    bucket_generated_at = extract_news_index_generated_at(bucket_payload)
+    bundled_generated_at = extract_news_index_generated_at(bundled_payload)
+    if bucket_generated_at > bundled_generated_at:
+        return bucket_payload, "bucket"
+
+    if bundled_generated_at > bucket_generated_at:
+        return bundled_payload, "bundled"
+
+    if bucket_latest_items_count >= bundled_latest_items_count:
+        return bucket_payload, "bucket"
+
+    return bundled_payload, "bundled"
+
+
+def extract_news_index_latest_items_count(payload: bytes | None) -> int:
+    if payload is None:
+        return -1
+
+    try:
+        data = json.loads(payload.decode("utf8"))
+        latest_items = data.get("latestItems")
+        if isinstance(latest_items, list):
+            return len(latest_items)
+        return -1
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return -1
+
+
+def extract_news_index_generated_at(payload: bytes | None) -> float:
+    if payload is None:
+        return 0.0
+
+    try:
+        data = json.loads(payload.decode("utf8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return 0.0
+
+    return parse_timestamp(data.get("generatedAt") if isinstance(data.get("generatedAt"), str) else None)
 
 
 def parse_timestamp(value: str | None) -> float:
@@ -319,19 +356,20 @@ def build_bundled_news_index_payload() -> bytes | None:
             report_date = str(digest.get("report_date") or date_dir.name)
             run_name = run_dir.name
             report_id = f"{report_date}-{run_name}"
-            report_href = f"/api/news/reports/{report_date}/{run_name}/index.html"
+            report_href = "/youtube-news"
             report_generated_at = str(digest.get("generated_at") or "")
             item_payloads = []
 
             for index, item in enumerate(digest.get("items") or []):
+                item_id = f"{report_id}-{item.get('id') or index + 1}"
                 item_payloads.append(
                     {
-                        "id": f"{report_id}-{item.get('id') or index + 1}",
+                        "id": item_id,
                         "reportId": report_id,
                         "reportDate": report_date,
                         "reportDateDisplay": to_display_date(report_date),
                         "reportGeneratedAt": report_generated_at,
-                        "reportHref": report_href,
+                        "reportHref": f"/youtube-news/post?item={item_id}",
                         "youtuber": item.get("youtuber") or "유튜버",
                         "headline": item.get("headline") or item.get("original_title") or "제목 없음",
                         "videoPublishedAt": item.get("video_published_at") or "",
@@ -384,25 +422,6 @@ def build_bundled_news_index_payload() -> bytes | None:
     }
 
     return f"{json.dumps(payload, ensure_ascii=False, indent=2)}\n".encode("utf8")
-
-
-def load_news_report_bytes(report_path: str) -> tuple[bytes, str, str] | tuple[None, None, None]:
-    normalized = normalize_report_path(report_path)
-    if not normalized:
-        return None, None, None
-
-    blob_payload = download_news_blob_bytes(f"reports/{normalized}")
-    if blob_payload is not None:
-        content_type, _ = mimetypes.guess_type(normalized)
-        return blob_payload, "bucket", content_type or "application/octet-stream"
-
-    local_path = BUNDLED_NEWS_DIR / Path(normalized)
-    if local_path.exists() and local_path.is_file():
-        payload = local_path.read_bytes()
-        content_type, _ = mimetypes.guess_type(local_path.name)
-        return payload, "bundled", content_type or "application/octet-stream"
-
-    return None, None, None
 
 
 def is_refresh_request_authorized() -> bool:
@@ -525,20 +544,10 @@ def get_news_index() -> Response:
     )
 
 
+@app.get("/api/news/reports")
 @app.get("/api/news/reports/<path:report_path>")
-def get_news_report(report_path: str) -> Response:
-    payload, source, content_type = load_news_report_bytes(report_path)
-    if payload is None or source is None or content_type is None:
-        return jsonify({"ok": False, "error": "not_found"}), 404
-
-    return Response(
-        payload,
-        mimetype=content_type,
-        headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "X-Kospi-News-Source": source,
-        },
-    )
+def get_legacy_news_report(report_path: str | None = None) -> Response:
+    return jsonify({"ok": False, "error": "not_found"}), 404
 
 
 @app.post("/api/tasks/refresh")

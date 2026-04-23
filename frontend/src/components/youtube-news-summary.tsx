@@ -11,7 +11,7 @@ export function YoutubeNewsSummary({ items }: YoutubeNewsSummaryProps) {
     return null;
   }
 
-  const summaryItems = getBoardYoutubeNewsItems(items, 10);
+  const summaryItems = getBoardYoutubeNewsItems(items, 10, { filterBoardReady: false });
   if (!summaryItems.length) {
     return null;
   }
