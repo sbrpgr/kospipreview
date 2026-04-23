@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { YoutubeNewsArchive } from "@/components/youtube-news-archive";
 import { getDataFreshness } from "@/lib/data";
@@ -50,7 +51,9 @@ export default async function YoutubeNewsPage() {
   return (
     <div className="pageContainer">
       <SiteHeader lastUpdated={updatedAt} status={freshness.status} />
-      <YoutubeNewsArchive initialIndex={newsIndex} />
+      <Suspense fallback={null}>
+        <YoutubeNewsArchive initialIndex={newsIndex} />
+      </Suspense>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
     </div>
   );

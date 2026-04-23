@@ -13,8 +13,6 @@ import {
 import type { YoutubeNewsIndex } from "@/lib/youtube-news-types";
 import type { YoutubeNewsItem } from "@/lib/youtube-news-types";
 
-const NEWS_BOARD_LIMIT = 10;
-
 type YoutubeNewsPostViewerProps = {
   initialItems: YoutubeNewsItem[];
 };
@@ -29,7 +27,7 @@ export function YoutubeNewsPostViewer({ initialItems }: YoutubeNewsPostViewerPro
   });
   const indexRef = useRef(index);
 
-  const items = useMemo(() => getBoardYoutubeNewsItems(index.latestItems, NEWS_BOARD_LIMIT, { filterBoardReady: false }), [index]);
+  const items = useMemo(() => getBoardYoutubeNewsItems(index.latestItems, undefined, { filterBoardReady: false }), [index]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { getBoardYoutubeNewsItems, getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
 import { fetchYoutubeNewsIndex } from "@/lib/youtube-news-client";
 import { getYoutubeNewsCleanHeadline, getYoutubeNewsDisplayDate, getYoutubeNewsLead } from "@/lib/youtube-news-format";
@@ -38,11 +39,30 @@ function toIndexVersion(index: YoutubeNewsIndex) {
   ].join("::");
 }
 
+function clampPage(page: number, totalPages: number) {
+  if (!Number.isFinite(page)) {
+    return 1;
+  }
+
+  return Math.min(Math.max(Math.trunc(page), 1), totalPages);
+}
+
+function getYoutubeNewsPageHref(page: number) {
+  return page <= 1 ? "/youtube-news" : `/youtube-news?page=${page}`;
+}
+
 export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
+  const searchParams = useSearchParams();
   const [newsIndex, setNewsIndex] = useState(initialIndex);
   const versionRef = useRef(toIndexVersion(initialIndex));
   const indexRef = useRef(initialIndex);
-  const boardItems = getBoardYoutubeNewsItems(newsIndex.latestItems, NEWS_BOARD_LIMIT, { filterBoardReady: false });
+  const allBoardItems = getBoardYoutubeNewsItems(newsIndex.latestItems, undefined, { filterBoardReady: false });
+  const totalPages = Math.max(1, Math.ceil(allBoardItems.length / NEWS_BOARD_LIMIT));
+  const currentPage = clampPage(Number(searchParams.get("page") ?? "1"), totalPages);
+  const pageStartIndex = (currentPage - 1) * NEWS_BOARD_LIMIT;
+  const boardItems = allBoardItems.slice(pageStartIndex, pageStartIndex + NEWS_BOARD_LIMIT);
+  const hasPreviousPage = currentPage > 1;
+  const hasNextPage = currentPage < totalPages;
 
   const applyNewsIndex = (nextIndex: YoutubeNewsIndex) => {
     const nextVersion = toIndexVersion(nextIndex);
@@ -126,10 +146,11 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
         </div>
 
         {boardItems.length ? (
-          <div className="newsBoardList">
+          <>
+            <div className="newsBoardList">
             {boardItems.map((item, index) => (
               <a className="newsBoardRow" href={getYoutubeNewsPostHref(item.id)} key={item.id}>
-                <span className="newsBoardNo">{String(index + 1).padStart(2, "0")}</span>
+                <span className="newsBoardNo">{String(pageStartIndex + index + 1).padStart(2, "0")}</span>
                 <div className="newsBoardBody">
                   <strong>{getYoutubeNewsCleanHeadline(item)}</strong>
                   <p>{getYoutubeNewsLead(item) || "요약 리드가 준비 중입니다."}</p>
@@ -138,7 +159,27 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
                 <span className="newsBoardDate">{getYoutubeNewsDisplayDate(item)}</span>
               </a>
             ))}
-          </div>
+            </div>
+            <nav className="newsBoardPager" aria-label="YouTube news pages">
+              {hasPreviousPage ? (
+                <a className="newsBoardPagerButton" href={getYoutubeNewsPageHref(currentPage - 1)}>
+                  이전
+                </a>
+              ) : (
+                <span className="newsBoardPagerButton isDisabled">이전</span>
+              )}
+              <span className="newsBoardPagerStatus">
+                {currentPage.toLocaleString("ko-KR")} / {totalPages.toLocaleString("ko-KR")}
+              </span>
+              {hasNextPage ? (
+                <a className="newsBoardPagerButton" href={getYoutubeNewsPageHref(currentPage + 1)}>
+                  다음
+                </a>
+              ) : (
+                <span className="newsBoardPagerButton isDisabled">다음</span>
+              )}
+            </nav>
+          </>
         ) : (
           <div className="card newsEmptyCard">아직 등록된 유튜브 뉴스가 없습니다.</div>
         )}

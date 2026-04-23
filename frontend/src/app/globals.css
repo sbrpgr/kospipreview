@@ -791,6 +791,46 @@ p {
   font-family: var(--font-mono);
 }
 
+.newsBoardPager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.newsBoardPagerButton,
+.newsBoardPagerStatus {
+  min-width: 74px;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.newsBoardPagerButton:hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.newsBoardPagerButton.isDisabled {
+  color: var(--text-dim);
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.newsBoardPagerStatus {
+  min-width: 96px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
 .newsReportGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -1507,6 +1547,16 @@ p {
     grid-column: 2 / -1;
     justify-self: start;
     font-size: 0.74rem;
+  }
+
+  .newsBoardPager {
+    justify-content: stretch;
+  }
+
+  .newsBoardPagerButton,
+  .newsBoardPagerStatus {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .newsPostActions {
