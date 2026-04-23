@@ -7,6 +7,11 @@ import {
 } from "@/lib/youtube-news-format";
 
 function dedupeKey(item: YoutubeNewsItem) {
+  const originalTitle = (item.originalTitle ?? "").normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase();
+  if (originalTitle) {
+    return `original:${originalTitle}`;
+  }
+
   if (item.sourceUrl) {
     const title = getYoutubeNewsCleanHeadline(item).trim();
     const publishedAt = item.videoPublishedAt ?? "";

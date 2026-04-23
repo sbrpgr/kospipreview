@@ -34,6 +34,16 @@ function pickLatestIndex(
     return primary;
   }
 
+  const primaryGeneratedAt = parseGeneratedTime(primary.generatedAt);
+  const fallbackGeneratedAt = parseGeneratedTime(fallback.generatedAt);
+  if (
+    !Number.isNaN(primaryGeneratedAt) &&
+    !Number.isNaN(fallbackGeneratedAt) &&
+    primaryGeneratedAt !== fallbackGeneratedAt
+  ) {
+    return primaryGeneratedAt > fallbackGeneratedAt ? primary : fallback;
+  }
+
   if (countGap >= 3) {
     const selectedByCount = primaryItems > fallbackItems ? primary : fallback;
     const selectedByCountItems = selectedByCount === primary ? primaryItems : fallbackItems;
@@ -49,8 +59,6 @@ function pickLatestIndex(
     return selectedByCount;
   }
 
-  const primaryGeneratedAt = parseGeneratedTime(primary.generatedAt);
-  const fallbackGeneratedAt = parseGeneratedTime(fallback.generatedAt);
   if (Number.isNaN(primaryGeneratedAt) && Number.isNaN(fallbackGeneratedAt)) {
     return primary;
   }

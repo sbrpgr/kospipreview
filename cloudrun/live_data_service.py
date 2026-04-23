@@ -250,23 +250,21 @@ def select_news_index_payload(
     if bundled_payload is None:
         return bucket_payload, "bucket"
 
-    bucket_latest_items_count = extract_news_index_latest_items_count(bucket_payload)
-    bundled_latest_items_count = extract_news_index_latest_items_count(bundled_payload)
-    if bucket_latest_items_count >= 0 and bundled_latest_items_count >= 0:
-        count_diff = abs(bucket_latest_items_count - bundled_latest_items_count)
-        if count_diff >= 3:
-            return (
-                (bucket_payload, "bucket")
-                if bucket_latest_items_count > bundled_latest_items_count
-                else (bundled_payload, "bundled")
-            )
-
     bucket_generated_at = extract_news_index_generated_at(bucket_payload)
     bundled_generated_at = extract_news_index_generated_at(bundled_payload)
-    if bucket_generated_at > bundled_generated_at:
+
+    bucket_latest_items_count = extract_news_index_latest_items_count(bucket_payload)
+    bundled_latest_items_count = extract_news_index_latest_items_count(bundled_payload)
+    if bucket_latest_items_count == 0 and bundled_latest_items_count > 0:
+        return bundled_payload, "bundled"
+
+    if bundled_latest_items_count == 0 and bucket_latest_items_count > 0:
         return bucket_payload, "bucket"
 
-    if bundled_generated_at > bucket_generated_at:
+    if bucket_generated_at > bundled_generated_at and bucket_latest_items_count != 0:
+        return bucket_payload, "bucket"
+
+    if bundled_generated_at > bucket_generated_at and bundled_latest_items_count != 0:
         return bundled_payload, "bundled"
 
     if bucket_latest_items_count >= bundled_latest_items_count:
