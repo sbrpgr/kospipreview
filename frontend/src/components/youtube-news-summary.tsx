@@ -1,4 +1,4 @@
-import type { YoutubeNewsItem } from "@/lib/youtube-news";
+import type { YoutubeNewsItem } from "@/lib/youtube-news-types";
 
 type YoutubeNewsSummaryProps = {
   items: YoutubeNewsItem[];

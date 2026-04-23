@@ -9,13 +9,14 @@ import { PredictionTrendChart } from "@/components/prediction-trend-chart";
 import { SiteHeader } from "@/components/site-header";
 import { YoutubeNewsSummary } from "@/components/youtube-news-summary";
 import { getClientDataUrl, getStaticDataUrl } from "@/lib/data-paths";
+import { fetchYoutubeNewsIndex } from "@/lib/youtube-news-client";
+import type { YoutubeNewsItem } from "@/lib/youtube-news-types";
 import {
   type HistoryData,
   type IndicatorData,
   type LivePredictionSeriesData,
   type PredictionData,
 } from "@/lib/data";
-import type { YoutubeNewsItem } from "@/lib/youtube-news";
 
 type FreshnessData = {
   status: "fresh" | "aging" | "stale";
@@ -34,6 +35,7 @@ type LiveDashboardProps = {
 };
 
 const POLL_INTERVAL_MS = 30_000;
+const NEWS_POLL_INTERVAL_MS = 120_000;
 const OPERATION_STATUS_INTERVAL_MS = 30_000;
 const NIGHT_OPERATION_HOURS_LABEL = "17:00~09:00(변동 가능)";
 const NIGHT_OPERATION_REOPEN_LABEL = "15:30~";
@@ -317,6 +319,7 @@ export function LiveDashboard({
   const [history, setHistory] = useState(initialHistory);
   const [livePredictionSeries, setLivePredictionSeries] = useState(initialLivePredictionSeries);
   const [freshness, setFreshness] = useState(initialFreshness);
+  const [youtubeNewsItems, setYoutubeNewsItems] = useState(initialYoutubeNews);
   const [hasSyncedOnce, setHasSyncedOnce] = useState(false);
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
@@ -325,6 +328,7 @@ export function LiveDashboard({
   const versionRef = useRef(
     getDashboardVersion(initialPrediction, initialIndicators, initialHistory, initialLivePredictionSeries, initialFreshness),
   );
+  const newsVersionRef = useRef(initialYoutubeNews.map((item) => item.id).join("|"));
 
   useEffect(() => {
     let cancelled = false;
@@ -387,6 +391,59 @@ export function LiveDashboard({
     };
 
     void syncDashboard();
+    scheduleNextPoll();
+
+    window.addEventListener("focus", handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      if (pollTimer !== null) {
+        window.clearTimeout(pollTimer);
+      }
+      window.removeEventListener("focus", handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let pollTimer: number | null = null;
+
+    const syncNews = async () => {
+      try {
+        const nextIndex = await fetchYoutubeNewsIndex();
+        if (cancelled) {
+          return;
+        }
+
+        const nextItems = nextIndex.latestItems.slice(0, 10);
+        const nextVersion = nextItems.map((item) => item.id).join("|");
+        if (nextVersion !== newsVersionRef.current) {
+          newsVersionRef.current = nextVersion;
+          setYoutubeNewsItems(nextItems);
+        }
+      } catch {
+        // keep static fallback already rendered at build time
+      }
+    };
+
+    const scheduleNextPoll = () => {
+      if (!cancelled) {
+        pollTimer = window.setTimeout(async () => {
+          await syncNews();
+          scheduleNextPoll();
+        }, NEWS_POLL_INTERVAL_MS);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void syncNews();
+      }
+    };
+
+    void syncNews();
     scheduleNextPoll();
 
     window.addEventListener("focus", handleVisibilityChange);
@@ -523,7 +580,7 @@ export function LiveDashboard({
           <div className="heroFootnote">{statusMessage}</div>
         </section>
 
-        <YoutubeNewsSummary items={initialYoutubeNews} />
+        <YoutubeNewsSummary items={youtubeNewsItems} />
 
         <PredictionTrendChart prediction={prediction} series={livePredictionSeries} />
 

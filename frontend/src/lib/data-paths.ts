@@ -22,3 +22,11 @@ export function getClientDataUrl(fileName: DataFileName) {
 export function isLiveDataFile(fileName: DataFileName) {
   return LIVE_DATA_FILES.has(fileName);
 }
+
+export function getYoutubeNewsClientUrl() {
+  return `/api/news/youtube-news.json?t=${Date.now()}`;
+}
+
+export function getYoutubeNewsStaticUrl() {
+  return `/data/youtube-news.json?t=${Date.now()}`;
+}

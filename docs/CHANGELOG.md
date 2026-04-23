@@ -2,11 +2,24 @@
 
 ## 2026-04-23
 
+- YouTube news dynamic API conversion (Cloud Run + Storage)
+  - Added Cloud Run news endpoints:
+    - `GET /api/news/youtube-news.json`
+    - `GET /api/news/reports/**`
+  - Firebase Hosting now rewrites `/api/news/**` to `kospi-live-data` (pinned tag).
+  - News UI now client-polls dynamic index on both `/` and `/youtube-news`.
+  - Prediction/live polling routes (`/api/live/**`) and scheduler refresh path remain unchanged.
+  - Added daily operator dynamic publish support in:
+    - `scripts/update_youtube_news_content.ps1 -UploadDynamic`
+  - Dynamic storage paths:
+    - `gs://kospipreview-live-data/youtube-news/youtube-news.json`
+    - `gs://kospipreview-live-data/youtube-news/reports/**`
+
 - YouTube news archive added
   - Added top navigation link `유튜브 뉴스`.
   - Added `/youtube-news` archive page for generated economic YouTube news reports.
-  - Added homepage `최근 유튜브 뉴스` section below the hero forecast and above `예측 추이`.
-  - Homepage shows the latest five news items by video publish time.
+  - Added homepage `유튜버 뉴스` section below the hero forecast and above `예측 추이`.
+  - Homepage shows up to 10 items on desktop (`2 x 5`) and 5 items on mobile.
   - News items link to the static daily report HTML.
 
 - Static news sync pipeline
@@ -32,6 +45,17 @@
   - Verified `https://kospipreview.com/youtube-news`.
   - Verified report clean URL `/news/2026-04-23/042441`.
   - Because `kospipreview.com` is proxied through Cloudflare, future deploy checks must verify both the Firebase default host and the Cloudflare-backed custom domain.
+
+- Daily news operations helper and content refresh
+  - Added operator script: `scripts/update_youtube_news_content.ps1`.
+  - Script flow: source copy (`results/YYYY-MM-DD`) -> `npm run sync-news` -> optional `build` -> optional Firebase deploy.
+  - Synced `2026-04-23` source runs and regenerated index:
+    - reports: `7`
+    - latest items: `23`
+    - latest report id: `2026-04-23-180001`
+  - Firebase Hosting release:
+    - release id: `projects/303729438868/sites/kospipreview/channels/live/releases/1776936297151000`
+    - release time: `2026-04-23T09:24:57Z` (`2026-04-23 18:24:57 KST`).
 
 ## 2026-04-15
 

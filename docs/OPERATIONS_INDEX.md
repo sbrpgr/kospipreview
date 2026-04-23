@@ -28,6 +28,7 @@ If work resumes later, read these documents in order:
 - Fallback-only refresh workflow: GitHub Actions `refresh-night-futures`
 - YouTube news source archive: root `news/YYYY-MM-DD/HHMMSS/`
 - YouTube news public sync: `frontend/scripts/sync-news.mjs`
+- YouTube news dynamic API: `/api/news/youtube-news.json`, `/api/news/reports/**`
 - YouTube news page: `/youtube-news`
 - Current prediction engine: `EWY Synthetic K200 Ridge`
 - Cloud Run service: `kospi-live-data`
@@ -115,12 +116,21 @@ All times are Asia/Seoul.
 - Daily source reports live under `news/YYYY-MM-DD/HHMMSS/`.
 - Each report directory should include `digest_db.json` and `index.html`.
 - `npm run dev` and `npm run build` run `npm run sync-news` automatically.
-- `sync-news` copies root `news/` into `frontend/public/news/`.
-- `sync-news` generates `frontend/public/data/youtube-news.json`.
-- The homepage displays the latest five `latestItems` below the hero forecast and above `예측 추이`.
+- `sync-news` generates local fallback `frontend/public/data/youtube-news.json`.
+- Cloud Run serves dynamic news from Cloud Storage:
+  - `gs://kospipreview-live-data/youtube-news/youtube-news.json`
+  - `gs://kospipreview-live-data/youtube-news/reports/**`
+- The homepage displays the `유튜버 뉴스` section below the hero forecast and above `예측 추이`.
+  - Desktop: up to 10 items (`2 x 5`).
+  - Mobile: first 5 items.
 - `/youtube-news` displays the full archive and daily report cards.
-- `frontend/public/news/` and `frontend/public/data/youtube-news.json` are generated deploy artifacts and should not be committed.
+- Dynamic news API fallback files are local deploy artifacts and should not be committed:
+  - `frontend/public/data/youtube-news.json`
 - The root `news/` directory is the durable source content and should be preserved.
+- Daily operator helper:
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\update_youtube_news_content.ps1 -Date 2026-04-23 -UploadDynamic`
+  - optional first-time release or route changes only: add `-Build -Deploy`
+  - If `-SourceRoot` is omitted, the script auto-detects `C:\Users\dw\Desktop\AntiGravity\*\results` containing the requested date.
 
 ## Important Docs
 
@@ -144,8 +154,8 @@ Last verified on 2026-04-23 KST:
 - Firebase default host verified: `https://kospipreview.web.app/`.
 - Both roots include:
   - top navigation link `/youtube-news`;
-  - homepage `최근 유튜브 뉴스` section;
-  - latest five report items above `예측 추이`.
+  - homepage `유튜버 뉴스` section;
+  - desktop up to 10 items / mobile 5 items above `예측 추이`.
 - `/youtube-news` verified on the custom domain.
 - Static report verified with Firebase clean URL:
   - `/news/2026-04-23/042441`

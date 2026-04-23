@@ -3,6 +3,7 @@ from __future__ import annotations
 import hmac
 import json
 import logging
+import mimetypes
 import os
 import shutil
 import subprocess
@@ -17,6 +18,8 @@ from google.cloud import storage
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLED_DATA_DIR = ROOT / "frontend" / "public" / "data"
+BUNDLED_NEWS_INDEX_PATH = BUNDLED_DATA_DIR / "youtube-news.json"
+BUNDLED_NEWS_DIR = ROOT / "news"
 
 SERVE_FILE_NAMES = {
     "prediction.json",
@@ -33,6 +36,9 @@ SYNC_FILE_NAMES = SERVE_FILE_NAMES | {
 
 BUCKET_NAME = os.environ.get("LIVE_DATA_BUCKET", "").strip()
 BUCKET_PREFIX = os.environ.get("LIVE_DATA_PREFIX", "").strip().strip("/")
+NEWS_BUCKET_NAME = os.environ.get("NEWS_BUCKET_NAME", "").strip() or BUCKET_NAME
+NEWS_STORAGE_PREFIX = os.environ.get("NEWS_STORAGE_PREFIX", "youtube-news").strip().strip("/")
+NEWS_INDEX_FILE_NAME = os.environ.get("NEWS_INDEX_FILE_NAME", "youtube-news.json").strip() or "youtube-news.json"
 REFRESH_BEARER_TOKEN = os.environ.get("REFRESH_BEARER_TOKEN", "").strip()
 ALLOW_UNAUTHENTICATED_REFRESH = os.environ.get("ALLOW_UNAUTHENTICATED_REFRESH", "").strip().lower() in {
     "1",
@@ -42,6 +48,7 @@ ALLOW_UNAUTHENTICATED_REFRESH = os.environ.get("ALLOW_UNAUTHENTICATED_REFRESH", 
 }
 REFRESH_TIMEOUT_SECONDS = int(os.environ.get("REFRESH_TIMEOUT_SECONDS", "240"))
 LIVE_JSON_CACHE_SECONDS = max(0.0, float(os.environ.get("LIVE_JSON_CACHE_SECONDS", "10")))
+NEWS_CACHE_SECONDS = max(0.0, float(os.environ.get("NEWS_CACHE_SECONDS", "15")))
 MAX_REFRESH_BODY_BYTES = int(os.environ.get("MAX_REFRESH_BODY_BYTES", "1024"))
 
 app = Flask(__name__)
@@ -51,6 +58,8 @@ _storage_client: storage.Client | None = None
 _refresh_lock = threading.Lock()
 _live_json_cache_lock = threading.Lock()
 _live_json_cache: dict[str, tuple[float, bytes, str]] = {}
+_news_cache_lock = threading.Lock()
+_news_cache: dict[str, tuple[float, bytes, str]] = {}
 
 
 @app.after_request
@@ -61,7 +70,7 @@ def add_security_headers(response: Response) -> Response:
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
     response.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
-    if request.path.startswith("/api/live/"):
+    if request.path.startswith("/api/live/") or request.path.startswith("/api/news/"):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
 
@@ -78,19 +87,19 @@ def reject_oversized_refresh_request() -> tuple[Response, int] | None:
     return None
 
 
-def get_storage_bucket():
+def get_storage_bucket(bucket_name: str):
     global _storage_client
 
-    if not BUCKET_NAME:
+    if not bucket_name:
         return None
 
     if _storage_client is None:
         _storage_client = storage.Client()
 
-    return _storage_client.bucket(BUCKET_NAME)
+    return _storage_client.bucket(bucket_name)
 
 
-def blob_name(file_name: str) -> str:
+def live_blob_name(file_name: str) -> str:
     return f"{BUCKET_PREFIX}/{file_name}" if BUCKET_PREFIX else file_name
 
 
@@ -99,11 +108,11 @@ def bundled_file_path(file_name: str) -> Path:
 
 
 def download_bucket_file(file_name: str, target_path: Path) -> bool:
-    bucket = get_storage_bucket()
+    bucket = get_storage_bucket(BUCKET_NAME)
     if bucket is None:
         return False
 
-    blob = bucket.blob(blob_name(file_name))
+    blob = bucket.blob(live_blob_name(file_name))
     if not blob.exists():
         return False
 
@@ -127,14 +136,30 @@ def upload_bucket_file(file_name: str, source_path: Path) -> bool:
     if not source_path.exists():
         return False
 
-    bucket = get_storage_bucket()
+    bucket = get_storage_bucket(BUCKET_NAME)
     if bucket is None:
         return False
 
-    blob = bucket.blob(blob_name(file_name))
+    blob = bucket.blob(live_blob_name(file_name))
     blob.cache_control = "no-store"
     blob.upload_from_filename(str(source_path), content_type="application/json; charset=utf-8")
     return True
+
+
+def news_blob_name(relative_path: str) -> str:
+    return f"{NEWS_STORAGE_PREFIX}/{relative_path}" if NEWS_STORAGE_PREFIX else relative_path
+
+
+def download_news_blob_bytes(relative_path: str) -> bytes | None:
+    bucket = get_storage_bucket(NEWS_BUCKET_NAME)
+    if bucket is None:
+        return None
+
+    blob = bucket.blob(news_blob_name(relative_path))
+    if not blob.exists():
+        return None
+
+    return blob.download_as_bytes()
 
 
 def load_live_json_bytes(file_name: str) -> tuple[bytes, str] | tuple[None, None]:
@@ -178,6 +203,76 @@ def load_live_json_bytes(file_name: str) -> tuple[bytes, str] | tuple[None, None
 def clear_live_json_cache() -> None:
     with _live_json_cache_lock:
         _live_json_cache.clear()
+
+
+def load_news_index_bytes() -> tuple[bytes, str] | tuple[None, None]:
+    cache_key = "youtube-news-index"
+    now = time.monotonic()
+
+    if NEWS_CACHE_SECONDS > 0:
+        with _news_cache_lock:
+            cached = _news_cache.get(cache_key)
+            if cached is not None:
+                cached_at, payload, source = cached
+                if now - cached_at <= NEWS_CACHE_SECONDS:
+                    return payload, source
+
+    payload: bytes | None = None
+    source: str | None = None
+
+    payload = download_news_blob_bytes(NEWS_INDEX_FILE_NAME)
+    if payload is not None:
+        source = "bucket"
+
+    if payload is None and BUNDLED_NEWS_INDEX_PATH.exists():
+        payload = BUNDLED_NEWS_INDEX_PATH.read_bytes()
+        source = "bundled"
+
+    if payload is None or source is None:
+        return None, None
+
+    if NEWS_CACHE_SECONDS > 0:
+        with _news_cache_lock:
+            _news_cache[cache_key] = (now, payload, source)
+
+    return payload, source
+
+
+def normalize_report_path(report_path: str) -> str | None:
+    normalized = (report_path or "").strip().replace("\\", "/").lstrip("/")
+    if not normalized:
+        return None
+
+    parts = [part for part in normalized.split("/") if part]
+    if any(part == ".." for part in parts):
+        return None
+
+    normalized = "/".join(parts)
+    if report_path.endswith("/"):
+        normalized = f"{normalized}/index.html"
+    elif "." not in parts[-1]:
+        normalized = f"{normalized}/index.html"
+
+    return normalized
+
+
+def load_news_report_bytes(report_path: str) -> tuple[bytes, str, str] | tuple[None, None, None]:
+    normalized = normalize_report_path(report_path)
+    if not normalized:
+        return None, None, None
+
+    blob_payload = download_news_blob_bytes(f"reports/{normalized}")
+    if blob_payload is not None:
+        content_type, _ = mimetypes.guess_type(normalized)
+        return blob_payload, "bucket", content_type or "application/octet-stream"
+
+    local_path = BUNDLED_NEWS_DIR / Path(normalized)
+    if local_path.exists() and local_path.is_file():
+        payload = local_path.read_bytes()
+        content_type, _ = mimetypes.guess_type(local_path.name)
+        return payload, "bundled", content_type or "application/octet-stream"
+
+    return None, None, None
 
 
 def is_refresh_request_authorized() -> bool:
@@ -254,6 +349,7 @@ def root() -> Response:
                 "indicators": "/api/live/indicators.json",
                 "history": "/api/live/history.json",
                 "livePredictionSeries": "/api/live/live_prediction_series.json",
+                "newsIndex": "/api/news/youtube-news.json",
             },
         }
     )
@@ -279,6 +375,38 @@ def get_live_data(file_name: str) -> Response:
         headers={
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
             "X-Kospi-Live-Source": source,
+        },
+    )
+
+
+@app.get("/api/news/youtube-news.json")
+def get_news_index() -> Response:
+    payload, source = load_news_index_bytes()
+    if payload is None or source is None:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+
+    return Response(
+        payload,
+        mimetype="application/json",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "X-Kospi-News-Source": source,
+        },
+    )
+
+
+@app.get("/api/news/reports/<path:report_path>")
+def get_news_report(report_path: str) -> Response:
+    payload, source, content_type = load_news_report_bytes(report_path)
+    if payload is None or source is None or content_type is None:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+
+    return Response(
+        payload,
+        mimetype=content_type,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "X-Kospi-News-Source": source,
         },
     )
 

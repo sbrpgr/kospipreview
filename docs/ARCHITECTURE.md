@@ -17,12 +17,12 @@ The platform uses a split architecture.
    - Cloud Storage bucket: `kospipreview-live-data`
    - Scheduler cadence: every minute on weekdays.
 
-3. YouTube news static archive
+3. YouTube news dynamic archive
    - Source reports are stored under the repository root `news/YYYY-MM-DD/HHMMSS/`.
-   - `frontend/scripts/sync-news.mjs` copies that tree into `frontend/public/news`.
-   - The same script builds `frontend/public/data/youtube-news.json` from each `digest_db.json`.
-   - `npm run dev` and `npm run build` run the sync step automatically through `predev` and `prebuild`.
-   - Firebase Hosting publishes the copied news HTML and the generated index as static files.
+   - `frontend/scripts/sync-news.mjs` still builds local fallback `frontend/public/data/youtube-news.json`.
+   - Cloud Run now serves dynamic news endpoints under `/api/news/**`.
+   - Dynamic news source is Cloud Storage path `gs://kospipreview-live-data/youtube-news/**`.
+   - Daily news ingestion uploads reports and index to Storage without requiring Firebase Hosting redeploy.
 
 4. Full model rebuild and static publish
    - GitHub Actions workflow: `retrain-model`
@@ -65,17 +65,19 @@ Both hosts should return live API data from the Cloud Run bucket-backed path.
 
 1. A daily YouTube news report is added under `news/YYYY-MM-DD/HHMMSS/`.
 2. `frontend/scripts/sync-news.mjs` scans all `digest_db.json` files.
-3. The script copies raw report assets to `frontend/public/news`.
-4. The script writes `frontend/public/data/youtube-news.json` with:
+3. The script writes local fallback `frontend/public/data/youtube-news.json` with:
    - all report cards for `/youtube-news`;
    - `latestItems`, sorted by video publish time, for the homepage.
-5. The homepage renders the latest five items below the hero forecast and above `예측 추이`.
-6. `/youtube-news` renders the full archive and links each item to the static report HTML.
-
-Generated frontend public copies are deploy artifacts and are ignored by git:
-
-- `frontend/public/news/`
-- `frontend/public/data/youtube-news.json`
+4. Daily operator script uploads dynamic artifacts to Cloud Storage:
+   - reports: `gs://kospipreview-live-data/youtube-news/reports/**`
+   - index: `gs://kospipreview-live-data/youtube-news/youtube-news.json`
+5. Browser fetches dynamic index through `GET /api/news/youtube-news.json` (Cloud Run rewrite).
+6. Each report link resolves through `GET /api/news/reports/<date>/<run>/index.html`.
+7. If Storage is unavailable, Cloud Run falls back to bundled local `frontend/public/data/youtube-news.json` and repo `news/`.
+8. The homepage renders the `유튜버 뉴스` section below the hero forecast and above `예측 추이`.
+   - Desktop: up to 10 items (`2 x 5` layout).
+   - Mobile: first 5 items.
+9. `/youtube-news` renders the full archive and polls dynamic news index without touching live prediction routes.
 
 ### Live flow
 
@@ -120,6 +122,18 @@ Synced by the refresh worker:
 - `day_futures_close_cache.json`
 - `night_futures_source_cache.json`
 - `prediction_archive.json`
+
+## News API Files
+
+Served through `/api/news/**` (Cloud Run, no-store):
+
+- `youtube-news.json` from `gs://kospipreview-live-data/youtube-news/youtube-news.json`
+- `reports/**` from `gs://kospipreview-live-data/youtube-news/reports/**`
+
+Fallbacks used by Cloud Run when Storage is unavailable:
+
+- `frontend/public/data/youtube-news.json`
+- `news/**`
 
 ## Operating Schedule
 

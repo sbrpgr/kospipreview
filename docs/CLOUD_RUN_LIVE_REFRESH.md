@@ -20,6 +20,7 @@ Goals:
 - Cloud Storage bucket: `kospipreview-live-data`
 - Firebase Hosting rewrite:
   - `/api/live/**`
+  - `/api/news/**`
   - service `kospi-live-data`
   - region `asia-northeast3`
   - pinned tag created during Firebase deploy
@@ -70,6 +71,17 @@ All should respond with:
 
 - `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
 - `X-Kospi-Live-Source: bucket` when Cloud Storage is being used
+
+## Served News Files (Separated From Live Prediction)
+
+- `/api/news/youtube-news.json`
+- `/api/news/reports/**`
+
+These routes are read-only and must not participate in:
+
+- Scheduler refresh execution;
+- model recalculation;
+- live prediction JSON writes.
 
 ## Synced State Files
 
