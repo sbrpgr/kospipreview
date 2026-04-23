@@ -136,8 +136,10 @@ All times are Asia/Seoul.
 
 Last verified on 2026-04-23 KST:
 
-- Firebase Hosting manual release message: `Restore YouTube news section`.
-- Firebase Hosting release time: `2026-04-22T20:41:41Z` (`2026-04-23 05:41 KST`).
+- Firebase Hosting manual release message: `Restore YouTube news tab after rebase`.
+- Firebase Hosting release id:
+  - `projects/303729438868/sites/kospipreview/channels/live/releases/1776933697045000`
+- Firebase Hosting release time: `2026-04-23T08:41:37Z` (`2026-04-23 17:41 KST`).
 - Custom domain root verified: `https://kospipreview.com/`.
 - Firebase default host verified: `https://kospipreview.web.app/`.
 - Both roots include:
@@ -150,6 +152,10 @@ Last verified on 2026-04-23 KST:
 - Cloudflare is in front of the custom domain:
   - response headers include `Server: cloudflare` and `CF-RAY`;
   - production verification must check both `kospipreview.web.app` and `kospipreview.com`.
+- Overwrite risk and guardrail:
+  - `retrain-model` redeploys hosting from `main` every 5 minutes on weekdays.
+  - If local-only UI changes are manually deployed without pushing to `main`, the next scheduled run can remove those changes.
+  - For static UI/content updates, always commit + push first, then deploy or verify the next scheduled deploy.
 
 ## Operating Principles
 
@@ -157,4 +163,5 @@ Last verified on 2026-04-23 KST:
 - Treat Cloud Run live refresh as the primary freshness path.
 - Treat `retrain-model` as the primary full rebuild and static publish path.
 - Use fallback workflow only when Cloud Run live refresh is degraded.
+- Never rely on local-only hosting deploys for persistent UI changes; push to `main` before final verification.
 - Keep docs updated whenever time gates, model inputs, settlement rules, IAM, deploy flow, or content archive flow changes.

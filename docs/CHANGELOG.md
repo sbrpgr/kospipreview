@@ -18,7 +18,15 @@
   - Generated public copies are ignored by git; root `news/` remains the source archive.
 
 - Deployment verification note
-  - Firebase Hosting was redeployed with release message `Restore YouTube news section`.
+  - Root cause for the temporary disappearance:
+    - GitHub Actions `retrain-model` deploys Firebase Hosting every 5 minutes on weekdays from `main`.
+    - A manual local deploy can be overwritten if the same frontend changes are not pushed to `main`.
+  - Fix applied:
+    - committed and pushed YouTube news changes to `main` (`d3b03e2`).
+    - Firebase Hosting was redeployed with release message `Restore YouTube news tab after rebase`.
+    - release id: `projects/303729438868/sites/kospipreview/channels/live/releases/1776933697045000`.
+  - Release verification timestamps:
+    - `last-modified: Thu, 23 Apr 2026 08:41:36 GMT` on both `kospipreview.com` and `kospipreview.web.app`.
   - Verified `https://kospipreview.com/` includes the nav link and homepage news section.
   - Verified `https://kospipreview.web.app/` includes the same content.
   - Verified `https://kospipreview.com/youtube-news`.

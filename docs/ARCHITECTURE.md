@@ -26,8 +26,10 @@ The platform uses a split architecture.
 
 4. Full model rebuild and static publish
    - GitHub Actions workflow: `retrain-model`
+   - Scheduled every 5 minutes on weekdays.
    - Rebuilds model artifacts and static fallback JSON.
    - Deploys Firebase Hosting.
+   - This deployment path always reflects `main`; local-only manual deploys can be overwritten by the next scheduled run.
 
 5. Production deploy
    - GitHub Actions workflow: `deploy-production`
