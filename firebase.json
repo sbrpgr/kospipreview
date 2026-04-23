@@ -8,11 +8,14 @@
     ],
     "cleanUrls": true,
     "trailingSlash": false,
-    "rewrites": [
+    "redirects": [
       {
         "source": "/news/**",
-        "destination": "/youtube-news"
-      },
+        "destination": "/youtube-news",
+        "type": 301
+      }
+    ],
+    "rewrites": [
       {
         "source": "/api/**",
         "run": {
