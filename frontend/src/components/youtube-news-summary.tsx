@@ -9,12 +9,14 @@ export function YoutubeNewsSummary({ items }: YoutubeNewsSummaryProps) {
     return null;
   }
 
+  const summaryItems = items.slice(0, 10);
+
   return (
     <section className="card youtubeNewsSummary" aria-labelledby="youtube-news-summary-title">
       <div className="youtubeNewsSummaryHeader">
         <div>
-          <h2 id="youtube-news-summary-title">최근 유튜브 뉴스</h2>
-          <p>경제 유튜버 영상 요약 중 최신 5개 기사입니다.</p>
+          <h2 id="youtube-news-summary-title">유튜버 뉴스</h2>
+          <p>경제 유튜버 영상 요약 기사입니다.</p>
         </div>
         <a className="youtubeNewsSummaryLink" href="/youtube-news">
           전체보기
@@ -22,7 +24,7 @@ export function YoutubeNewsSummary({ items }: YoutubeNewsSummaryProps) {
       </div>
 
       <div className="youtubeNewsSummaryList">
-        {items.slice(0, 5).map((item) => (
+        {summaryItems.map((item) => (
           <a className="youtubeNewsSummaryItem" href={item.reportHref} key={item.id}>
             <span className="youtubeNewsSummaryMeta">
               {item.youtuber} · {item.videoPublishedDisplay || item.reportDateDisplay}

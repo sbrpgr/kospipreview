@@ -169,7 +169,7 @@ export default async function Home() {
         initialHistory={history}
         initialLivePredictionSeries={livePredictionSeries}
         initialFreshness={freshness}
-        initialYoutubeNews={youtubeNews.latestItems.slice(0, 5)}
+        initialYoutubeNews={youtubeNews.latestItems.slice(0, 10)}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
     </>
