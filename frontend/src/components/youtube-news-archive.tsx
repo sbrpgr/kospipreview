@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { getBoardYoutubeNewsItems, getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
 import { fetchYoutubeNewsIndex } from "@/lib/youtube-news-client";
 import { getYoutubeNewsCleanHeadline, getYoutubeNewsDisplayDate, getYoutubeNewsLead } from "@/lib/youtube-news-format";
@@ -51,14 +50,22 @@ function getYoutubeNewsPageHref(page: number) {
   return page <= 1 ? "/youtube-news" : `/youtube-news?page=${page}`;
 }
 
+function getBrowserPage() {
+  if (typeof window === "undefined") {
+    return 1;
+  }
+
+  return Number(new URLSearchParams(window.location.search).get("page") ?? "1");
+}
+
 export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
-  const searchParams = useSearchParams();
   const [newsIndex, setNewsIndex] = useState(initialIndex);
+  const [requestedPage, setRequestedPage] = useState(1);
   const versionRef = useRef(toIndexVersion(initialIndex));
   const indexRef = useRef(initialIndex);
   const allBoardItems = getBoardYoutubeNewsItems(newsIndex.latestItems, undefined, { filterBoardReady: false });
   const totalPages = Math.max(1, Math.ceil(allBoardItems.length / NEWS_BOARD_LIMIT));
-  const currentPage = clampPage(Number(searchParams.get("page") ?? "1"), totalPages);
+  const currentPage = clampPage(requestedPage, totalPages);
   const pageStartIndex = (currentPage - 1) * NEWS_BOARD_LIMIT;
   const boardItems = allBoardItems.slice(pageStartIndex, pageStartIndex + NEWS_BOARD_LIMIT);
   const hasPreviousPage = currentPage > 1;
@@ -123,6 +130,19 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
   useEffect(() => {
     indexRef.current = newsIndex;
   }, [newsIndex]);
+
+  useEffect(() => {
+    const syncRequestedPage = () => {
+      setRequestedPage(getBrowserPage());
+    };
+
+    syncRequestedPage();
+    window.addEventListener("popstate", syncRequestedPage);
+
+    return () => {
+      window.removeEventListener("popstate", syncRequestedPage);
+    };
+  }, []);
 
   return (
     <main>
