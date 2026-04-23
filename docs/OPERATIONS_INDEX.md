@@ -125,7 +125,12 @@ All times are Asia/Seoul.
   - Desktop: up to 10 items (`2 x 5`).
   - Mobile: first 5 items.
 - `/youtube-news` displays 게시판형 목록 and daily report cards.
-- Each 게시글 opens internal post detail (`/youtube-news/post?item=<id>`) with a back button.
+- Each 게시글 opens internal post detail (`/youtube-news/post?item=<id>`) with:
+  - top + bottom back buttons to board
+  - section-based edited body rendering
+  - newer/older post pager.
+- Board exposure uses quality-first dedupe (source/title key + quality score) before recency ordering.
+- Raw daily report cards remain available as archive references and open in a new tab.
 - Dynamic news API fallback files are local deploy artifacts and should not be committed:
   - `frontend/public/data/youtube-news.json`
 - The root `news/` directory is the durable source content and should be preserved.

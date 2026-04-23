@@ -22,6 +22,16 @@
   - Homepage `유튜버 뉴스` links now open internal post detail pages instead of raw report HTML.
   - Duplicate news entries are deduplicated by source URL (or youtuber+title fallback) before display.
 
+- YouTube news editorial UX refinement
+  - Board list now renders a structured post-style row format (`번호/제목·리드/채널/게시시각`) instead of raw digest exposure.
+  - Duplicate candidate items now choose the best-quality version per source/title (quality score + recency), then sort by recency.
+  - Added low-quality transcript/noise guard for board exposure (auto-excerpt style content is deprioritized).
+  - Post detail now renders section-based body (`리드/핵심 뉴스/시장 시사점/유의점`) with bullet and paragraph formatting.
+  - Post detail now includes stronger escape/navigation UX:
+    - top + bottom `게시판으로 돌아가기`
+    - `더 최신 글 / 이전 글` pager
+    - raw report link opens in a new tab.
+
 - YouTube news archive added
   - Added top navigation link `유튜브 뉴스`.
   - Added `/youtube-news` archive page for generated economic YouTube news reports.

@@ -2,32 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { dedupeYoutubeNewsItems } from "@/lib/youtube-news-board";
+import { getBoardYoutubeNewsItems, getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
 import { fetchYoutubeNewsIndex } from "@/lib/youtube-news-client";
+import {
+  getYoutubeNewsCleanHeadline,
+  getYoutubeNewsDisplayDate,
+  getYoutubeNewsLead,
+  parseYoutubeNewsSummarySections,
+} from "@/lib/youtube-news-format";
 import type { YoutubeNewsItem } from "@/lib/youtube-news-types";
 
 type YoutubeNewsPostViewerProps = {
   initialItems: YoutubeNewsItem[];
 };
 
-function normalizeSummary(item: YoutubeNewsItem) {
-  const raw = item.summary?.trim() || item.summaryLead?.trim() || "";
-  if (!raw) {
-    return [];
-  }
-
-  return raw
-    .split(/\r?\n\r?\n/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
 export function YoutubeNewsPostViewer({ initialItems }: YoutubeNewsPostViewerProps) {
   const searchParams = useSearchParams();
   const targetItemId = searchParams.get("item") ?? "";
-  const dedupedInitialItems = useMemo(() => dedupeYoutubeNewsItems(initialItems), [initialItems]);
+  const boardInitialItems = useMemo(() => getBoardYoutubeNewsItems(initialItems), [initialItems]);
 
-  const [items, setItems] = useState<YoutubeNewsItem[]>(dedupedInitialItems);
+  const [items, setItems] = useState<YoutubeNewsItem[]>(boardInitialItems);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -41,10 +35,10 @@ export function YoutubeNewsPostViewer({ initialItems }: YoutubeNewsPostViewerPro
           return;
         }
 
-        setItems(dedupeYoutubeNewsItems(index.latestItems));
+        setItems(getBoardYoutubeNewsItems(index.latestItems));
       } catch {
         if (!cancelled) {
-          setItems(dedupedInitialItems);
+          setItems(boardInitialItems);
         }
       } finally {
         if (!cancelled) {
@@ -57,16 +51,21 @@ export function YoutubeNewsPostViewer({ initialItems }: YoutubeNewsPostViewerPro
     return () => {
       cancelled = true;
     };
-  }, [dedupedInitialItems]);
+  }, [boardInitialItems]);
 
   const item = items.find((candidate) => candidate.id === targetItemId) ?? null;
-  const summaryParagraphs = item ? normalizeSummary(item) : [];
+  const itemIndex = item ? items.findIndex((candidate) => candidate.id === item.id) : -1;
+  const newerItem = itemIndex > 0 ? items[itemIndex - 1] : null;
+  const olderItem = itemIndex >= 0 && itemIndex < items.length - 1 ? items[itemIndex + 1] : null;
+  const summarySections = item ? parseYoutubeNewsSummarySections(item) : [];
+  const lead = item ? getYoutubeNewsLead(item) : "";
+  const cleanedHeadline = item ? getYoutubeNewsCleanHeadline(item) : "";
 
   return (
     <main>
       <section className="newsPostSection">
         <a className="newsPostBackButton" href="/youtube-news">
-          목록으로 돌아가기
+          게시판으로 돌아가기
         </a>
 
         {!targetItemId ? (
@@ -87,12 +86,32 @@ export function YoutubeNewsPostViewer({ initialItems }: YoutubeNewsPostViewerPro
         ) : (
           <article className="card newsPostCard">
             <span className="newsPostMeta">
-              {item.youtuber} · {item.videoPublishedDisplay || item.reportDateDisplay}
+              {item.youtuber} · {getYoutubeNewsDisplayDate(item)}
             </span>
-            <h1>{item.headline}</h1>
+            <h1>{cleanedHeadline}</h1>
+            {item.originalTitle && item.originalTitle !== cleanedHeadline ? (
+              <p className="newsPostOriginalTitle">원제: {item.originalTitle}</p>
+            ) : null}
+            {lead ? <p className="newsPostLead">{lead}</p> : null}
             <div className="newsPostSummary">
-              {summaryParagraphs.length ? (
-                summaryParagraphs.map((paragraph, index) => <p key={`${item.id}-${index}`}>{paragraph}</p>)
+              {summarySections.length ? (
+                summarySections.map((section, index) => (
+                  <section className="newsPostSummarySection" key={`${item.id}-${section.title}-${index}`}>
+                    <h2>{section.title}</h2>
+                    {section.paragraphs.map((paragraph, paragraphIndex) => (
+                      <p key={`${item.id}-paragraph-${index}-${paragraphIndex}`}>{paragraph}</p>
+                    ))}
+                    {section.bullets.length ? (
+                      <ul>
+                        {section.bullets.map((bullet, bulletIndex) => (
+                          <li key={`${item.id}-bullet-${index}-${bulletIndex}`}>{bullet}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </section>
+                ))
+              ) : lead ? (
+                <p>{lead}</p>
               ) : (
                 <p>요약 본문이 아직 준비되지 않았습니다.</p>
               )}
@@ -103,10 +122,29 @@ export function YoutubeNewsPostViewer({ initialItems }: YoutubeNewsPostViewerPro
                   원본 영상 보기
                 </a>
               ) : null}
-              <a className="newsPostActionButton" href={item.reportHref}>
-                수집 리포트 보기
+              <a className="newsPostActionButton" href={item.reportHref} rel="noopener noreferrer" target="_blank">
+                원문 리포트(새 탭)
               </a>
             </div>
+            <div className="newsPostPager">
+              {newerItem ? (
+                <a className="newsPostPagerLink" href={getYoutubeNewsPostHref(newerItem.id)}>
+                  ← 더 최신 글
+                </a>
+              ) : (
+                <span className="newsPostPagerLink isDisabled">← 더 최신 글</span>
+              )}
+              {olderItem ? (
+                <a className="newsPostPagerLink" href={getYoutubeNewsPostHref(olderItem.id)}>
+                  이전 글 →
+                </a>
+              ) : (
+                <span className="newsPostPagerLink isDisabled">이전 글 →</span>
+              )}
+            </div>
+            <a className="newsPostBackButton newsPostBackButtonBottom" href="/youtube-news">
+              게시판으로 돌아가기
+            </a>
           </article>
         )}
       </section>

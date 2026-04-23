@@ -1,4 +1,5 @@
-import { getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
+import { getBoardYoutubeNewsItems, getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
+import { getYoutubeNewsCleanHeadline, getYoutubeNewsDisplayDate } from "@/lib/youtube-news-format";
 import type { YoutubeNewsItem } from "@/lib/youtube-news-types";
 
 type YoutubeNewsSummaryProps = {
@@ -10,7 +11,10 @@ export function YoutubeNewsSummary({ items }: YoutubeNewsSummaryProps) {
     return null;
   }
 
-  const summaryItems = items.slice(0, 10);
+  const summaryItems = getBoardYoutubeNewsItems(items, 10);
+  if (!summaryItems.length) {
+    return null;
+  }
 
   return (
     <section className="card youtubeNewsSummary" aria-labelledby="youtube-news-summary-title">
@@ -28,9 +32,9 @@ export function YoutubeNewsSummary({ items }: YoutubeNewsSummaryProps) {
         {summaryItems.map((item) => (
           <a className="youtubeNewsSummaryItem" href={getYoutubeNewsPostHref(item.id)} key={item.id}>
             <span className="youtubeNewsSummaryMeta">
-              {item.youtuber} · {item.videoPublishedDisplay || item.reportDateDisplay}
+              {item.youtuber} · {getYoutubeNewsDisplayDate(item)}
             </span>
-            <strong>{item.headline}</strong>
+            <strong>{getYoutubeNewsCleanHeadline(item)}</strong>
           </a>
         ))}
       </div>

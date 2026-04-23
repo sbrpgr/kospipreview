@@ -1,29 +1,49 @@
 import type { YoutubeNewsItem } from "@/lib/youtube-news-types";
+import {
+  compareYoutubeNewsByQuality,
+  compareYoutubeNewsByRecency,
+  getYoutubeNewsCleanHeadline,
+  isBoardReadyYoutubeNewsItem,
+} from "@/lib/youtube-news-format";
 
 function dedupeKey(item: YoutubeNewsItem) {
   if (item.sourceUrl) {
     return `source:${item.sourceUrl}`;
   }
 
-  const title = item.originalTitle || item.headline;
+  const title = getYoutubeNewsCleanHeadline(item) || item.originalTitle || item.headline;
   return `title:${item.youtuber}|${title}`;
 }
 
 export function dedupeYoutubeNewsItems(items: YoutubeNewsItem[]) {
-  const seen = new Set<string>();
-  const deduped: YoutubeNewsItem[] = [];
+  const grouped = new Map<string, YoutubeNewsItem[]>();
 
   for (const item of items) {
     const key = dedupeKey(item);
-    if (seen.has(key)) {
-      continue;
+    const bucket = grouped.get(key);
+    if (bucket) {
+      bucket.push(item);
+    } else {
+      grouped.set(key, [item]);
     }
-
-    seen.add(key);
-    deduped.push(item);
   }
 
-  return deduped;
+  return [...grouped.values()]
+    .map((group) => group.sort(compareYoutubeNewsByQuality)[0])
+    .sort(compareYoutubeNewsByRecency);
+}
+
+export function getBoardYoutubeNewsItems(items: YoutubeNewsItem[], limit?: number) {
+  const deduped = dedupeYoutubeNewsItems(items);
+  const boardReadyItems = deduped.filter((item) => isBoardReadyYoutubeNewsItem(item));
+  const fallbackMinCount = Math.min(5, deduped.length);
+  const selected = boardReadyItems.length >= fallbackMinCount ? boardReadyItems : deduped;
+
+  if (typeof limit === "number") {
+    return selected.slice(0, limit);
+  }
+
+  return selected;
 }
 
 export function getYoutubeNewsPostHref(itemId: string) {

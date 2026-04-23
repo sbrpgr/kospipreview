@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { dedupeYoutubeNewsItems, getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
+import { getBoardYoutubeNewsItems, getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
 import { fetchYoutubeNewsIndex } from "@/lib/youtube-news-client";
+import { getYoutubeNewsCleanHeadline, getYoutubeNewsDisplayDate, getYoutubeNewsLead } from "@/lib/youtube-news-format";
 import type { YoutubeNewsIndex } from "@/lib/youtube-news-types";
 
 const NEWS_POLL_INTERVAL_MS = 120_000;
@@ -39,7 +40,7 @@ function toIndexVersion(index: YoutubeNewsIndex) {
 export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
   const [newsIndex, setNewsIndex] = useState(initialIndex);
   const versionRef = useRef(toIndexVersion(initialIndex));
-  const boardItems = dedupeYoutubeNewsItems(newsIndex.latestItems);
+  const boardItems = getBoardYoutubeNewsItems(newsIndex.latestItems);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,19 +111,21 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
         <div className="newsSectionHeader">
           <div>
             <h2>게시판</h2>
-            <p>각 뉴스는 별도 게시글 상세 화면에서 확인할 수 있습니다.</p>
+            <p>각 게시글은 편집된 요약 기사로 제공되며, 클릭하면 상세 페이지로 이동합니다.</p>
           </div>
         </div>
 
         {boardItems.length ? (
-          <div className="newsArchiveList">
-            {boardItems.map((item) => (
-              <a className="newsArchiveItem" href={getYoutubeNewsPostHref(item.id)} key={item.id}>
-                <span className="newsArchiveMeta">
-                  {item.youtuber} · {item.videoPublishedDisplay || item.reportDateDisplay}
-                </span>
-                <strong>{item.headline}</strong>
-                {item.summaryLead ? <span>{item.summaryLead}</span> : null}
+          <div className="newsBoardList">
+            {boardItems.map((item, index) => (
+              <a className="newsBoardRow" href={getYoutubeNewsPostHref(item.id)} key={item.id}>
+                <span className="newsBoardNo">{String(boardItems.length - index).padStart(2, "0")}</span>
+                <div className="newsBoardBody">
+                  <strong>{getYoutubeNewsCleanHeadline(item)}</strong>
+                  <p>{getYoutubeNewsLead(item) || "요약 리드가 준비 중입니다."}</p>
+                </div>
+                <span className="newsBoardChannel">{item.youtuber}</span>
+                <span className="newsBoardDate">{getYoutubeNewsDisplayDate(item)}</span>
               </a>
             ))}
           </div>
@@ -142,7 +145,7 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
         {newsIndex.reports.length ? (
           <div className="newsReportGrid">
             {newsIndex.reports.map((report) => (
-              <a className="newsReportCard" href={report.href} key={report.id}>
+              <a className="newsReportCard" href={report.href} key={report.id} rel="noopener noreferrer" target="_blank">
                 <span>{report.dateDisplay}</span>
                 <strong>{report.title}</strong>
                 <em>
