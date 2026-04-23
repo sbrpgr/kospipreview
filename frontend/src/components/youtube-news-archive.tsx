@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { getBoardYoutubeNewsItems, getYoutubeNewsPostHref } from "@/lib/youtube-news-board";
@@ -13,27 +13,9 @@ type YoutubeNewsArchiveProps = {
   initialIndex: YoutubeNewsIndex;
 };
 
-function formatGeneratedAt(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Seoul",
-  }).format(date);
-}
-
 function toIndexVersion(index: YoutubeNewsIndex) {
   return [
     index.generatedAt ?? "",
-    index.reports.map((report) => report.id).join("|"),
     index.latestItems.map((item) => item.id).join("|"),
   ].join("::");
 }
@@ -157,77 +139,7 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
         </div>
       </section>
 
-      <section className="newsArchiveSection">
-        <div className="newsSectionHeader">
-          <div>
-            <h2>게시판</h2>
-            <p>각 게시글은 편집된 요약 기사로 제공되며, 클릭하면 상세 페이지로 이동합니다.</p>
-          </div>
-        </div>
-
-        {boardItems.length ? (
-          <>
-            <div className="newsBoardList">
-            {boardItems.map((item, index) => (
-              <a className="newsBoardRow" href={getYoutubeNewsPostHref(item.id)} key={item.id}>
-                <span className="newsBoardNo">{String(pageStartIndex + index + 1).padStart(2, "0")}</span>
-                <div className="newsBoardBody">
-                  <strong>{getYoutubeNewsCleanHeadline(item)}</strong>
-                  <p>{getYoutubeNewsLead(item) || "요약 리드가 준비 중입니다."}</p>
-                </div>
-                <span className="newsBoardChannel">{item.youtuber}</span>
-                <span className="newsBoardDate">{getYoutubeNewsDisplayDate(item)}</span>
-              </a>
-            ))}
-            </div>
-            <nav className="newsBoardPager" aria-label="YouTube news pages">
-              {hasPreviousPage ? (
-                <a className="newsBoardPagerButton" href={getYoutubeNewsPageHref(currentPage - 1)}>
-                  이전
-                </a>
-              ) : (
-                <span className="newsBoardPagerButton isDisabled">이전</span>
-              )}
-              <span className="newsBoardPagerStatus">
-                {currentPage.toLocaleString("ko-KR")} / {totalPages.toLocaleString("ko-KR")}
-              </span>
-              {hasNextPage ? (
-                <a className="newsBoardPagerButton" href={getYoutubeNewsPageHref(currentPage + 1)}>
-                  다음
-                </a>
-              ) : (
-                <span className="newsBoardPagerButton isDisabled">다음</span>
-              )}
-            </nav>
-          </>
-        ) : (
-          <div className="card newsEmptyCard">아직 등록된 유튜브 뉴스가 없습니다.</div>
-        )}
-      </section>
-
-      <section className="newsArchiveSection">
-        <div className="newsSectionHeader">
-          <div>
-            <h2>일일 리포트</h2>
-            <p>생성된 전체 유튜브 뉴스 자료입니다.</p>
-          </div>
-        </div>
-
-        {newsIndex.reports.length ? (
-          <div className="newsReportGrid">
-            {newsIndex.reports.map((report) => (
-              <a className="newsReportCard" href={report.href} key={report.id} rel="noopener noreferrer" target="_blank">
-                <span>{report.dateDisplay}</span>
-                <strong>{report.title}</strong>
-                <em>
-                  {report.period || "일일 요약"} · 기사 {report.count.toLocaleString("ko-KR")}개
-                </em>
-                {report.generatedAt ? <small>생성 {formatGeneratedAt(report.generatedAt)}</small> : null}
-              </a>
-            ))}
-          </div>
-        ) : null}
-      </section>
     </main>
   );
 }
+
