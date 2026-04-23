@@ -19,8 +19,7 @@ Goals:
 - Cloud Scheduler job: `kospi-live-refresh`
 - Cloud Storage bucket: `kospipreview-live-data`
 - Firebase Hosting rewrite:
-  - `/api/live/**`
-  - `/api/news/**`
+  - `/api/**`
   - service `kospi-live-data`
   - region `asia-northeast3`
   - pinned tag created during Firebase deploy

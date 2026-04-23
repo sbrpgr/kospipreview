@@ -10,15 +10,7 @@
     "trailingSlash": false,
     "rewrites": [
       {
-        "source": "/api/news/**",
-        "run": {
-          "serviceId": "kospi-live-data",
-          "region": "asia-northeast3",
-          "pinTag": true
-        }
-      },
-      {
-        "source": "/api/live/**",
+        "source": "/api/**",
         "run": {
           "serviceId": "kospi-live-data",
           "region": "asia-northeast3",
