@@ -36,6 +36,64 @@ function parseTime(value) {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
+function normalizeDedupeText(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function getItemDedupeKey(item) {
+  const originalTitle = normalizeDedupeText(item.originalTitle);
+  if (originalTitle) {
+    return `original:${originalTitle}`;
+  }
+
+  const sourceUrl = normalizeDedupeText(item.sourceUrl);
+  if (sourceUrl) {
+    return `source:${sourceUrl}`;
+  }
+
+  const headline = normalizeDedupeText(item.headline);
+  if (headline) {
+    return `headline:${normalizeDedupeText(item.youtuber)}|${headline}`;
+  }
+
+  return `id:${item.reportId}|${item.id}`;
+}
+
+function compareItemsByRecency(a, b) {
+  const publishedDiff = parseTime(b.videoPublishedAt) - parseTime(a.videoPublishedAt);
+  if (publishedDiff !== 0) {
+    return publishedDiff;
+  }
+
+  const reportDiff = parseTime(b.reportGeneratedAt) - parseTime(a.reportGeneratedAt);
+  if (reportDiff !== 0) {
+    return reportDiff;
+  }
+
+  return b.id.localeCompare(a.id);
+}
+
+function dedupeLatestItems(items) {
+  const seen = new Set();
+  const uniqueItems = [];
+
+  for (const item of [...items].sort(compareItemsByRecency)) {
+    const key = getItemDedupeKey(item);
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    uniqueItems.push(item);
+  }
+
+  return uniqueItems;
+}
+
 function toDisplayDate(dateText) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateText);
   if (!match) {
@@ -137,15 +195,7 @@ async function buildNewsIndex() {
     return b.id.localeCompare(a.id);
   });
 
-  const latestItems = reports
-    .flatMap((report) => report.items)
-    .sort((a, b) => {
-      const publishedDiff = parseTime(b.videoPublishedAt) - parseTime(a.videoPublishedAt);
-      if (publishedDiff !== 0) {
-        return publishedDiff;
-      }
-      return parseTime(b.reportGeneratedAt) - parseTime(a.reportGeneratedAt);
-    });
+  const latestItems = dedupeLatestItems(reports.flatMap((report) => report.items));
 
   return {
     generatedAt: new Date().toISOString(),
@@ -166,7 +216,10 @@ async function syncNewsFiles() {
   const index = await buildNewsIndex();
   await fs.writeFile(publicIndexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
 
-  console.log(`Synced ${index.reports.length} YouTube news report(s), ${index.latestItems.length} item(s).`);
+  const collectedItemCount = index.reports.reduce((total, report) => total + report.items.length, 0);
+  console.log(
+    `Synced ${index.reports.length} YouTube news report(s), ${index.latestItems.length} unique item(s) from ${collectedItemCount} collected item(s).`,
+  );
 }
 
 syncNewsFiles().catch((error) => {

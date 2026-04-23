@@ -1,6 +1,7 @@
 param(
   [string]$SourceRoot = "",
   [string]$Date = "",
+  [switch]$SkipSourceSync,
   [switch]$Build,
   [switch]$UploadDynamic,
   [switch]$Deploy,
@@ -30,45 +31,58 @@ if ([string]::IsNullOrWhiteSpace($Date)) {
   $Date = (Get-Date).ToString("yyyy-MM-dd")
 }
 
-if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
-  $antiGravityRoot = "C:\Users\dw\Desktop\AntiGravity"
-  if (-not (Test-Path $antiGravityRoot)) {
-    throw "SourceRoot is empty and AntiGravity base directory was not found: $antiGravityRoot"
-  }
-
-  $candidateResultsDirs = Get-ChildItem $antiGravityRoot -Directory |
-    ForEach-Object { Join-Path $_.FullName "results" } |
-    Where-Object { Test-Path $_ } |
-    Sort-Object
-
-  $matchedSourceRoot = $candidateResultsDirs |
-    Where-Object { Test-Path (Join-Path $_ $Date) } |
-    Select-Object -First 1
-
-  if (-not $matchedSourceRoot) {
-    throw "Could not auto-resolve SourceRoot. Pass -SourceRoot explicitly."
-  }
-
-  $SourceRoot = $matchedSourceRoot
-}
-
-$sourceDateDir = Join-Path $SourceRoot $Date
 $targetDateDir = Join-Path $repoRoot "news\$Date"
 
-if (-not (Test-Path $sourceDateDir)) {
-  throw "Source date directory not found: $sourceDateDir"
-}
+if (-not $SkipSourceSync) {
+  if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
+    $antiGravityRoot = "C:\Users\dw\Desktop\AntiGravity"
+    if (-not (Test-Path $antiGravityRoot)) {
+      throw "SourceRoot is empty and AntiGravity base directory was not found: $antiGravityRoot"
+    }
 
-New-Item -ItemType Directory -Force -Path $targetDateDir | Out-Null
+    $candidateResultsDirs = Get-ChildItem $antiGravityRoot -Directory |
+      ForEach-Object { Join-Path $_.FullName "results" } |
+      Where-Object { Test-Path $_ } |
+      Sort-Object
 
-$runs = Get-ChildItem $sourceDateDir -Directory | Sort-Object Name
-foreach ($run in $runs) {
-  $targetRunDir = Join-Path $targetDateDir $run.Name
-  if (Test-Path $targetRunDir) {
-    Remove-Item -LiteralPath $targetRunDir -Recurse -Force
+    $matchedSourceRoot = $candidateResultsDirs |
+      Where-Object { Test-Path (Join-Path $_ $Date) } |
+      Select-Object -First 1
+
+    if (-not $matchedSourceRoot) {
+      throw "Could not auto-resolve SourceRoot. Pass -SourceRoot explicitly."
+    }
+
+    $SourceRoot = $matchedSourceRoot
   }
 
-  Copy-Item -Path $run.FullName -Destination $targetRunDir -Recurse -Force
+  $sourceDateDir = Join-Path $SourceRoot $Date
+
+  if (-not (Test-Path $sourceDateDir)) {
+    throw "Source date directory not found: $sourceDateDir"
+  }
+
+  New-Item -ItemType Directory -Force -Path $targetDateDir | Out-Null
+
+  $runs = Get-ChildItem $sourceDateDir -Directory | Sort-Object Name
+  foreach ($run in $runs) {
+    $targetRunDir = Join-Path $targetDateDir $run.Name
+    if (Test-Path $targetRunDir) {
+      Remove-Item -LiteralPath $targetRunDir -Recurse -Force
+    }
+
+    Copy-Item -Path $run.FullName -Destination $targetRunDir -Recurse -Force
+  }
+
+  Write-Host "[news] Source sync complete: $sourceDateDir -> $targetDateDir"
+}
+else {
+  if (-not (Test-Path $targetDateDir)) {
+    throw "Target date directory not found: $targetDateDir"
+  }
+
+  $runs = Get-ChildItem $targetDateDir -Directory | Sort-Object Name
+  Write-Host "[news] Source sync skipped; using $targetDateDir"
 }
 
 $reportCount = 0
@@ -86,7 +100,6 @@ Get-ChildItem $targetDateDir -Directory | ForEach-Object {
   }
 }
 
-Write-Host "[news] Source sync complete: $sourceDateDir -> $targetDateDir"
 Write-Host "[news] Candidate runs: $($runs.Count), reports with digest: $reportCount, items: $itemCount"
 
 Push-Location (Join-Path $repoRoot "frontend")
