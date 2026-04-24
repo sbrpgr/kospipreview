@@ -250,16 +250,20 @@ def select_news_index_payload(
     if bundled_payload is None:
         return bucket_payload, "bucket"
 
-    bucket_generated_at = extract_news_index_generated_at(bucket_payload)
-    bundled_generated_at = extract_news_index_generated_at(bundled_payload)
-
     bucket_latest_items_count = extract_news_index_latest_items_count(bucket_payload)
     bundled_latest_items_count = extract_news_index_latest_items_count(bundled_payload)
+
+    if bucket_latest_items_count > 0:
+        return bucket_payload, "bucket"
+
     if bucket_latest_items_count == 0 and bundled_latest_items_count > 0:
         return bundled_payload, "bundled"
 
     if bundled_latest_items_count == 0 and bucket_latest_items_count > 0:
         return bucket_payload, "bucket"
+
+    bucket_generated_at = extract_news_index_generated_at(bucket_payload)
+    bundled_generated_at = extract_news_index_generated_at(bundled_payload)
 
     if bucket_generated_at > bundled_generated_at and bucket_latest_items_count != 0:
         return bucket_payload, "bucket"
@@ -454,7 +458,7 @@ def build_bundled_news_index_payload() -> bytes | None:
     latest_items = dedupe_news_items(latest_items)
 
     payload = {
-        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "generatedAt": str(reports[0].get("generatedAt") or "") if reports else "",
         "latestItems": latest_items,
         "reports": reports,
     }

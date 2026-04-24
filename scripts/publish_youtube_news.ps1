@@ -107,7 +107,11 @@ try {
     Start-Sleep -Seconds 20
     $response = Invoke-WebRequest -Uri "https://kospipreview.com/api/news/youtube-news.json" -Headers @{ "Cache-Control" = "no-cache" } -UseBasicParsing
     $payload = $response.Content | ConvertFrom-Json
-    Write-Host "[news] Published. API status=$($response.StatusCode), items=$(@($payload.latestItems).Count), reports=$(@($payload.reports).Count)"
+    $source = $response.Headers["X-Kospi-News-Source"]
+    Write-Host "[news] Published. API status=$($response.StatusCode), source=$source, items=$(@($payload.latestItems).Count), reports=$(@($payload.reports).Count)"
+    if ($source -ne "bucket") {
+      throw "News publish verification failed: expected source=bucket, got source=$source"
+    }
     Write-Host "[news] Home shows latest 10. Full board: https://kospipreview.com/youtube-news"
   }
 
