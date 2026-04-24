@@ -2,7 +2,7 @@
   "summary": {
     "mae30d": 30.75
   },
-  "generatedAt": "2026-04-24T03:37:44.042181+00:00",
+  "generatedAt": "2026-04-24T05:57:02.256513+00:00",
   "records": [
     {
       "date": "2026-04-24",
@@ -64,7 +64,7 @@
       "modelPrediction": 6326.88,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6355.61,
-      "low": 6299.21,
+      "low": 6299.2,
       "high": 6354.55,
       "actualOpen": 6227.33,
       "hit": false,
@@ -131,7 +131,7 @@
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6429.61,
       "low": 6063.68,
-      "high": 6135.62,
+      "high": 6135.63,
       "actualOpen": 5826.45,
       "hit": false,
       "isSynthetic": false
