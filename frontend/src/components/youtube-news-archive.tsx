@@ -139,6 +139,54 @@ export function YoutubeNewsArchive({ initialIndex }: YoutubeNewsArchiveProps) {
         </div>
       </section>
 
+      <section className="newsArchiveSection">
+        <div className="newsSectionHeader">
+          <div>
+            <h2>게시판</h2>
+            <p>각 게시글은 원제목 기준으로 중복 제거된 최신 기사이며, 클릭하면 상세 페이지로 이동합니다.</p>
+          </div>
+        </div>
+
+        {boardItems.length ? (
+          <>
+            <div className="newsBoardList">
+              {boardItems.map((item, index) => (
+                <a className="newsBoardRow" href={getYoutubeNewsPostHref(item.id)} key={item.id}>
+                  <span className="newsBoardNo">{String(pageStartIndex + index + 1).padStart(2, "0")}</span>
+                  <div className="newsBoardBody">
+                    <strong>{getYoutubeNewsCleanHeadline(item)}</strong>
+                    <p>{getYoutubeNewsLead(item) || "요약 리드가 준비 중입니다."}</p>
+                  </div>
+                  <span className="newsBoardChannel">{item.youtuber}</span>
+                  <span className="newsBoardDate">{getYoutubeNewsDisplayDate(item)}</span>
+                </a>
+              ))}
+            </div>
+            <nav className="newsBoardPager" aria-label="YouTube news pages">
+              {hasPreviousPage ? (
+                <a className="newsBoardPagerButton" href={getYoutubeNewsPageHref(currentPage - 1)}>
+                  이전
+                </a>
+              ) : (
+                <span className="newsBoardPagerButton isDisabled">이전</span>
+              )}
+              <span className="newsBoardPagerStatus">
+                {currentPage.toLocaleString("ko-KR")} / {totalPages.toLocaleString("ko-KR")}
+              </span>
+              {hasNextPage ? (
+                <a className="newsBoardPagerButton" href={getYoutubeNewsPageHref(currentPage + 1)}>
+                  다음
+                </a>
+              ) : (
+                <span className="newsBoardPagerButton isDisabled">다음</span>
+              )}
+            </nav>
+          </>
+        ) : (
+          <div className="card newsEmptyCard">아직 등록된 유튜브 뉴스가 없습니다.</div>
+        )}
+      </section>
+
     </main>
   );
 }
