@@ -2,6 +2,7 @@ name: deploy-production
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CLOUD_RUN_SERVICE_ACCOUNT: firebase-adminsdk-fbsvc@kospipreview.iam.gserviceaccount.com
 
 on:
   workflow_dispatch:
@@ -52,6 +53,7 @@ jobs:
             --image "$IMAGE" \
             --project kospipreview \
             --region asia-northeast3 \
+            --service-account "${CLOUD_RUN_SERVICE_ACCOUNT}" \
             --allow-unauthenticated \
             --update-env-vars "LIVE_DATA_BUCKET=kospipreview-live-data,REFRESH_BEARER_TOKEN=${REFRESH_BEARER_TOKEN},LIVE_JSON_CACHE_SECONDS=10,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240,NEWS_BUCKET_NAME=kospipreview-live-data,NEWS_STORAGE_PREFIX=youtube-news,NEWS_INDEX_FILE_NAME=youtube-news.json,NEWS_CACHE_SECONDS=15" \
             --quiet

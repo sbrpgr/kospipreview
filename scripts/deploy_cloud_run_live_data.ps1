@@ -2,6 +2,7 @@ param(
   [string]$ProjectId = "kospipreview",
   [string]$Region = "asia-northeast3",
   [string]$ServiceName = "kospi-live-data",
+  [string]$ServiceAccount = "firebase-adminsdk-fbsvc@kospipreview.iam.gserviceaccount.com",
   [string]$BucketName = "kospipreview-live-data",
   [string]$Schedule = "* * * * 1-5",
   [string]$SchedulerJobName = "kospi-live-refresh",
@@ -43,6 +44,7 @@ Write-Host "Using project: $ProjectId"
 Write-Host "Using region: $Region"
 Write-Host "Using bucket: gs://$BucketName"
 Write-Host "Using service: $ServiceName"
+Write-Host "Using service account: $ServiceAccount"
 
 Invoke-Gcloud config set project $ProjectId | Out-Null
 
@@ -70,6 +72,7 @@ Invoke-Gcloud storage cp frontend/public/data/*.json "gs://$BucketName/"
 Invoke-Gcloud run deploy $ServiceName `
   --source . `
   --region $Region `
+  --service-account $ServiceAccount `
   --allow-unauthenticated `
   --set-env-vars "LIVE_DATA_BUCKET=$BucketName,REFRESH_BEARER_TOKEN=$RefreshToken,LIVE_JSON_CACHE_SECONDS=10,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240,NEWS_BUCKET_NAME=$BucketName,NEWS_STORAGE_PREFIX=youtube-news,NEWS_INDEX_FILE_NAME=youtube-news.json,NEWS_CACHE_SECONDS=15"
 
