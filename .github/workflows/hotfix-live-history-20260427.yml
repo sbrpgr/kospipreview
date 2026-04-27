@@ -1,0 +1,56 @@
+name: hotfix-live-history-20260427
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: kospipreview
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: kospipreview
+
+      - name: Patch 2026-04-27 history row
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp)"
+          gcloud storage cp gs://kospipreview-live-data/history.json "$tmp" --quiet
+          python - "$tmp" <<'PY'
+          import json
+          import sys
+          from datetime import datetime, timezone
+
+          path = sys.argv[1]
+          with open(path, "r", encoding="utf-8") as f:
+              payload = json.load(f)
+
+          records = payload.get("records") or []
+          for row in records:
+              if isinstance(row, dict) and row.get("date") == "2026-04-27":
+                  row["modelPrediction"] = 6503.13
+                  row["low"] = 6472.38
+                  row["high"] = 6533.88
+                  row["hit"] = True
+                  break
+          else:
+              raise SystemExit("2026-04-27 row not found")
+
+          payload["generatedAt"] = datetime.now(timezone.utc).isoformat()
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(payload, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+          PY
+          gcloud storage cp "$tmp" gs://kospipreview-live-data/history.json --cache-control=no-store --content-type="application/json; charset=utf-8" --quiet
