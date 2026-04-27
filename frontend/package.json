@@ -17,6 +17,9 @@
     "react-dom": "19.1.0",
     "recharts": "^3.8.1"
   },
+  "overrides": {
+    "postcss": "8.5.10"
+  },
   "devDependencies": {
     "@types/node": "22.15.2",
     "@types/react": "19.1.2",

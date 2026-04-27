@@ -24,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           PATTERN='-----BEGIN (RSA |EC |OPENSSH |)?PRIVATE KEY-----|"type"[[:space:]]*:[[:space:]]*"service_account"|AIza[0-9A-Za-z_-]{35}'
-          if git grep -nE "$PATTERN" -- . ':(exclude)docs/**' ':(exclude)*.md'; then
+          if git grep -nE -e "$PATTERN" -- . ':(exclude)docs/**' ':(exclude)*.md'; then
             echo "Potential secret detected in repository-tracked files."
             exit 1
           fi
