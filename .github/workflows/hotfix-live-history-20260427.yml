@@ -1,6 +1,10 @@
 name: Hotfix Live History 20260427
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hotfix-live-history-20260427.yml'
   workflow_dispatch:
 
 permissions:
