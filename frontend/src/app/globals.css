@@ -177,6 +177,12 @@ p {
   border-color: rgba(49, 130, 246, 0.35);
 }
 
+.headerNav a.isAccent {
+  color: var(--brand-strong);
+  border-color: rgba(49, 130, 246, 0.28);
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+}
+
 .statusLabel {
   display: inline-flex;
   align-items: center;
@@ -1446,6 +1452,461 @@ p {
   margin-bottom: 10px;
 }
 
+.quantPage {
+  display: grid;
+  gap: 22px;
+}
+
+.quantHeroCard {
+  display: grid;
+  gap: 18px;
+  padding: 30px 32px;
+  background:
+    radial-gradient(circle at right top, rgba(49, 130, 246, 0.14) 0, rgba(49, 130, 246, 0) 28%),
+    linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+}
+
+.quantHeroCopy {
+  display: grid;
+  gap: 10px;
+}
+
+.quantHeroEyebrow,
+.quantSectionEyebrow,
+.quantToolBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid rgba(49, 130, 246, 0.18);
+  background: rgba(49, 130, 246, 0.08);
+  color: var(--brand-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.quantHeroCopy h1 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  color: var(--text);
+}
+
+.quantHeroCopy p,
+.quantSectionHeader p,
+.quantToolHeader p,
+.quantNotice,
+.quantInsight,
+.quantMetricNote,
+.quantFieldHint {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.quantHeroChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.quantHeroChips a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.quantHeroChips a:hover {
+  border-color: rgba(49, 130, 246, 0.28);
+  color: var(--brand-strong);
+}
+
+.quantNotice {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.quantLiveBar,
+.quantFxToolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quantLiveBar {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(49, 130, 246, 0.14);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.quantLiveBar strong,
+.quantFxChip strong {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.quantLiveBar span,
+.quantFxChip span {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.quantFxToolbar {
+  margin-bottom: 16px;
+}
+
+.quantFxChip {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 260px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fbfdff;
+}
+
+.quantActionRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quantActionButton {
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(49, 130, 246, 0.22);
+  background: var(--brand-bg);
+  color: var(--brand-strong);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.quantActionButton:hover {
+  border-color: rgba(49, 130, 246, 0.42);
+  background: #e8f2ff;
+}
+
+.quantSectionHeader {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.quantSectionHeader h2 {
+  font-size: 1.55rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin: 0;
+}
+
+.quantToolGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.quantToolCard {
+  margin-bottom: 0;
+  padding: 24px;
+}
+
+.quantToolCardWide {
+  padding: 28px;
+}
+
+.quantToolHeader {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.quantToolHeader h3 {
+  margin: 10px 0 0;
+  color: var(--text);
+  font-size: 1.22rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.quantToolLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.quantToolLayoutWide {
+  align-items: start;
+}
+
+.quantFieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quantField {
+  display: grid;
+  gap: 7px;
+}
+
+.quantFieldLabel {
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.quantInputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.quantInput {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 600;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.quantInput:focus {
+  border-color: rgba(49, 130, 246, 0.42);
+  box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.12);
+}
+
+.quantInputSuffix {
+  position: absolute;
+  right: 12px;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.quantMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quantMetric {
+  display: grid;
+  gap: 7px;
+  min-height: 122px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+}
+
+.quantMetric-positive {
+  border-color: rgba(226, 72, 91, 0.22);
+  background: linear-gradient(180deg, #fff8f8 0%, #ffffff 100%);
+}
+
+.quantMetric-negative {
+  border-color: rgba(47, 111, 243, 0.2);
+  background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
+}
+
+.quantMetric-accent {
+  border-color: rgba(49, 130, 246, 0.28);
+  background: linear-gradient(180deg, #f3f8ff 0%, #ffffff 100%);
+}
+
+.quantMetricLabel {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.quantMetricValue {
+  color: var(--text);
+  font-size: 1.32rem;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-family: var(--font-mono);
+}
+
+.quantMetric-positive .quantMetricValue {
+  color: var(--positive);
+}
+
+.quantMetric-negative .quantMetricValue,
+.quantMetric-accent .quantMetricValue {
+  color: var(--brand-strong);
+}
+
+.quantMetricNote {
+  margin-top: auto;
+  font-size: 0.77rem;
+}
+
+.quantInsight {
+  margin-top: 16px;
+}
+
+.quantFormula {
+  margin-top: 14px;
+  border-top: 1px dashed var(--border);
+  padding-top: 14px;
+}
+
+.quantFormula summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.quantFormula code {
+  display: block;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f7f9fc;
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.quantSegmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.quantSegmented button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.quantSegmented button.isActive {
+  border-color: rgba(49, 130, 246, 0.28);
+  background: var(--brand-bg);
+  color: var(--brand-strong);
+}
+
+.quantMiniSection {
+  margin-top: 20px;
+}
+
+.quantMiniSection h4 {
+  margin: 0 0 12px;
+  color: var(--text);
+  font-size: 0.94rem;
+  font-weight: 800;
+}
+
+.quantProjectionGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quantProjectionItem {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+}
+
+.quantProjectionItem span,
+.quantProjectionItem small {
+  color: var(--text-dim);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.quantProjectionItem strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.96rem;
+}
+
+.quantSensitivityWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.quantSensitivityTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.quantSensitivityTable th,
+.quantSensitivityTable td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  font-size: 0.82rem;
+}
+
+.quantSensitivityTable th:first-child,
+.quantSensitivityTable td:first-child {
+  text-align: left;
+}
+
+.quantSensitivityTable thead th {
+  background: #f8fafc;
+  color: var(--text-secondary);
+  font-weight: 800;
+}
+
+.quantSensitivityTable tbody th {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.quantSensitivityTable tbody td {
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.quantSensitivityTable tbody tr:last-child th,
+.quantSensitivityTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
 @media (max-width: 720px) {
   .pageContainer {
     width: min(100% - 20px, 980px);
@@ -1488,6 +1949,37 @@ p {
   .headerNav {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .quantHeroCard,
+  .quantToolCard,
+  .quantToolCardWide {
+    padding: 20px;
+  }
+
+  .quantLiveBar,
+  .quantFxToolbar {
+    flex-direction: column;
+  }
+
+  .quantToolGrid,
+  .quantToolLayout,
+  .quantFieldGrid,
+  .quantMetricGrid,
+  .quantProjectionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .quantHeroCopy h1 {
+    font-size: clamp(2rem, 11vw, 2.7rem);
+  }
+
+  .quantMetric {
+    min-height: 0;
+  }
+
+  .quantSensitivityTable {
+    min-width: 440px;
   }
 
   .youtubeNewsSummary {
