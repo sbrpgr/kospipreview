@@ -192,6 +192,14 @@ function formatCompactCurrency(value: number | null | undefined, currencyMode: C
   return currencyMode === "usd" ? `${formatNumber(value, 2)} USD` : formatCompactWon(value);
 }
 
+function formatKrwNote(value: number | null | undefined, fxRate: number | null | undefined) {
+  if (!isFiniteNumber(value) || !isFiniteNumber(fxRate)) {
+    return undefined;
+  }
+
+  return `원화 약 ${formatCompactWon(value * fxRate)}`;
+}
+
 function formatShares(value: number | null | undefined, digits = 2) {
   return isFiniteNumber(value) ? `${formatNumber(value, digits)}주` : "-";
 }
@@ -600,11 +608,6 @@ export function StockQuantCalculator({
     Number.isFinite(returnCurrentPrice)
       ? ((returnCurrentPrice / returnOriginalPrice) - 1) * 100
       : null;
-  const returnCurrentValueKrw =
-    currencyMode === "usd" && returnCurrentValue !== null && effectiveUsdKrw !== null
-      ? returnCurrentValue * effectiveUsdKrw
-      : null;
-
   const opportunityBudgetAmount = parseNumber(opportunityFields.budgetAmount);
   const stockOneScenario = calculateBudgetScenario(
     opportunityBudgetAmount,
@@ -629,11 +632,6 @@ export function StockQuantCalculator({
         : opportunityGap < 0
           ? "주식 1 우위"
           : "동일";
-  const opportunityGapKrw =
-    currencyMode === "usd" && opportunityGapAbs !== null && effectiveUsdKrw !== null
-      ? opportunityGapAbs * effectiveUsdKrw
-      : null;
-
   const lossRecovery = calculateLossRecovery(parseNumber(lossRate));
 
   const averageDown = calculateAverageDown({
@@ -672,6 +670,8 @@ export function StockQuantCalculator({
     parseNumber(dividendFields.taxRatePct),
     parseNumber(dividendFields.years),
   );
+  const krwNote = (value: number | null | undefined) =>
+    currencyMode === "usd" ? formatKrwNote(value, effectiveUsdKrw) : undefined;
 
   const activeResults: MetricItem[] = (() => {
     switch (activeTool) {
@@ -680,11 +680,13 @@ export function StockQuantCalculator({
           {
             label: "현재 환산금액",
             value: formatCompactCurrency(returnCurrentValue, currencyMode),
+            note: krwNote(returnCurrentValue),
             tone: "accent",
           },
           {
             label: "손익",
             value: formatCompactCurrency(returnProfit, currencyMode),
+            note: krwNote(returnProfit),
             tone: getToneFromSignedValue(returnProfit),
           },
           {
@@ -693,8 +695,8 @@ export function StockQuantCalculator({
             tone: getToneFromSignedValue(returnPct),
           },
           {
-            label: currencyMode === "usd" ? "원화 환산" : "살 수 있었던 수량",
-            value: currencyMode === "usd" ? formatCompactWon(returnCurrentValueKrw) : formatShares(returnShares),
+            label: "살 수 있었던 수량",
+            value: formatShares(returnShares),
             tone: "default",
           },
         ];
@@ -703,6 +705,7 @@ export function StockQuantCalculator({
           {
             label: "기회비용 차이",
             value: formatCompactCurrency(opportunityGapAbs, currencyMode),
+            note: krwNote(opportunityGapAbs),
             tone: "accent",
           },
           {
@@ -713,20 +716,19 @@ export function StockQuantCalculator({
           {
             label: "주식 1 현재가치",
             value: formatCompactCurrency(stockOneScenario?.currentValue, currencyMode),
+            note: krwNote(stockOneScenario?.currentValue),
             tone: getToneFromSignedValue(stockOneScenario?.profit),
           },
           {
             label: "주식 2 현재가치",
             value: formatCompactCurrency(stockTwoScenario?.currentValue, currencyMode),
+            note: krwNote(stockTwoScenario?.currentValue),
             tone: getToneFromSignedValue(stockTwoScenario?.profit),
           },
           {
-            label: currencyMode === "usd" ? "차이 원화환산" : "주식 1 수익률",
-            value:
-              currencyMode === "usd"
-                ? formatCompactWon(opportunityGapKrw)
-                : formatSignedPercent(stockOneScenario?.returnPct),
-            tone: currencyMode === "usd" ? "default" : getToneFromSignedValue(stockOneScenario?.returnPct),
+            label: "주식 1 수익률",
+            value: formatSignedPercent(stockOneScenario?.returnPct),
+            tone: getToneFromSignedValue(stockOneScenario?.returnPct),
           },
           {
             label: "주식 2 수익률",
@@ -758,6 +760,7 @@ export function StockQuantCalculator({
           {
             label: "새 평단",
             value: formatCurrency(averageDown?.newAveragePrice, currencyMode),
+            note: krwNote(averageDown?.newAveragePrice),
             tone: "accent",
           },
           {
@@ -768,6 +771,7 @@ export function StockQuantCalculator({
           {
             label: "총 투자금",
             value: formatCompactCurrency(averageDown?.totalCost, currencyMode),
+            note: krwNote(averageDown?.totalCost),
             tone: "default",
           },
           {
@@ -781,11 +785,13 @@ export function StockQuantCalculator({
           {
             label: "목표 매도가",
             value: targetExit ? formatCurrency(targetExit.targetPricePerShare, currencyMode, 2) : "-",
+            note: krwNote(targetExit?.targetPricePerShare),
             tone: "accent",
           },
           {
             label: "예상 순이익",
             value: formatCompactCurrency(targetNetProfitInCurrency, currencyMode),
+            note: krwNote(targetNetProfitInCurrency),
             tone: "positive",
           },
           {
@@ -794,11 +800,9 @@ export function StockQuantCalculator({
             tone: "positive",
           },
           {
-            label: currencyMode === "usd" ? "목표가 원화환산" : "예상 회수금",
-            value:
-              currencyMode === "usd"
-                ? formatWon(targetExit?.targetPriceInKrw, 2)
-                : formatCompactCurrency(targetNetProceedsInCurrency, currencyMode),
+            label: "예상 회수금",
+            value: formatCompactCurrency(targetNetProceedsInCurrency, currencyMode),
+            note: krwNote(targetNetProceedsInCurrency),
             tone: "default",
           },
         ];
@@ -807,21 +811,25 @@ export function StockQuantCalculator({
           {
             label: "연 세후 배당",
             value: formatCompactCurrency(dividendReinvestment?.netAnnualDividend, currencyMode),
+            note: krwNote(dividendReinvestment?.netAnnualDividend),
             tone: "positive",
           },
           {
             label: "월 환산 배당",
             value: formatCompactCurrency(dividendReinvestment?.netMonthlyDividend, currencyMode),
+            note: krwNote(dividendReinvestment?.netMonthlyDividend),
             tone: "default",
           },
           {
             label: "재투자 후 자산",
             value: formatCompactCurrency(dividendReinvestment?.reinvestedValue, currencyMode),
+            note: krwNote(dividendReinvestment?.reinvestedValue),
             tone: "accent",
           },
           {
             label: "누적 재투자 수익",
             value: formatCompactCurrency(dividendReinvestment?.reinvestedProfit, currencyMode),
+            note: krwNote(dividendReinvestment?.reinvestedProfit),
             tone: "positive",
           },
           {
@@ -1187,12 +1195,14 @@ export function StockQuantCalculator({
               <span>결과</span>
               <strong>{activeResults[0]?.value ?? "-"}</strong>
               <small>{activeResults[0]?.label ?? activeToolInfo.label}</small>
+              {activeResults[0]?.note ? <em>{activeResults[0].note}</em> : null}
             </div>
             <div className="quantResultList">
               {activeResults.slice(1).map((item) => (
                 <div key={item.label}>
                   <span>{item.label}</span>
                   <strong>{item.value}</strong>
+                  {item.note ? <em>{item.note}</em> : null}
                 </div>
               ))}
             </div>
