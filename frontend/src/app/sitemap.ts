@@ -3,6 +3,7 @@ import { toAbsoluteUrl } from "@/lib/seo";
 
 const ROUTES = [
   { path: "/", changeFrequency: "hourly" as const, priority: 1.0 },
+  { path: "/quant-calculator", changeFrequency: "weekly" as const, priority: 0.85 },
   { path: "/youtube-news", changeFrequency: "daily" as const, priority: 0.9 },
   { path: "/history", changeFrequency: "daily" as const, priority: 0.9 },
   { path: "/about", changeFrequency: "weekly" as const, priority: 0.8 },
