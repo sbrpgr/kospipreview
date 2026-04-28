@@ -30,6 +30,7 @@ type ToolId =
   | "average"
   | "target"
   | "fx"
+  | "opportunity"
   | "dividend"
   | "metrics"
   | "valuation"
@@ -115,6 +116,17 @@ const TOOL_OPTIONS: Array<{
       "fx.currentFxRate",
       "fx.dividendPerShare",
       "fx.dividendTaxPct",
+    ],
+  },
+  {
+    id: "opportunity",
+    label: "기회비용",
+    keyLabel: "OC",
+    description: "그때 넣었다면 지금 얼마인지",
+    fieldKeys: [
+      "opportunity.originalPrice",
+      "opportunity.currentPrice",
+      "opportunity.investmentAmount",
     ],
   },
   {
@@ -440,6 +452,11 @@ export function StockQuantCalculator({
     dividendPerShare: "1.04",
     dividendTaxPct: "15.4",
   });
+  const [opportunityFields, setOpportunityFields] = useState({
+    originalPrice: "65000",
+    currentPrice: "91000",
+    investmentAmount: "1000000",
+  });
   const [dividendFields, setDividendFields] = useState({
     investmentAmount: "10000000",
     annualDividendYieldPct: "4.2",
@@ -657,6 +674,24 @@ export function StockQuantCalculator({
       suffix: "%",
       setValue: (value) => setFieldValue(setFxFields, "dividendTaxPct", value),
     },
+    "opportunity.originalPrice": {
+      label: "원래 가격",
+      value: opportunityFields.originalPrice,
+      suffix: "원",
+      setValue: (value) => setFieldValue(setOpportunityFields, "originalPrice", value),
+    },
+    "opportunity.currentPrice": {
+      label: "현재 가격",
+      value: opportunityFields.currentPrice,
+      suffix: "원",
+      setValue: (value) => setFieldValue(setOpportunityFields, "currentPrice", value),
+    },
+    "opportunity.investmentAmount": {
+      label: "넣었을 금액",
+      value: opportunityFields.investmentAmount,
+      suffix: "원",
+      setValue: (value) => setFieldValue(setOpportunityFields, "investmentAmount", value),
+    },
     "dividend.investmentAmount": {
       label: "투자금",
       value: dividendFields.investmentAmount,
@@ -851,6 +886,28 @@ export function StockQuantCalculator({
     dividendTaxPct: parseNumber(fxFields.dividendTaxPct),
   });
 
+  const opportunityOriginalPrice = parseNumber(opportunityFields.originalPrice);
+  const opportunityCurrentPrice = parseNumber(opportunityFields.currentPrice);
+  const opportunityInvestmentAmount = parseNumber(opportunityFields.investmentAmount);
+  const opportunityShares =
+    Number.isFinite(opportunityOriginalPrice) && opportunityOriginalPrice > 0
+      ? opportunityInvestmentAmount / opportunityOriginalPrice
+      : null;
+  const opportunityCurrentValue =
+    opportunityShares !== null && Number.isFinite(opportunityCurrentPrice) && opportunityCurrentPrice > 0
+      ? opportunityShares * opportunityCurrentPrice
+      : null;
+  const opportunityProfit =
+    opportunityCurrentValue !== null && Number.isFinite(opportunityInvestmentAmount)
+      ? opportunityCurrentValue - opportunityInvestmentAmount
+      : null;
+  const opportunityReturnPct =
+    Number.isFinite(opportunityOriginalPrice) &&
+    opportunityOriginalPrice > 0 &&
+    Number.isFinite(opportunityCurrentPrice)
+      ? ((opportunityCurrentPrice / opportunityOriginalPrice) - 1) * 100
+      : null;
+
   const dividendIncome = calculateDividendIncome({
     investmentAmount: parseNumber(dividendFields.investmentAmount),
     annualDividendYieldPct: parseNumber(dividendFields.annualDividendYieldPct),
@@ -989,6 +1046,29 @@ export function StockQuantCalculator({
           { label: "주가 효과", value: formatCompactWon(fxBreakdown?.stockEffectKrw), tone: "accent" },
           { label: "환율 효과", value: formatCompactWon(fxBreakdown?.fxEffectKrw), tone: getToneFromSignedValue(fxBreakdown?.fxEffectKrw) },
           { label: "배당 효과", value: formatCompactWon(fxBreakdown?.dividendEffectKrw), tone: "default" },
+        ];
+      case "opportunity":
+        return [
+          {
+            label: "현재 환산금액",
+            value: formatCompactWon(opportunityCurrentValue),
+            tone: "accent",
+          },
+          {
+            label: "놓친 손익",
+            value: formatCompactWon(opportunityProfit),
+            tone: getToneFromSignedValue(opportunityProfit),
+          },
+          {
+            label: "수익률",
+            value: formatSignedPercent(opportunityReturnPct),
+            tone: getToneFromSignedValue(opportunityReturnPct),
+          },
+          {
+            label: "살 수 있었던 수량",
+            value: formatShares(opportunityShares),
+            tone: "default",
+          },
         ];
       case "dividend":
         return [
@@ -1313,6 +1393,23 @@ export function StockQuantCalculator({
             <p className="quantInsight">{fxDominantLabel}</p>
           </>
         );
+      case "opportunity":
+        return (
+          <>
+            <div className="quantFormAndResults">
+              <div className="quantFieldGrid">
+                {renderField("opportunity.originalPrice")}
+                {renderField("opportunity.currentPrice")}
+                {renderField("opportunity.investmentAmount")}
+              </div>
+              <ResultGrid items={activeResults} />
+            </div>
+            <p className="quantInsight">
+              원래 가격에 넣었을 금액을 현재 가격으로 환산해, 현금으로 둔 경우와의 차이를 봅니다.
+            </p>
+            <Formula>현재 환산금액 = 넣었을 금액 / 원래 가격 × 현재 가격</Formula>
+          </>
+        );
       case "dividend":
         return (
           <>
@@ -1507,6 +1604,25 @@ export function StockQuantCalculator({
             ))}
           </div>
 
+          <aside className="quantResultPanel" aria-label="핵심 결과">
+            <div className="quantResultDisplay">
+              <span>결과</span>
+              <strong>{activeResults[0]?.value ?? "-"}</strong>
+              <small>{activeResults[0]?.label ?? activeToolInfo.label}</small>
+            </div>
+            <div className="quantResultList">
+              {activeResults.slice(1).map((item) => (
+                <div key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="quantMemoAppendButton" onClick={appendActiveSummaryToMemo}>
+              결과 메모
+            </button>
+          </aside>
+
           <article className="quantWorkCard">
             <div className="quantWorkHeader">
               <div>
@@ -1518,25 +1634,6 @@ export function StockQuantCalculator({
             {renderActiveTool()}
           </article>
         </section>
-
-        <aside className="quantResultPanel" aria-label="핵심 결과">
-          <div className="quantResultDisplay">
-            <span>결과</span>
-            <strong>{activeResults[0]?.value ?? "-"}</strong>
-            <small>{activeResults[0]?.label ?? activeToolInfo.label}</small>
-          </div>
-          <div className="quantResultList">
-            {activeResults.slice(1).map((item) => (
-              <div key={item.label}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
-          <button type="button" className="quantMemoAppendButton" onClick={appendActiveSummaryToMemo}>
-            결과 메모
-          </button>
-        </aside>
       </section>
 
       <section className="card quantMemoCard">
