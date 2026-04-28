@@ -237,6 +237,15 @@ function formatCompactCurrency(value: number | null | undefined, currencyMode: C
   return currencyMode === "usd" ? `${formatNumber(value, 2)} USD` : formatCompactWon(value);
 }
 
+function formatSignedCompactCurrency(value: number | null | undefined, currencyMode: CurrencyMode) {
+  if (!isFiniteNumber(value)) {
+    return "-";
+  }
+
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatCompactCurrency(value, currencyMode)}`;
+}
+
 function formatKrwNote(value: number | null | undefined, fxRate: number | null | undefined) {
   if (!isFiniteNumber(value) || !isFiniteNumber(fxRate)) {
     return undefined;
@@ -676,9 +685,9 @@ export function StockQuantCalculator({
     opportunityGap === null
       ? "-"
       : opportunityGap > 0
-        ? "주식 2 우위"
+        ? "주식 2"
         : opportunityGap < 0
-          ? "주식 1 우위"
+          ? "주식 1"
           : "동일";
   const lossRecovery = calculateLossRecovery(parseNumber(lossRate));
 
@@ -751,15 +760,27 @@ export function StockQuantCalculator({
       case "opportunity":
         return [
           {
-            label: "기회비용 차이",
+            label: "선택 간 자산 차이",
             value: formatCompactCurrency(opportunityGapAbs, currencyMode),
             note: krwNote(opportunityGapAbs),
             tone: "accent",
           },
           {
-            label: "비교 우위",
+            label: "더 유리한 선택",
             value: opportunityWinnerLabel,
             tone: "default",
+          },
+          {
+            label: "주식 1 수익",
+            value: formatSignedCompactCurrency(stockOneScenario?.profit, currencyMode),
+            note: krwNote(stockOneScenario?.profit),
+            tone: getToneFromSignedValue(stockOneScenario?.profit),
+          },
+          {
+            label: "주식 2 수익",
+            value: formatSignedCompactCurrency(stockTwoScenario?.profit, currencyMode),
+            note: krwNote(stockTwoScenario?.profit),
+            tone: getToneFromSignedValue(stockTwoScenario?.profit),
           },
           {
             label: "주식 1 현재가치",
@@ -897,12 +918,20 @@ export function StockQuantCalculator({
   })();
 
   const activeSummary =
-    activeResults.length > 0
-      ? `${activeToolInfo.label}: ${activeResults
-          .slice(0, 3)
-          .map((item) => `${item.label} ${item.value}`)
-          .join(" / ")}`
-      : `${activeToolInfo.label}: 계산값 없음`;
+    activeTool === "opportunity"
+      ? `${activeToolInfo.label}: 선택 간 자산 차이 ${formatCompactCurrency(
+          opportunityGapAbs,
+          currencyMode,
+        )} / 더 유리한 선택 ${opportunityWinnerLabel} / 주식 1 수익 ${formatSignedCompactCurrency(
+          stockOneScenario?.profit,
+          currencyMode,
+        )} / 주식 2 수익 ${formatSignedCompactCurrency(stockTwoScenario?.profit, currencyMode)}`
+      : activeResults.length > 0
+        ? `${activeToolInfo.label}: ${activeResults
+            .slice(0, 3)
+            .map((item) => `${item.label} ${item.value}`)
+            .join(" / ")}`
+        : `${activeToolInfo.label}: 계산값 없음`;
 
   function resetBasicCalculator() {
     setBasicDisplay("0");
