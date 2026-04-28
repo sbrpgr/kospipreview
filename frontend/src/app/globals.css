@@ -2297,6 +2297,14 @@ p {
   font-weight: 800;
 }
 
+.quantResultDisplay em {
+  color: rgba(220, 252, 231, 0.78);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
 .quantResultDisplay strong {
   color: #dcfce7;
   font-family: var(--font-mono);
@@ -2334,6 +2342,15 @@ p {
   font-size: 0.95rem;
   text-align: left;
   word-break: break-word;
+}
+
+.quantResultList em {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .quantMemoAppendButton {
