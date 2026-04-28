@@ -2804,3 +2804,350 @@ p {
     grid-template-columns: 1fr;
   }
 }
+
+.quantPageContainer {
+  width: min(1180px, 100% - 32px);
+}
+
+.quantCalculatorPage *,
+.quantCalculatorPage *::before,
+.quantCalculatorPage *::after {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.quantCalculatorPage button {
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.quantCalculatorPage .quantTopPanel {
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 640px);
+  align-items: stretch;
+}
+
+.quantCalculatorPage .quantCurrencyPanel {
+  width: 100%;
+  max-width: none;
+  grid-template-columns: minmax(126px, 0.85fr) minmax(204px, 1.35fr) minmax(126px, 0.85fr);
+}
+
+.quantCalculatorPage .quantPillToggle button {
+  min-height: 42px;
+  padding: 8px 10px;
+  white-space: normal;
+}
+
+.quantCalculatorPage .quantManualFxInput input {
+  min-height: 42px;
+  text-align: right;
+}
+
+.quantCalculatorPage .quantCalculatorShell {
+  grid-template-columns: minmax(270px, 300px) minmax(240px, 285px) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.quantMiddleStack {
+  display: grid;
+  gap: 14px;
+  align-self: start;
+  position: sticky;
+  top: 82px;
+}
+
+.quantBasicCalculator {
+  align-self: start;
+  position: sticky;
+  top: 82px;
+  border-color: rgba(15, 23, 42, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 30%),
+    #111827;
+}
+
+.quantBasicDisplay {
+  min-height: 154px;
+  align-content: space-between;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(20, 184, 166, 0.18), transparent 34%),
+    linear-gradient(180deg, #1f2937 0%, #0b1120 100%);
+}
+
+.quantBasicDisplay strong {
+  overflow: hidden;
+  color: rgba(226, 232, 240, 0.82);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quantBasicDisplay output {
+  display: block;
+  max-width: 100%;
+  color: #e0f2fe;
+  font-size: clamp(1.6rem, 3.2vw, 2.35rem);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+  text-align: right;
+  word-break: break-all;
+}
+
+.quantBasicActionRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quantBasicActionButton {
+  min-height: 38px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.quantBasicActionButton:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.quantBasicKeypad {
+  gap: 10px;
+}
+
+.quantBasicKeyButton {
+  aspect-ratio: auto;
+  min-height: 52px;
+  border-radius: 10px;
+  background: #2f3747;
+  font-size: 1.1rem;
+  transition: background var(--transition), transform var(--transition);
+}
+
+.quantBasicKeyButton:hover {
+  background: #3d475a;
+}
+
+.quantBasicKeyButton:active {
+  transform: translateY(1px);
+}
+
+.quantBasicKeyButton.isUtility {
+  background: #475569;
+}
+
+.quantBasicKeyButton.isOperator {
+  background: #2563eb;
+}
+
+.quantBasicKeyButton.isEquals {
+  background: #0f766e;
+}
+
+.quantMemoCardInline {
+  min-height: 610px;
+  padding: 14px;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.quantMemoCardInline .quantMemoHeader {
+  align-items: flex-start;
+}
+
+.quantMemoCardInline .quantActionButton {
+  flex: 0 0 auto;
+}
+
+.quantMemoCardInline .quantMemoTextarea {
+  min-height: 470px;
+  height: 100%;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.quantCalculatorPage .quantModeBar {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quantCalculatorPage .quantModeBar button {
+  min-height: 62px;
+  padding: 10px 11px;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: normal;
+}
+
+.quantCalculatorPage .quantResultPanel {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 12px;
+}
+
+.quantCalculatorPage .quantResultList {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quantCalculatorPage .quantResultDisplay strong,
+.quantCalculatorPage .quantResultList strong,
+.quantCalculatorPage .quantMetricValue {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.quantCalculatorPage .quantResultDisplay strong {
+  font-size: clamp(1.1rem, 2.1vw, 1.35rem);
+}
+
+.quantCalculatorPage .quantResultList div {
+  min-height: 74px;
+}
+
+.quantCalculatorPage .quantMemoAppendButton {
+  width: 100%;
+  min-height: 44px;
+}
+
+.quantCalculatorPage .quantWorkCard {
+  padding: 16px;
+}
+
+.quantCalculatorPage .quantWorkHeader {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.quantCalculatorPage .quantWorkHeader p {
+  line-height: 1.45;
+}
+
+.quantCalculatorPage .quantFormAndResults {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.quantCalculatorPage .quantFieldGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quantCalculatorPage .quantWorkCard .quantFormAndResults > .quantMetricGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quantCalculatorPage .quantField {
+  min-width: 0;
+}
+
+.quantCalculatorPage .quantFieldLabel,
+.quantCalculatorPage .quantFieldHint {
+  overflow-wrap: anywhere;
+}
+
+.quantCalculatorPage .quantInputWrap {
+  min-width: 0;
+}
+
+.quantCalculatorPage .quantInput {
+  padding-left: 12px;
+  padding-right: 62px;
+  font-size: clamp(0.84rem, 1.5vw, 0.94rem);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quantCalculatorPage .quantInputSuffix {
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quantCalculatorPage .quantMetric {
+  min-height: 104px;
+  padding: 13px;
+}
+
+.quantCalculatorPage .quantMetricValue {
+  font-size: clamp(1rem, 2vw, 1.18rem);
+  letter-spacing: 0;
+}
+
+.quantOpportunityBudget {
+  max-width: none;
+}
+
+.quantOpportunityPair {
+  grid-template-columns: 70px repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 1180px) {
+  .quantCalculatorPage .quantTopPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .quantCalculatorPage .quantCalculatorShell {
+    grid-template-columns: minmax(260px, 310px) minmax(0, 1fr);
+  }
+
+  .quantMiddleStack {
+    grid-column: 2;
+    grid-row: 1;
+    position: static;
+  }
+
+  .quantBasicCalculator {
+    position: static;
+  }
+
+  .quantCalculatorPage .quantWorkSurface {
+    grid-column: 1 / -1;
+  }
+
+  .quantMemoCardInline {
+    min-height: 0;
+  }
+
+  .quantMemoCardInline .quantMemoTextarea {
+    min-height: 260px;
+  }
+}
+
+@media (max-width: 860px) {
+  .quantPageContainer {
+    width: min(100% - 20px, 980px);
+  }
+
+  .quantCalculatorPage .quantCurrencyPanel,
+  .quantCalculatorPage .quantCalculatorShell {
+    grid-template-columns: 1fr;
+  }
+
+  .quantMiddleStack,
+  .quantCalculatorPage .quantWorkSurface {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .quantCalculatorPage .quantModeBar,
+  .quantCalculatorPage .quantResultList,
+  .quantCalculatorPage .quantFieldGrid,
+  .quantCalculatorPage .quantWorkCard .quantFormAndResults > .quantMetricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .quantOpportunityPair {
+    grid-template-columns: 1fr;
+  }
+
+  .quantMemoCardInline .quantMemoTextarea {
+    min-height: 220px;
+  }
+}
