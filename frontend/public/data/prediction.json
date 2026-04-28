@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-28T00:06:00.076924+00:00",
+  "generatedAt": "2026-04-28T04:02:33.798888+00:00",
   "predictionDate": "2026년 04월 29일",
   "predictionDateIso": "2026-04-29",
   "pointPrediction": null,
@@ -16,11 +16,11 @@
   "signalSummary": "예측 운영 시간은 17:00~09:00(변동 가능)입니다. 다음 운영 구간부터 모델 예측이 갱신됩니다.",
   "lastCalculatedAt": null,
   "latestRecordDate": "2026-04-27",
-  "mae30d": 30.74,
+  "mae30d": 30.77,
   "model": {
     "engine": "EWY Synthetic K200 Ridge",
     "vix": 18.03,
-    "lgbmRmse": 49.93,
+    "lgbmRmse": 49.88,
     "calculationMode": "EWYCoreSyntheticK200+ResidualRidge+KOSPIMapping(NoNightFutures)",
     "nightFuturesExcluded": true,
     "isOperationWindow": false,
@@ -28,78 +28,78 @@
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,
-    "coreAnchorPct": 0.35,
-    "rawModelPct": 0.35,
+    "coreAnchorPct": 0.36,
+    "rawModelPct": 0.36,
     "rawResidualPct": 0.0,
-    "ewyFxIntercept": 0.2273,
-    "ewyFxEwyCoef": 0.3498,
+    "ewyFxIntercept": 0.2202,
+    "ewyFxEwyCoef": 0.3487,
     "ewyFxKrwCoef": 0.2,
     "ewyFxSampleSize": 180,
-    "ewyFxFitR2": 0.235,
-    "ewyFxFitMae": 1.07,
+    "ewyFxFitR2": 0.2386,
+    "ewyFxFitMae": 1.0606,
     "mlResidualAdjPct": 0.0,
     "auxResidualAdjPct": null,
     "regimeAdjustmentPct": null,
     "regimeState": null,
     "trendFollowApplied": false,
-    "trendFollowSignalPct": 0.45,
-    "trendFollowMinPct": 0.32,
+    "trendFollowSignalPct": 0.5,
+    "trendFollowMinPct": 0.35,
     "trendFollowAdjustmentPct": 0.0,
-    "prevCloseChangePct": 2.15,
+    "prevCloseChangePct": -1.06,
     "krxBaselineDate": "2026-04-27",
     "predictionPhase": "session",
     "anchorSource": "ewy_synthetic_k200",
     "residualModel": {
-      "intercept": -0.088046,
+      "intercept": -0.113617,
       "coefficients": {
-        "broad_factor": -0.049161,
-        "tech_factor": -0.340711,
-        "semi_factor": -0.117145,
-        "wti_z": 0.526383,
-        "gold_z": -0.252386,
-        "us10y_z": 0.382806
+        "broad_factor": -0.058105,
+        "tech_factor": -0.386774,
+        "semi_factor": -0.095356,
+        "wti_z": 0.519631,
+        "gold_z": -0.243001,
+        "us10y_z": 0.373728
       },
       "means": {
-        "sp500": 0.08788,
-        "nasdaq": 0.124658,
-        "dow": 0.069002,
-        "sox": 0.462804,
-        "wti": 0.397342,
-        "gold": 0.069554,
-        "us10y": 0.002365
+        "sp500": 0.099589,
+        "nasdaq": 0.151556,
+        "dow": 0.061956,
+        "sox": 0.501406,
+        "wti": 0.396352,
+        "gold": 0.054566,
+        "us10y": 0.002607
       },
       "stds": {
-        "sp500": 0.904522,
-        "nasdaq": 1.175191,
-        "dow": 0.893069,
-        "sox": 2.29221,
-        "wti": 4.552334,
-        "gold": 2.118994,
-        "us10y": 0.040498
+        "sp500": 0.895304,
+        "nasdaq": 1.17909,
+        "dow": 0.880401,
+        "sox": 2.312951,
+        "wti": 4.49507,
+        "gold": 2.091129,
+        "us10y": 0.039979
       },
       "broadPcaComponents": [
-        0.597561,
-        0.585935,
-        0.547358
+        0.599624,
+        0.581739,
+        0.549573
       ],
-      "soxNdxBeta": 0.854721,
+      "soxNdxBeta": 0.858593,
       "basisEwma": 0.0,
       "weight": 0.0,
       "sampleSize": 180,
-      "mae": 1.572139,
-      "coreMae": 1.830997,
-      "fullMae": 1.572139
+      "mae": 1.561993,
+      "coreMae": 1.828944,
+      "fullMae": 1.561993
     },
     "k200Mapping": {
-      "intercept": 0.214904,
-      "beta": 0.32053,
+      "intercept": 0.213848,
+      "beta": 0.320331,
       "sampleSize": 240
     }
   },
   "yesterday": {
-    "predictionLow": 6472.38,
-    "predictionHigh": 6533.88,
-    "actualOpen": 6541.94,
-    "hit": false
+    "predictionLow": 6613.61,
+    "predictionHigh": 6675.09,
+    "actualOpen": 6646.8,
+    "hit": true
   }
 }
