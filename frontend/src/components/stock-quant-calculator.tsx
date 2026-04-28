@@ -1,19 +1,8 @@
 "use client";
 
-import type { ChangeEvent, Dispatch, ReactNode, SetStateAction } from "react";
+import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
-import {
-  buildDcfSensitivityTable,
-  calculateAverageDown,
-  calculateDcfValuation,
-  calculateDividendIncome,
-  calculateFinancialMetrics,
-  calculateLossRecovery,
-  calculateReverseDcf,
-  calculateStopPositionSizing,
-  calculateTargetExit,
-  calculateValuationBridge,
-} from "@/lib/stock-quant-calculator";
+import { calculateAverageDown, calculateTargetExit } from "@/lib/stock-quant-calculator";
 
 type StockQuantCalculatorProps = {
   latestUsdKrw?: number | null;
@@ -21,21 +10,11 @@ type StockQuantCalculatorProps = {
   latestUsdKrwChangePct?: number | null;
 };
 
-type FieldState = Record<string, string>;
-type ResultTone = "default" | "positive" | "negative" | "accent";
+type ToolId = "return" | "opportunity" | "average" | "target" | "dividend";
 type CurrencyMode = "krw" | "usd";
 type FxRateMode = "latest" | "manual";
-type ToolId =
-  | "return"
-  | "opportunity"
-  | "recovery"
-  | "average"
-  | "target"
-  | "dividend"
-  | "stop"
-  | "metrics"
-  | "valuation"
-  | "dcf";
+type FieldState = Record<string, string>;
+type ResultTone = "default" | "positive" | "negative" | "accent";
 
 type FieldController = {
   label: string;
@@ -63,17 +42,13 @@ const TOOL_OPTIONS: Array<{
     label: "수익률",
     keyLabel: "RET",
     description: "원래 가격 대비 현재 수익률",
-    fieldKeys: [
-      "return.originalPrice",
-      "return.currentPrice",
-      "return.investmentAmount",
-    ],
+    fieldKeys: ["return.originalPrice", "return.currentPrice", "return.investmentAmount"],
   },
   {
     id: "opportunity",
     label: "기회비용",
     keyLabel: "OC",
-    description: "같은 예산의 두 종목 비교",
+    description: "같은 예산을 두 종목에 넣었을 때의 차이",
     fieldKeys: [
       "opportunity.budgetAmount",
       "opportunity.stockOneOriginalPrice",
@@ -83,17 +58,10 @@ const TOOL_OPTIONS: Array<{
     ],
   },
   {
-    id: "recovery",
-    label: "본전",
-    keyLabel: "BE",
-    description: "손실 복구율",
-    fieldKeys: ["loss.lossRate"],
-  },
-  {
     id: "average",
-    label: "평단",
+    label: "물타기 계산기",
     keyLabel: "AVG",
-    description: "추가 매수 변화",
+    description: "추가 매수 후 평단과 본전 필요 상승률",
     fieldKeys: [
       "average.currentAveragePrice",
       "average.currentQuantity",
@@ -101,15 +69,13 @@ const TOOL_OPTIONS: Array<{
       "average.extraBuyPrice",
       "average.extraQuantity",
       "average.extraAmount",
-      "average.portfolioValue",
-      "average.downsideShockPct",
     ],
   },
   {
     id: "target",
     label: "목표가",
     keyLabel: "TP",
-    description: "순수익률 기준 매도가",
+    description: "원하는 순수익률 기준 매도가",
     fieldKeys: [
       "target.averagePrice",
       "target.quantity",
@@ -120,65 +86,14 @@ const TOOL_OPTIONS: Array<{
   },
   {
     id: "dividend",
-    label: "배당",
+    label: "배당 재투자",
     keyLabel: "DIV",
-    description: "월 환산 배당",
+    description: "배당수익과 재투자 시 자산 변화",
     fieldKeys: [
       "dividend.investmentAmount",
       "dividend.annualDividendYieldPct",
       "dividend.taxRatePct",
-      "dividend.targetMonthlyDividend",
-    ],
-  },
-  {
-    id: "stop",
-    label: "리스크",
-    keyLabel: "RISK",
-    description: "손절가 기준 수량",
-    fieldKeys: ["stop.allowedLossAmount", "stop.entryPrice", "stop.stopPrice"],
-  },
-  {
-    id: "metrics",
-    label: "재무지표",
-    keyLabel: "PER",
-    description: "EPS, PER, ROE",
-    fieldKeys: [
-      "metrics.netIncome",
-      "metrics.equity",
-      "metrics.sharesOutstanding",
-      "metrics.currentPrice",
-      "metrics.dividendPerShare",
-      "metrics.freeCashFlow",
-      "metrics.ebitda",
-      "metrics.totalDebt",
-      "metrics.cashAndEquivalents",
-    ],
-  },
-  {
-    id: "valuation",
-    label: "PER 역산",
-    keyLabel: "PV",
-    description: "가격이 요구하는 이익",
-    fieldKeys: [
-      "valuation.currentPrice",
-      "valuation.expectedEps",
-      "valuation.targetPer",
-      "valuation.sharesOutstanding",
-    ],
-  },
-  {
-    id: "dcf",
-    label: "DCF",
-    keyLabel: "DCF",
-    description: "내재가치와 Reverse DCF",
-    fieldKeys: [
-      "dcf.baseFreeCashFlow",
-      "dcf.growthRatePct",
-      "dcf.discountRatePct",
-      "dcf.terminalGrowthPct",
-      "dcf.netCash",
-      "dcf.sharesOutstanding",
-      "dcf.currentPrice",
+      "dividend.years",
     ],
   },
 ];
@@ -197,15 +112,15 @@ const KEY_ROWS = [
 
 function parseNumber(value: string) {
   const normalized = value.replace(/,/g, "").trim();
-  if (!normalized) {
-    return Number.NaN;
-  }
+  return normalized ? Number(normalized) : Number.NaN;
+}
 
-  return Number(normalized);
+function isFiniteNumber(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function formatNumber(value: number | null | undefined, digits = 2) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return "-";
   }
 
@@ -216,7 +131,7 @@ function formatNumber(value: number | null | undefined, digits = 2) {
 }
 
 function formatSignedPercent(value: number | null | undefined, digits = 1) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return "-";
   }
 
@@ -225,80 +140,49 @@ function formatSignedPercent(value: number | null | undefined, digits = 1) {
 }
 
 function formatPercent(value: number | null | undefined, digits = 1) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "-";
-  }
-
-  return `${formatNumber(value, digits)}%`;
-}
-
-function formatMultiplier(value: number | null | undefined, digits = 1) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "-";
-  }
-
-  return `${formatNumber(value, digits)}배`;
+  return isFiniteNumber(value) ? `${formatNumber(value, digits)}%` : "-";
 }
 
 function formatWon(value: number | null | undefined, digits = 0) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "-";
-  }
-
-  return `${formatNumber(value, digits)}원`;
+  return isFiniteNumber(value) ? `${formatNumber(value, digits)}원` : "-";
 }
 
 function formatCompactWon(value: number | null | undefined) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return "-";
   }
 
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000_000_000) {
-    return `${formatNumber(value / 1_000_000_000_000, 2)}조 원`;
+  const absolute = Math.abs(value);
+  if (absolute >= 1_0000_0000_0000) {
+    return `${formatNumber(value / 1_0000_0000_0000, 2)}조 원`;
   }
-
-  if (abs >= 100_000_000) {
-    return `${formatNumber(value / 100_000_000, 2)}억 원`;
+  if (absolute >= 1_0000_0000) {
+    return `${formatNumber(value / 1_0000_0000, 2)}억 원`;
   }
-
-  if (abs >= 10_000) {
+  if (absolute >= 10_000) {
     return `${formatNumber(value / 10_000, 2)}만 원`;
   }
-
   return formatWon(value);
 }
 
 function formatCurrency(value: number | null | undefined, currencyMode: CurrencyMode, digits = 0) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return "-";
   }
 
-  if (currencyMode === "usd") {
-    return `${formatNumber(value, digits === 0 ? 2 : digits)} USD`;
-  }
-
-  return formatWon(value, digits);
+  return currencyMode === "usd" ? `${formatNumber(value, digits === 0 ? 2 : digits)} USD` : formatWon(value, digits);
 }
 
 function formatCompactCurrency(value: number | null | undefined, currencyMode: CurrencyMode) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return "-";
   }
 
-  if (currencyMode === "usd") {
-    return `${formatNumber(value, 2)} USD`;
-  }
-
-  return formatCompactWon(value);
+  return currencyMode === "usd" ? `${formatNumber(value, 2)} USD` : formatCompactWon(value);
 }
 
 function formatShares(value: number | null | undefined, digits = 2) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "-";
-  }
-
-  return `${formatNumber(value, digits)}주`;
+  return isFiniteNumber(value) ? `${formatNumber(value, digits)}주` : "-";
 }
 
 function formatDateTime(value: string | null | undefined) {
@@ -318,74 +202,83 @@ function formatDateTime(value: string | null | undefined) {
   }).format(date);
 }
 
-function setField<T extends FieldState>(
-  setter: Dispatch<SetStateAction<T>>,
-  key: keyof T & string,
-) {
-  return (event: ChangeEvent<HTMLInputElement>) => {
-    setter((prev) => ({ ...prev, [key]: event.target.value }));
-  };
-}
-
 function setFieldValue<T extends FieldState>(
   setter: Dispatch<SetStateAction<T>>,
-  key: keyof T & string,
+  key: keyof T,
   value: string,
 ) {
   setter((prev) => ({ ...prev, [key]: value }));
 }
 
 function getToneFromSignedValue(value: number | null | undefined): ResultTone {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return "default";
   }
-
   return value >= 0 ? "positive" : "negative";
 }
 
-function calculateBudgetScenario(
-  budgetAmount: number,
-  originalPrice: number,
-  currentPrice: number,
+function calculateBudgetScenario(budget: number, originalPrice: number, currentPrice: number) {
+  if (!Number.isFinite(budget) || !Number.isFinite(originalPrice) || !Number.isFinite(currentPrice)) {
+    return null;
+  }
+  if (budget < 0 || originalPrice <= 0) {
+    return null;
+  }
+
+  const shares = budget / originalPrice;
+  const currentValue = shares * currentPrice;
+  const profit = currentValue - budget;
+  const returnPct = ((currentPrice / originalPrice) - 1) * 100;
+
+  return { shares, currentValue, profit, returnPct };
+}
+
+function calculateDividendReinvestment(
+  investmentAmount: number,
+  annualDividendYieldPct: number,
+  taxRatePct: number,
+  years: number,
 ) {
   if (
-    !Number.isFinite(budgetAmount) ||
-    !Number.isFinite(originalPrice) ||
-    !Number.isFinite(currentPrice) ||
-    budgetAmount < 0 ||
-    originalPrice <= 0
+    !Number.isFinite(investmentAmount) ||
+    !Number.isFinite(annualDividendYieldPct) ||
+    investmentAmount < 0 ||
+    annualDividendYieldPct < 0
   ) {
     return null;
   }
 
-  const shares = budgetAmount / originalPrice;
-  const currentValue = shares * currentPrice;
-  const profit = currentValue - budgetAmount;
-  const returnPct = ((currentPrice / originalPrice) - 1) * 100;
+  const normalizedYears = Number.isFinite(years) ? Math.max(0, years) : 0;
+  const grossYield = annualDividendYieldPct / 100;
+  const taxRate = Number.isFinite(taxRatePct) ? Math.max(0, taxRatePct) / 100 : 0;
+  const netYield = grossYield * (1 - taxRate);
+  const grossAnnualDividend = investmentAmount * grossYield;
+  const netAnnualDividend = investmentAmount * netYield;
+  const reinvestedValue = investmentAmount * (1 + netYield) ** normalizedYears;
+  const reinvestedProfit = reinvestedValue - investmentAmount;
+  const reinvestedReturnPct = investmentAmount > 0 ? (reinvestedProfit / investmentAmount) * 100 : 0;
 
   return {
-    shares,
-    currentValue,
-    profit,
-    returnPct,
+    years: normalizedYears,
+    netYieldPct: netYield * 100,
+    grossAnnualDividend,
+    netAnnualDividend,
+    netMonthlyDividend: netAnnualDividend / 12,
+    reinvestedValue,
+    reinvestedProfit,
+    reinvestedReturnPct,
   };
-}
-
-function Metric({ label, value, note, tone = "default" }: MetricItem) {
-  return (
-    <div className={`quantMetric quantMetric-${tone}`}>
-      <span className="quantMetricLabel">{label}</span>
-      <strong className="quantMetricValue">{value}</strong>
-      {note ? <span className="quantMetricNote">{note}</span> : null}
-    </div>
-  );
 }
 
 function ResultGrid({ items }: { items: MetricItem[] }) {
   return (
     <div className="quantMetricGrid">
       {items.map((item) => (
-        <Metric key={item.label} {...item} />
+        <div key={item.label} className={`quantMetric quantMetric-${item.tone ?? "default"}`}>
+          <span className="quantMetricLabel">{item.label}</span>
+          <strong className="quantMetricValue">{item.value}</strong>
+          {item.note ? <span className="quantMetricNote">{item.note}</span> : null}
+        </div>
       ))}
     </div>
   );
@@ -406,7 +299,7 @@ function NumericField({
   value: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   activeField: string;
-  setActiveField: (key: string) => void;
+  setActiveField: (field: string) => void;
   suffix?: string;
   hint?: string;
 }) {
@@ -429,7 +322,7 @@ function NumericField({
   );
 }
 
-function Formula({ children }: { children: ReactNode }) {
+function Formula({ children }: { children: string }) {
   return (
     <details className="quantFormula">
       <summary>계산식</summary>
@@ -456,29 +349,6 @@ export function StockQuantCalculator({
   const [fxRateMode, setFxRateMode] = useState<FxRateMode>("latest");
   const [manualFxRate, setManualFxRate] = useState(latestUsdKrwText || "1470");
   const [averageDownMode, setAverageDownMode] = useState<"quantity" | "amount">("quantity");
-  const [lossRate, setLossRate] = useState("30");
-  const [averageDownFields, setAverageDownFields] = useState({
-    currentAveragePrice: "80000",
-    currentQuantity: "10",
-    currentPrice: "60000",
-    extraBuyPrice: "60000",
-    extraQuantity: "5",
-    extraAmount: "300000",
-    portfolioValue: "3500000",
-    downsideShockPct: "10",
-  });
-  const [targetExitFields, setTargetExitFields] = useState({
-    averagePrice: "72000",
-    quantity: "15",
-    targetNetReturnPct: "15",
-    sellFeePct: "0.015",
-    taxRatePct: "0",
-  });
-  const [stopFields, setStopFields] = useState({
-    allowedLossAmount: "200000",
-    entryPrice: "72000",
-    stopPrice: "66400",
-  });
   const [returnFields, setReturnFields] = useState({
     originalPrice: "65000",
     currentPrice: "91000",
@@ -491,37 +361,26 @@ export function StockQuantCalculator({
     stockTwoOriginalPrice: "120000",
     stockTwoCurrentPrice: "156000",
   });
+  const [averageDownFields, setAverageDownFields] = useState({
+    currentAveragePrice: "80000",
+    currentQuantity: "10",
+    currentPrice: "60000",
+    extraBuyPrice: "60000",
+    extraQuantity: "5",
+    extraAmount: "300000",
+  });
+  const [targetExitFields, setTargetExitFields] = useState({
+    averagePrice: "72000",
+    quantity: "15",
+    targetNetReturnPct: "15",
+    sellFeePct: "0.015",
+    taxRatePct: "0",
+  });
   const [dividendFields, setDividendFields] = useState({
     investmentAmount: "10000000",
     annualDividendYieldPct: "4.2",
     taxRatePct: "15.4",
-    targetMonthlyDividend: "300000",
-  });
-  const [financialFields, setFinancialFields] = useState({
-    netIncome: "1000000000000",
-    equity: "8000000000000",
-    sharesOutstanding: "100000000",
-    currentPrice: "150000",
-    dividendPerShare: "3000",
-    freeCashFlow: "750000000000",
-    ebitda: "1800000000000",
-    totalDebt: "1200000000000",
-    cashAndEquivalents: "900000000000",
-  });
-  const [valuationFields, setValuationFields] = useState({
-    currentPrice: "150000",
-    expectedEps: "10000",
-    targetPer: "12",
-    sharesOutstanding: "100000000",
-  });
-  const [dcfFields, setDcfFields] = useState({
-    baseFreeCashFlow: "1000000000000",
-    growthRatePct: "6",
-    discountRatePct: "9",
-    terminalGrowthPct: "2",
-    netCash: "300000000000",
-    sharesOutstanding: "100000000",
-    currentPrice: "100000",
+    years: "10",
   });
 
   useEffect(() => {
@@ -549,20 +408,62 @@ export function StockQuantCalculator({
       ? fxRateMode === "latest"
         ? "당일 기준가"
         : "직접 입력"
-      : "원화 직접 계산";
+      : "원화 계산";
   const fxRateSummary =
     currencyMode === "usd"
       ? effectiveUsdKrw !== null && Number.isFinite(effectiveUsdKrw)
-        ? `${fxModeLabel} · USD/KRW ${formatWon(effectiveUsdKrw, 2)}`
+        ? `${fxModeLabel} · USD/KRW ${formatNumber(effectiveUsdKrw, 2)}`
         : "환율 입력 필요"
       : "원화 기준 계산";
 
   const fieldControllers: Record<string, FieldController> = {
-    "loss.lossRate": {
-      label: "손실률",
-      value: lossRate,
-      suffix: "%",
-      setValue: setLossRate,
+    "return.originalPrice": {
+      label: "원래 가격",
+      value: returnFields.originalPrice,
+      suffix: currencySuffix,
+      setValue: (value) => setFieldValue(setReturnFields, "originalPrice", value),
+    },
+    "return.currentPrice": {
+      label: "현재 가격",
+      value: returnFields.currentPrice,
+      suffix: currencySuffix,
+      setValue: (value) => setFieldValue(setReturnFields, "currentPrice", value),
+    },
+    "return.investmentAmount": {
+      label: "넣었을 금액",
+      value: returnFields.investmentAmount,
+      suffix: currencySuffix,
+      setValue: (value) => setFieldValue(setReturnFields, "investmentAmount", value),
+    },
+    "opportunity.budgetAmount": {
+      label: "예산",
+      value: opportunityFields.budgetAmount,
+      suffix: currencySuffix,
+      setValue: (value) => setFieldValue(setOpportunityFields, "budgetAmount", value),
+    },
+    "opportunity.stockOneOriginalPrice": {
+      label: "원래 가격",
+      value: opportunityFields.stockOneOriginalPrice,
+      suffix: currencySuffix,
+      setValue: (value) => setFieldValue(setOpportunityFields, "stockOneOriginalPrice", value),
+    },
+    "opportunity.stockOneCurrentPrice": {
+      label: "현재 가격",
+      value: opportunityFields.stockOneCurrentPrice,
+      suffix: currencySuffix,
+      setValue: (value) => setFieldValue(setOpportunityFields, "stockOneCurrentPrice", value),
+    },
+    "opportunity.stockTwoOriginalPrice": {
+      label: "원래 가격",
+      value: opportunityFields.stockTwoOriginalPrice,
+      suffix: currencySuffix,
+      setValue: (value) => setFieldValue(setOpportunityFields, "stockTwoOriginalPrice", value),
+    },
+    "opportunity.stockTwoCurrentPrice": {
+      label: "현재 가격",
+      value: opportunityFields.stockTwoCurrentPrice,
+      suffix: currencySuffix,
+      setValue: (value) => setFieldValue(setOpportunityFields, "stockTwoCurrentPrice", value),
     },
     "average.currentAveragePrice": {
       label: "현재 평단",
@@ -600,18 +501,6 @@ export function StockQuantCalculator({
       suffix: currencySuffix,
       setValue: (value) => setFieldValue(setAverageDownFields, "extraAmount", value),
     },
-    "average.portfolioValue": {
-      label: "포트 총액",
-      value: averageDownFields.portfolioValue,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setAverageDownFields, "portfolioValue", value),
-    },
-    "average.downsideShockPct": {
-      label: "하락 가정",
-      value: averageDownFields.downsideShockPct,
-      suffix: "%",
-      setValue: (value) => setFieldValue(setAverageDownFields, "downsideShockPct", value),
-    },
     "target.averagePrice": {
       label: "평단",
       value: targetExitFields.averagePrice,
@@ -625,7 +514,7 @@ export function StockQuantCalculator({
       setValue: (value) => setFieldValue(setTargetExitFields, "quantity", value),
     },
     "target.targetNetReturnPct": {
-      label: "목표 순수익",
+      label: "목표 순수익률",
       value: targetExitFields.targetNetReturnPct,
       suffix: "%",
       setValue: (value) => setFieldValue(setTargetExitFields, "targetNetReturnPct", value),
@@ -642,72 +531,6 @@ export function StockQuantCalculator({
       suffix: "%",
       setValue: (value) => setFieldValue(setTargetExitFields, "taxRatePct", value),
     },
-    "stop.allowedLossAmount": {
-      label: "허용 손실",
-      value: stopFields.allowedLossAmount,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setStopFields, "allowedLossAmount", value),
-    },
-    "stop.entryPrice": {
-      label: "매수가",
-      value: stopFields.entryPrice,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setStopFields, "entryPrice", value),
-    },
-    "stop.stopPrice": {
-      label: "손절가",
-      value: stopFields.stopPrice,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setStopFields, "stopPrice", value),
-    },
-    "return.originalPrice": {
-      label: "원래 가격",
-      value: returnFields.originalPrice,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setReturnFields, "originalPrice", value),
-    },
-    "return.currentPrice": {
-      label: "현재 가격",
-      value: returnFields.currentPrice,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setReturnFields, "currentPrice", value),
-    },
-    "return.investmentAmount": {
-      label: "넣었을 금액",
-      value: returnFields.investmentAmount,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setReturnFields, "investmentAmount", value),
-    },
-    "opportunity.budgetAmount": {
-      label: "예산",
-      value: opportunityFields.budgetAmount,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setOpportunityFields, "budgetAmount", value),
-    },
-    "opportunity.stockOneOriginalPrice": {
-      label: "주식 1 원래 가격",
-      value: opportunityFields.stockOneOriginalPrice,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setOpportunityFields, "stockOneOriginalPrice", value),
-    },
-    "opportunity.stockOneCurrentPrice": {
-      label: "주식 1 현재 가격",
-      value: opportunityFields.stockOneCurrentPrice,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setOpportunityFields, "stockOneCurrentPrice", value),
-    },
-    "opportunity.stockTwoOriginalPrice": {
-      label: "주식 2 원래 가격",
-      value: opportunityFields.stockTwoOriginalPrice,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setOpportunityFields, "stockTwoOriginalPrice", value),
-    },
-    "opportunity.stockTwoCurrentPrice": {
-      label: "주식 2 현재 가격",
-      value: opportunityFields.stockTwoCurrentPrice,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setOpportunityFields, "stockTwoCurrentPrice", value),
-    },
     "dividend.investmentAmount": {
       label: "투자금",
       value: dividendFields.investmentAmount,
@@ -715,178 +538,28 @@ export function StockQuantCalculator({
       setValue: (value) => setFieldValue(setDividendFields, "investmentAmount", value),
     },
     "dividend.annualDividendYieldPct": {
-      label: "배당률",
+      label: "연 배당수익률",
       value: dividendFields.annualDividendYieldPct,
       suffix: "%",
       setValue: (value) => setFieldValue(setDividendFields, "annualDividendYieldPct", value),
     },
     "dividend.taxRatePct": {
-      label: "세율",
+      label: "배당세율",
       value: dividendFields.taxRatePct,
       suffix: "%",
       setValue: (value) => setFieldValue(setDividendFields, "taxRatePct", value),
     },
-    "dividend.targetMonthlyDividend": {
-      label: "목표 월배당",
-      value: dividendFields.targetMonthlyDividend,
-      suffix: currencySuffix,
-      setValue: (value) => setFieldValue(setDividendFields, "targetMonthlyDividend", value),
-    },
-    "metrics.netIncome": {
-      label: "순이익",
-      value: financialFields.netIncome,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFinancialFields, "netIncome", value),
-    },
-    "metrics.equity": {
-      label: "자본",
-      value: financialFields.equity,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFinancialFields, "equity", value),
-    },
-    "metrics.sharesOutstanding": {
-      label: "주식 수",
-      value: financialFields.sharesOutstanding,
-      suffix: "주",
-      setValue: (value) => setFieldValue(setFinancialFields, "sharesOutstanding", value),
-    },
-    "metrics.currentPrice": {
-      label: "현재가",
-      value: financialFields.currentPrice,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFinancialFields, "currentPrice", value),
-    },
-    "metrics.dividendPerShare": {
-      label: "주당 배당",
-      value: financialFields.dividendPerShare,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFinancialFields, "dividendPerShare", value),
-    },
-    "metrics.freeCashFlow": {
-      label: "FCF",
-      value: financialFields.freeCashFlow,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFinancialFields, "freeCashFlow", value),
-    },
-    "metrics.ebitda": {
-      label: "EBITDA",
-      value: financialFields.ebitda,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFinancialFields, "ebitda", value),
-    },
-    "metrics.totalDebt": {
-      label: "총부채",
-      value: financialFields.totalDebt,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFinancialFields, "totalDebt", value),
-    },
-    "metrics.cashAndEquivalents": {
-      label: "현금",
-      value: financialFields.cashAndEquivalents,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFinancialFields, "cashAndEquivalents", value),
-    },
-    "valuation.currentPrice": {
-      label: "현재가",
-      value: valuationFields.currentPrice,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setValuationFields, "currentPrice", value),
-    },
-    "valuation.expectedEps": {
-      label: "예상 EPS",
-      value: valuationFields.expectedEps,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setValuationFields, "expectedEps", value),
-    },
-    "valuation.targetPer": {
-      label: "목표 PER",
-      value: valuationFields.targetPer,
-      suffix: "배",
-      setValue: (value) => setFieldValue(setValuationFields, "targetPer", value),
-    },
-    "valuation.sharesOutstanding": {
-      label: "주식 수",
-      value: valuationFields.sharesOutstanding,
-      suffix: "주",
-      setValue: (value) => setFieldValue(setValuationFields, "sharesOutstanding", value),
-    },
-    "dcf.baseFreeCashFlow": {
-      label: "기준 FCF",
-      value: dcfFields.baseFreeCashFlow,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setDcfFields, "baseFreeCashFlow", value),
-    },
-    "dcf.growthRatePct": {
-      label: "성장률",
-      value: dcfFields.growthRatePct,
-      suffix: "%",
-      setValue: (value) => setFieldValue(setDcfFields, "growthRatePct", value),
-    },
-    "dcf.discountRatePct": {
-      label: "할인율",
-      value: dcfFields.discountRatePct,
-      suffix: "%",
-      setValue: (value) => setFieldValue(setDcfFields, "discountRatePct", value),
-    },
-    "dcf.terminalGrowthPct": {
-      label: "말기 성장률",
-      value: dcfFields.terminalGrowthPct,
-      suffix: "%",
-      setValue: (value) => setFieldValue(setDcfFields, "terminalGrowthPct", value),
-    },
-    "dcf.netCash": {
-      label: "순현금",
-      value: dcfFields.netCash,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setDcfFields, "netCash", value),
-    },
-    "dcf.sharesOutstanding": {
-      label: "주식 수",
-      value: dcfFields.sharesOutstanding,
-      suffix: "주",
-      setValue: (value) => setFieldValue(setDcfFields, "sharesOutstanding", value),
-    },
-    "dcf.currentPrice": {
-      label: "현재가",
-      value: dcfFields.currentPrice,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setDcfFields, "currentPrice", value),
+    "dividend.years": {
+      label: "재투자 기간",
+      value: dividendFields.years,
+      suffix: "년",
+      setValue: (value) => setFieldValue(setDividendFields, "years", value),
     },
   };
 
   const activeToolInfo = TOOL_OPTIONS.find((tool) => tool.id === activeTool) ?? TOOL_OPTIONS[0];
   const activeController =
     fieldControllers[activeField] ?? fieldControllers[TOOL_DEFAULT_FIELD[activeTool]];
-
-  const lossRecovery = calculateLossRecovery(parseNumber(lossRate));
-
-  const averageDown = calculateAverageDown({
-    currentAveragePrice: parseNumber(averageDownFields.currentAveragePrice),
-    currentQuantity: parseNumber(averageDownFields.currentQuantity),
-    currentPrice: parseNumber(averageDownFields.currentPrice),
-    extraBuyPrice: parseNumber(averageDownFields.extraBuyPrice),
-    extraQuantity:
-      averageDownMode === "quantity" ? parseNumber(averageDownFields.extraQuantity) : null,
-    extraAmount: averageDownMode === "amount" ? parseNumber(averageDownFields.extraAmount) : null,
-    portfolioValue: parseNumber(averageDownFields.portfolioValue),
-    downsideShockPct: parseNumber(averageDownFields.downsideShockPct),
-  });
-
-  const targetExit = calculateTargetExit({
-    averagePrice: parseNumber(targetExitFields.averagePrice),
-    quantity: parseNumber(targetExitFields.quantity),
-    targetNetReturnPct: parseNumber(targetExitFields.targetNetReturnPct),
-    sellFeePct: parseNumber(targetExitFields.sellFeePct),
-    taxRatePct: parseNumber(targetExitFields.taxRatePct),
-    buyFxRate: calculationFxRate,
-    sellFxRate: calculationFxRate,
-  });
-
-  const stopPosition = calculateStopPositionSizing({
-    allowedLossAmount: parseNumber(stopFields.allowedLossAmount),
-    entryPrice: parseNumber(stopFields.entryPrice),
-    stopPrice: parseNumber(stopFields.stopPrice),
-  });
 
   const returnOriginalPrice = parseNumber(returnFields.originalPrice);
   const returnCurrentPrice = parseNumber(returnFields.currentPrice);
@@ -909,6 +582,11 @@ export function StockQuantCalculator({
     Number.isFinite(returnCurrentPrice)
       ? ((returnCurrentPrice / returnOriginalPrice) - 1) * 100
       : null;
+  const returnCurrentValueKrw =
+    currencyMode === "usd" && returnCurrentValue !== null && effectiveUsdKrw !== null
+      ? returnCurrentValue * effectiveUsdKrw
+      : null;
+
   const opportunityBudgetAmount = parseNumber(opportunityFields.budgetAmount);
   const stockOneScenario = calculateBudgetScenario(
     opportunityBudgetAmount,
@@ -933,80 +611,47 @@ export function StockQuantCalculator({
         : opportunityGap < 0
           ? "주식 1 우위"
           : "동일";
-  const returnCurrentValueKrw =
-    currencyMode === "usd" && returnCurrentValue !== null && effectiveUsdKrw !== null
-      ? returnCurrentValue * effectiveUsdKrw
-      : null;
   const opportunityGapKrw =
     currencyMode === "usd" && opportunityGapAbs !== null && effectiveUsdKrw !== null
       ? opportunityGapAbs * effectiveUsdKrw
       : null;
 
-  const dividendIncome = calculateDividendIncome({
-    investmentAmount: parseNumber(dividendFields.investmentAmount),
-    annualDividendYieldPct: parseNumber(dividendFields.annualDividendYieldPct),
-    taxRatePct: parseNumber(dividendFields.taxRatePct),
-    targetMonthlyDividend: parseNumber(dividendFields.targetMonthlyDividend),
+  const averageDown = calculateAverageDown({
+    currentAveragePrice: parseNumber(averageDownFields.currentAveragePrice),
+    currentQuantity: parseNumber(averageDownFields.currentQuantity),
+    currentPrice: parseNumber(averageDownFields.currentPrice),
+    extraBuyPrice: parseNumber(averageDownFields.extraBuyPrice),
+    extraQuantity:
+      averageDownMode === "quantity" ? parseNumber(averageDownFields.extraQuantity) : null,
+    extraAmount: averageDownMode === "amount" ? parseNumber(averageDownFields.extraAmount) : null,
+    portfolioValue: null,
+    downsideShockPct: null,
   });
 
-  const financialMetrics = calculateFinancialMetrics({
-    netIncome: parseNumber(financialFields.netIncome),
-    equity: parseNumber(financialFields.equity),
-    sharesOutstanding: parseNumber(financialFields.sharesOutstanding),
-    currentPrice: parseNumber(financialFields.currentPrice),
-    dividendPerShare: parseNumber(financialFields.dividendPerShare),
-    freeCashFlow: parseNumber(financialFields.freeCashFlow),
-    ebitda: parseNumber(financialFields.ebitda),
-    totalDebt: parseNumber(financialFields.totalDebt),
-    cashAndEquivalents: parseNumber(financialFields.cashAndEquivalents),
+  const targetExit = calculateTargetExit({
+    averagePrice: parseNumber(targetExitFields.averagePrice),
+    quantity: parseNumber(targetExitFields.quantity),
+    targetNetReturnPct: parseNumber(targetExitFields.targetNetReturnPct),
+    sellFeePct: parseNumber(targetExitFields.sellFeePct),
+    taxRatePct: parseNumber(targetExitFields.taxRatePct),
+    buyFxRate: calculationFxRate,
+    sellFxRate: calculationFxRate,
   });
+  const targetNetProfitInCurrency =
+    targetExit && Number.isFinite(calculationFxRate) && calculationFxRate > 0
+      ? targetExit.netProfit / calculationFxRate
+      : null;
+  const targetNetProceedsInCurrency =
+    targetExit && Number.isFinite(calculationFxRate) && calculationFxRate > 0
+      ? targetExit.netProceeds / calculationFxRate
+      : null;
 
-  const valuationBridge = calculateValuationBridge({
-    currentPrice: parseNumber(valuationFields.currentPrice),
-    expectedEps: parseNumber(valuationFields.expectedEps),
-    targetPer: parseNumber(valuationFields.targetPer),
-    sharesOutstanding: parseNumber(valuationFields.sharesOutstanding),
-  });
-
-  const dcfValuation = calculateDcfValuation({
-    baseFreeCashFlow: parseNumber(dcfFields.baseFreeCashFlow),
-    growthRatePct: parseNumber(dcfFields.growthRatePct),
-    discountRatePct: parseNumber(dcfFields.discountRatePct),
-    terminalGrowthPct: parseNumber(dcfFields.terminalGrowthPct),
-    netCash: parseNumber(dcfFields.netCash),
-    sharesOutstanding: parseNumber(dcfFields.sharesOutstanding),
-    currentPrice: parseNumber(dcfFields.currentPrice),
-  });
-
-  const reverseDcf = calculateReverseDcf({
-    baseFreeCashFlow: parseNumber(dcfFields.baseFreeCashFlow),
-    discountRatePct: parseNumber(dcfFields.discountRatePct),
-    terminalGrowthPct: parseNumber(dcfFields.terminalGrowthPct),
-    netCash: parseNumber(dcfFields.netCash),
-    sharesOutstanding: parseNumber(dcfFields.sharesOutstanding),
-    currentPrice: parseNumber(dcfFields.currentPrice),
-  });
-
-  const dcfSensitivity = buildDcfSensitivityTable({
-    baseFreeCashFlow: parseNumber(dcfFields.baseFreeCashFlow),
-    growthRatePct: parseNumber(dcfFields.growthRatePct),
-    discountRatePct: parseNumber(dcfFields.discountRatePct),
-    terminalGrowthPct: parseNumber(dcfFields.terminalGrowthPct),
-    netCash: parseNumber(dcfFields.netCash),
-    sharesOutstanding: parseNumber(dcfFields.sharesOutstanding),
-    currentPrice: parseNumber(dcfFields.currentPrice),
-  });
-
-  const averageDownWeightMessage =
-    averageDown?.positionWeightBeforePct !== null && averageDown?.positionWeightAfterPct !== null
-      ? `비중 ${formatPercent(averageDown?.positionWeightBeforePct)} → ${formatPercent(
-          averageDown?.positionWeightAfterPct,
-        )}`
-      : "포트폴리오 총액을 넣으면 비중 변화도 같이 계산됩니다.";
-
-  const reverseDcfMessage = reverseDcf
-    ? `현재가는 5년 FCF 연평균 ${formatSignedPercent(reverseDcf.impliedGrowthRatePct)} 시나리오에 가깝습니다.`
-    : "입력값 조합상 Reverse DCF를 계산할 수 없습니다.";
+  const dividendReinvestment = calculateDividendReinvestment(
+    parseNumber(dividendFields.investmentAmount),
+    parseNumber(dividendFields.annualDividendYieldPct),
+    parseNumber(dividendFields.taxRatePct),
+    parseNumber(dividendFields.years),
+  );
 
   const activeResults: MetricItem[] = (() => {
     switch (activeTool) {
@@ -1057,7 +702,10 @@ export function StockQuantCalculator({
           },
           {
             label: currencyMode === "usd" ? "차이 원화환산" : "주식 1 수익률",
-            value: currencyMode === "usd" ? formatCompactWon(opportunityGapKrw) : formatSignedPercent(stockOneScenario?.returnPct),
+            value:
+              currencyMode === "usd"
+                ? formatCompactWon(opportunityGapKrw)
+                : formatSignedPercent(stockOneScenario?.returnPct),
             tone: currencyMode === "usd" ? "default" : getToneFromSignedValue(stockOneScenario?.returnPct),
           },
           {
@@ -1066,33 +714,27 @@ export function StockQuantCalculator({
             tone: getToneFromSignedValue(stockTwoScenario?.returnPct),
           },
         ];
-      case "recovery":
-        return [
-          {
-            label: "본전 필요 상승률",
-            value: lossRecovery ? formatSignedPercent(lossRecovery.neededGainRatePct) : "-",
-            tone: "positive",
-            note: "하락 후 남은 가격 기준",
-          },
-          {
-            label: "남은 자본",
-            value: lossRecovery ? formatPercent(lossRecovery.remainingCapitalPct, 0) : "-",
-            tone: "accent",
-          },
-        ];
       case "average":
         return [
-          { label: "새 평단", value: formatCurrency(averageDown?.newAveragePrice, currencyMode), tone: "accent" },
-          { label: "총 보유 수량", value: formatShares(averageDown?.totalQuantity), tone: "default" },
           {
-            label: "본전까지",
-            value: formatSignedPercent(averageDown?.breakevenGainPctFromCurrent),
-            tone: "positive",
+            label: "새 평단",
+            value: formatCurrency(averageDown?.newAveragePrice, currencyMode),
+            tone: "accent",
           },
           {
-            label: "추가 하락 손실",
-            value: formatCompactCurrency(averageDown?.incrementalLossAtShock, currencyMode),
-            tone: "negative",
+            label: "총 보유 수량",
+            value: formatShares(averageDown?.totalQuantity),
+            tone: "default",
+          },
+          {
+            label: "총 투자금",
+            value: formatCompactCurrency(averageDown?.totalCost, currencyMode),
+            tone: "default",
+          },
+          {
+            label: "본전 필요 상승률",
+            value: formatSignedPercent(averageDown?.breakevenGainPctFromCurrent),
+            tone: "positive",
           },
         ];
       case "target":
@@ -1102,69 +744,57 @@ export function StockQuantCalculator({
             value: targetExit ? formatCurrency(targetExit.targetPricePerShare, currencyMode, 2) : "-",
             tone: "accent",
           },
-          { label: "원화 환산", value: formatWon(targetExit?.targetPriceInKrw), tone: "default" },
-          { label: "예상 순이익", value: formatCompactWon(targetExit?.netProfit), tone: "positive" },
-          { label: "세후 수익률", value: formatSignedPercent(targetExit?.netReturnPct), tone: "positive" },
+          {
+            label: "예상 순이익",
+            value: formatCompactCurrency(targetNetProfitInCurrency, currencyMode),
+            tone: "positive",
+          },
+          {
+            label: "세후 수익률",
+            value: formatSignedPercent(targetExit?.netReturnPct),
+            tone: "positive",
+          },
+          {
+            label: currencyMode === "usd" ? "목표가 원화환산" : "예상 회수금",
+            value:
+              currencyMode === "usd"
+                ? formatWon(targetExit?.targetPriceInKrw, 2)
+                : formatCompactCurrency(targetNetProceedsInCurrency, currencyMode),
+            tone: "default",
+          },
         ];
       case "dividend":
         return [
-          { label: "월 세후 배당", value: formatCompactCurrency(dividendIncome?.netMonthlyDividend, currencyMode), tone: "positive" },
-          { label: "연 세후 배당", value: formatCompactCurrency(dividendIncome?.netAnnualDividend, currencyMode), tone: "accent" },
           {
-            label: "목표 필요 투자금",
-            value: formatCompactCurrency(dividendIncome?.requiredCapitalForTargetMonthlyNet, currencyMode),
-            tone: "default",
+            label: "연 세후 배당",
+            value: formatCompactCurrency(dividendReinvestment?.netAnnualDividend, currencyMode),
+            tone: "positive",
           },
-        ];
-      case "metrics":
-        return [
-          { label: "EPS", value: formatWon(financialMetrics?.eps), tone: "accent" },
-          { label: "PER", value: formatMultiplier(financialMetrics?.per), tone: "default" },
-          { label: "PBR", value: formatMultiplier(financialMetrics?.pbr), tone: "default" },
-          { label: "ROE", value: formatPercent(financialMetrics?.roePct), tone: "positive" },
-          { label: "FCF Yield", value: formatPercent(financialMetrics?.fcfYieldPct), tone: "accent" },
-          { label: "EV/EBITDA", value: formatMultiplier(financialMetrics?.evToEbitda), tone: "default" },
-        ];
-      case "valuation":
-        return [
-          { label: "목표 주가", value: formatWon(valuationBridge?.targetPrice), tone: "accent" },
           {
-            label: "필요 EPS",
-            value: formatWon(valuationBridge?.requiredEpsForCurrentPrice),
+            label: "월 환산 배당",
+            value: formatCompactCurrency(dividendReinvestment?.netMonthlyDividend, currencyMode),
             tone: "default",
           },
           {
-            label: "필요 순이익",
-            value: formatCompactWon(valuationBridge?.requiredNetIncomeForCurrentPrice),
-            tone: "default",
-          },
-          {
-            label: "현재가 대비",
-            value: formatSignedPercent(valuationBridge?.upsideDownsidePct),
-            tone: getToneFromSignedValue(valuationBridge?.upsideDownsidePct),
-          },
-        ];
-      case "dcf":
-        return [
-          {
-            label: "내재 주당가치",
-            value: formatWon(dcfValuation?.intrinsicPricePerShare),
+            label: "재투자 후 자산",
+            value: formatCompactCurrency(dividendReinvestment?.reinvestedValue, currencyMode),
             tone: "accent",
           },
           {
-            label: "현재가 대비",
-            value: formatSignedPercent(dcfValuation?.gapVsCurrentPricePct),
-            tone: getToneFromSignedValue(dcfValuation?.gapVsCurrentPricePct),
+            label: "누적 재투자 수익",
+            value: formatCompactCurrency(dividendReinvestment?.reinvestedProfit, currencyMode),
+            tone: "positive",
           },
-          { label: "기업가치", value: formatCompactWon(dcfValuation?.enterpriseValue), tone: "default" },
-          { label: "Reverse DCF", value: formatSignedPercent(reverseDcf?.impliedGrowthRatePct), tone: "positive" },
-        ];
-      case "stop":
-        return [
-          { label: "정수 기준 수량", value: formatShares(stopPosition?.recommendedWholeShares, 0), tone: "accent" },
-          { label: "이론상 수량", value: formatShares(stopPosition?.maxQuantity), tone: "default" },
-          { label: "투입 가능 금액", value: formatCompactCurrency(stopPosition?.capitalRequired, currencyMode), tone: "default" },
-          { label: "주당 손실", value: formatCurrency(stopPosition?.lossPerShare, currencyMode), tone: "negative" },
+          {
+            label: "재투자 수익률",
+            value: formatSignedPercent(dividendReinvestment?.reinvestedReturnPct),
+            tone: "positive",
+          },
+          {
+            label: "세후 연수익률",
+            value: formatPercent(dividendReinvestment?.netYieldPct),
+            tone: "default",
+          },
         ];
       default:
         return [];
@@ -1180,6 +810,7 @@ export function StockQuantCalculator({
       : `${activeToolInfo.label}: 계산값 없음`;
 
   const activeToolFieldControllers = activeToolInfo.fieldKeys
+    .filter((key) => activeTool !== "average" || key !== (averageDownMode === "quantity" ? "average.extraAmount" : "average.extraQuantity"))
     .map((key) => ({ key, controller: fieldControllers[key] }))
     .filter((item): item is { key: string; controller: FieldController } => Boolean(item.controller));
 
@@ -1204,9 +835,10 @@ export function StockQuantCalculator({
     }
 
     if (key === "next") {
-      const currentIndex = activeToolInfo.fieldKeys.indexOf(activeField);
-      const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % activeToolInfo.fieldKeys.length : 0;
-      setActiveField(activeToolInfo.fieldKeys[nextIndex]);
+      const fieldKeys = activeToolFieldControllers.map((item) => item.key);
+      const currentIndex = fieldKeys.indexOf(activeField);
+      const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % fieldKeys.length : 0;
+      setActiveField(fieldKeys[nextIndex]);
       return;
     }
 
@@ -1253,72 +885,6 @@ export function StockQuantCalculator({
 
   function renderActiveTool() {
     switch (activeTool) {
-      case "recovery":
-        return (
-          <>
-            <div className="quantFormAndResults">
-              <div className="quantFieldGrid">{renderField("loss.lossRate")}</div>
-              <ResultGrid items={activeResults} />
-            </div>
-            <Formula>필요 상승률 = (1 / (1 - 손실률)) - 1</Formula>
-          </>
-        );
-      case "average":
-        return (
-          <>
-            <div className="quantSegmented" role="tablist" aria-label="추가 매수 입력 방식">
-              <button
-                type="button"
-                className={averageDownMode === "quantity" ? "isActive" : ""}
-                onClick={() => setAverageDownMode("quantity")}
-              >
-                수량
-              </button>
-              <button
-                type="button"
-                className={averageDownMode === "amount" ? "isActive" : ""}
-                onClick={() => setAverageDownMode("amount")}
-              >
-                금액
-              </button>
-            </div>
-            <div className="quantFormAndResults">
-              <div className="quantFieldGrid">
-                {renderField("average.currentAveragePrice")}
-                {renderField("average.currentQuantity")}
-                {renderField("average.currentPrice")}
-                {renderField("average.extraBuyPrice")}
-                {averageDownMode === "quantity"
-                  ? renderField("average.extraQuantity")
-                  : renderField("average.extraAmount")}
-                {renderField("average.portfolioValue", undefined, "선택")}
-                {renderField("average.downsideShockPct")}
-              </div>
-              <ResultGrid items={activeResults} />
-            </div>
-            <p className="quantInsight">{averageDownWeightMessage}</p>
-            <Formula>새 평단 = (기존 평단×보유 수량 + 추가 매수가×추가 수량) / 총 수량</Formula>
-          </>
-        );
-      case "target":
-        return (
-          <>
-            <div className="quantFormAndResults">
-              <div className="quantFieldGrid">
-                {renderField("target.averagePrice")}
-                {renderField("target.quantity")}
-                {renderField("target.targetNetReturnPct")}
-                {renderField("target.sellFeePct")}
-                {renderField("target.taxRatePct")}
-              </div>
-              <ResultGrid items={activeResults} />
-            </div>
-            <p className="quantInsight">
-              달러 기준으로 계산할 때는 상단 환율 설정의 기준가가 원화 환산과 순이익 계산에 적용됩니다.
-            </p>
-            <Formula>목표 매도가 = 목표 총매각대금 / 보유 수량</Formula>
-          </>
-        );
       case "return":
         return (
           <>
@@ -1340,12 +906,18 @@ export function StockQuantCalculator({
         return (
           <>
             <div className="quantFormAndResults">
-              <div className="quantFieldGrid">
-                {renderField("opportunity.budgetAmount")}
-                {renderField("opportunity.stockOneOriginalPrice")}
-                {renderField("opportunity.stockOneCurrentPrice")}
-                {renderField("opportunity.stockTwoOriginalPrice")}
-                {renderField("opportunity.stockTwoCurrentPrice")}
+              <div className="quantOpportunityLayout">
+                <div className="quantOpportunityBudget">{renderField("opportunity.budgetAmount")}</div>
+                <div className="quantOpportunityPair">
+                  <strong>주식 1</strong>
+                  {renderField("opportunity.stockOneOriginalPrice")}
+                  {renderField("opportunity.stockOneCurrentPrice")}
+                </div>
+                <div className="quantOpportunityPair">
+                  <strong>주식 2</strong>
+                  {renderField("opportunity.stockTwoOriginalPrice")}
+                  {renderField("opportunity.stockTwoCurrentPrice")}
+                </div>
               </div>
               <ResultGrid items={activeResults} />
             </div>
@@ -1353,6 +925,68 @@ export function StockQuantCalculator({
               같은 예산을 두 종목에 각각 넣었다고 가정하고, 현재 자산가치와 수익률 차이를 비교합니다.
             </p>
             <Formula>각 종목 현재가치 = 예산 / 원래 가격 × 현재 가격</Formula>
+          </>
+        );
+      case "average":
+        return (
+          <>
+            <div className="quantSegmented" role="tablist" aria-label="추가 매수 입력 방식">
+              <button
+                type="button"
+                className={averageDownMode === "quantity" ? "isActive" : ""}
+                onClick={() => {
+                  setAverageDownMode("quantity");
+                  setActiveField("average.extraQuantity");
+                }}
+              >
+                수량으로 입력
+              </button>
+              <button
+                type="button"
+                className={averageDownMode === "amount" ? "isActive" : ""}
+                onClick={() => {
+                  setAverageDownMode("amount");
+                  setActiveField("average.extraAmount");
+                }}
+              >
+                금액으로 입력
+              </button>
+            </div>
+            <div className="quantFormAndResults">
+              <div className="quantFieldGrid">
+                {renderField("average.currentAveragePrice")}
+                {renderField("average.currentQuantity")}
+                {renderField("average.currentPrice")}
+                {renderField("average.extraBuyPrice")}
+                {averageDownMode === "quantity"
+                  ? renderField("average.extraQuantity")
+                  : renderField("average.extraAmount")}
+              </div>
+              <ResultGrid items={activeResults} />
+            </div>
+            <p className="quantInsight">
+              추가 매수 뒤 새 평단과 현재가 기준 본전까지 필요한 상승률을 한 번에 계산합니다.
+            </p>
+            <Formula>새 평단 = (기존 평단 × 보유 수량 + 추가 매수가 × 추가 수량) / 총 수량</Formula>
+          </>
+        );
+      case "target":
+        return (
+          <>
+            <div className="quantFormAndResults">
+              <div className="quantFieldGrid">
+                {renderField("target.averagePrice")}
+                {renderField("target.quantity")}
+                {renderField("target.targetNetReturnPct")}
+                {renderField("target.sellFeePct")}
+                {renderField("target.taxRatePct")}
+              </div>
+              <ResultGrid items={activeResults} />
+            </div>
+            <p className="quantInsight">
+              달러 기준으로 계산할 때는 상단 환율 설정의 기준가가 원화 환산과 순이익 계산에 적용됩니다.
+            </p>
+            <Formula>목표 매도가 = 목표 총매각대금 / 보유 수량</Formula>
           </>
         );
       case "dividend":
@@ -1363,118 +997,14 @@ export function StockQuantCalculator({
                 {renderField("dividend.investmentAmount")}
                 {renderField("dividend.annualDividendYieldPct")}
                 {renderField("dividend.taxRatePct")}
-                {renderField("dividend.targetMonthlyDividend")}
+                {renderField("dividend.years")}
               </div>
               <ResultGrid items={activeResults} />
             </div>
-            <Formula>세후 월배당 = 투자금 × 배당수익률 × (1 - 세율) / 12</Formula>
-          </>
-        );
-      case "metrics":
-        return (
-          <>
-            <div className="quantFormAndResults">
-              <div className="quantFieldGrid">
-                {renderField("metrics.netIncome")}
-                {renderField("metrics.equity")}
-                {renderField("metrics.sharesOutstanding")}
-                {renderField("metrics.currentPrice")}
-                {renderField("metrics.dividendPerShare")}
-                {renderField("metrics.freeCashFlow")}
-                {renderField("metrics.ebitda")}
-                {renderField("metrics.totalDebt")}
-                {renderField("metrics.cashAndEquivalents")}
-              </div>
-              <ResultGrid items={activeResults} />
-            </div>
-            <Formula>EPS = 순이익 / 주식 수, PER = 현재가 / EPS, ROE = 순이익 / 자본</Formula>
-          </>
-        );
-      case "valuation":
-        return (
-          <>
-            <div className="quantFormAndResults">
-              <div className="quantFieldGrid">
-                {renderField("valuation.currentPrice")}
-                {renderField("valuation.expectedEps")}
-                {renderField("valuation.targetPer")}
-                {renderField("valuation.sharesOutstanding")}
-              </div>
-              <ResultGrid items={activeResults} />
-            </div>
-            <Formula>목표 주가 = 예상 EPS × 목표 PER, 필요 순이익 = (현재가 / 목표 PER) × 주식 수</Formula>
-          </>
-        );
-      case "dcf":
-        return (
-          <>
-            <div className="quantFormAndResults">
-              <div className="quantFieldGrid">
-                {renderField("dcf.baseFreeCashFlow")}
-                {renderField("dcf.growthRatePct")}
-                {renderField("dcf.discountRatePct")}
-                {renderField("dcf.terminalGrowthPct")}
-                {renderField("dcf.netCash")}
-                {renderField("dcf.sharesOutstanding")}
-                {renderField("dcf.currentPrice")}
-              </div>
-              <ResultGrid items={activeResults} />
-            </div>
-            <p className="quantInsight">{reverseDcfMessage}</p>
-            {dcfValuation ? (
-              <div className="quantMiniSection">
-                <h4>5년 FCF</h4>
-                <div className="quantProjectionGrid">
-                  {dcfValuation.projection.map((row) => (
-                    <div key={row.year} className="quantProjectionItem">
-                      <span>Y{row.year}</span>
-                      <strong>{formatCompactWon(row.freeCashFlow)}</strong>
-                      <small>{formatCompactWon(row.presentValue)}</small>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            <div className="quantMiniSection">
-              <h4>민감도</h4>
-              <div className="quantSensitivityWrap">
-                <table className="quantSensitivityTable">
-                  <thead>
-                    <tr>
-                      <th>성장률 / 할인율</th>
-                      {dcfSensitivity[0]?.cells.map((cell) => (
-                        <th key={cell.discountRatePct}>{formatPercent(cell.discountRatePct, 0)}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dcfSensitivity.map((row) => (
-                      <tr key={row.growthRatePct}>
-                        <th>{formatPercent(row.growthRatePct, 0)}</th>
-                        {row.cells.map((cell) => (
-                          <td key={cell.discountRatePct}>{formatNumber(cell.intrinsicPricePerShare, 0)}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <Formula>기업가치 = 5년 FCF 현재가치 합 + 말기 가치 현재가치</Formula>
-          </>
-        );
-      case "stop":
-        return (
-          <>
-            <div className="quantFormAndResults">
-              <div className="quantFieldGrid">
-                {renderField("stop.allowedLossAmount")}
-                {renderField("stop.entryPrice")}
-                {renderField("stop.stopPrice")}
-              </div>
-              <ResultGrid items={activeResults} />
-            </div>
-            <Formula>매수 가능 수량 = 허용 손실금 / (매수가 - 손절가)</Formula>
+            <p className="quantInsight">
+              주가 변동은 제외하고, 같은 세후 배당수익률로 매년 재투자한다고 가정합니다.
+            </p>
+            <Formula>재투자 후 자산 = 투자금 × (1 + 연 배당수익률 × (1 - 세율)) ^ 기간</Formula>
           </>
         );
       default:
@@ -1488,7 +1018,7 @@ export function StockQuantCalculator({
         <div className="quantTitleBlock">
           <span className="quantHeroEyebrow">Stock Calculator</span>
           <h1>주식용 계산기</h1>
-          <p>수익률과 기회비용을 먼저 보고, 필요한 계산만 이어서 확인합니다.</p>
+          <p>수익률, 기회비용, 물타기, 목표가, 배당 재투자를 계산합니다.</p>
         </div>
         <div className="quantCurrencyPanel" aria-label="계산 통화 및 환율">
           <div className="quantCurrencyGroup">
@@ -1540,8 +1070,10 @@ export function StockQuantCalculator({
               disabled={currencyMode !== "usd" || fxRateMode !== "manual"}
             />
           </label>
-          <small>{fxRateSummary}</small>
-          <small>{latestUsdKrwMeta}</small>
+          <div className="quantCurrencyMeta">
+            <small>{fxRateSummary}</small>
+            <small>{latestUsdKrwMeta}</small>
+          </div>
         </div>
       </section>
 
