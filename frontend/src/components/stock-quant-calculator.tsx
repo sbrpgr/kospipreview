@@ -1227,14 +1227,7 @@ export function StockQuantCalculator({
   }
 
   function appendActiveSummaryToMemo() {
-    const stamp = new Intl.DateTimeFormat("ko-KR", {
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Asia/Seoul",
-    }).format(new Date());
-    setMemo((prev) => `${prev.trimEnd()}${prev.trim() ? "\n" : ""}[${stamp}] ${activeSummary}`);
+    setMemo((prev) => `${prev.trimEnd()}${prev.trim() ? "\n" : ""}${activeSummary}`);
   }
 
   function renderField(key: string, label?: string, hint?: string) {
