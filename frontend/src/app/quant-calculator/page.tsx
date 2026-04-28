@@ -6,7 +6,7 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const PAGE_TITLE = "주식용 계산기";
 const PAGE_DESCRIPTION =
-  "본전 계산, 평단 시뮬레이션, 환율 분해, 배당 월급, PER 역산, DCF와 Reverse DCF를 한 번에 계산하는 주식 계산기입니다.";
+  "수익률, 기회비용, 본전 계산, 평단 시뮬레이션, 배당 월급, PER 역산, DCF를 원화 또는 달러 기준으로 계산하는 주식 계산기입니다.";
 
 export const metadata: Metadata = {
   title: PAGE_TITLE,
