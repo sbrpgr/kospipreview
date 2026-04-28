@@ -1907,6 +1907,423 @@ p {
   border-bottom: none;
 }
 
+.quantCalculatorPage {
+  gap: 16px;
+}
+
+.quantTopPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+  padding: 18px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow-soft);
+}
+
+.quantTitleBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.quantTitleBlock h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 2rem;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.quantTitleBlock p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.quantCalculatorShell {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 280px;
+  gap: 14px;
+  align-items: start;
+}
+
+.quantCalculatorDock,
+.quantWorkCard,
+.quantResultPanel,
+.quantMemoCard {
+  border-radius: 8px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  box-shadow: var(--shadow-soft);
+}
+
+.quantCalculatorDock {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  background: #15171c;
+  color: #f8fafc;
+}
+
+.quantCalcDisplay {
+  display: grid;
+  gap: 6px;
+  min-height: 128px;
+  padding: 16px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #232833 0%, #0f1217 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.quantCalcDisplay span,
+.quantCalcDisplay small {
+  color: rgba(248, 250, 252, 0.62);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.quantCalcDisplay strong {
+  color: rgba(248, 250, 252, 0.88);
+  font-size: 0.88rem;
+}
+
+.quantCalcDisplay output {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  color: #dcfce7;
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  line-height: 1;
+  word-break: break-all;
+}
+
+.quantCalcDisplay output small {
+  padding-bottom: 3px;
+  color: rgba(220, 252, 231, 0.72);
+  font-size: 0.8rem;
+}
+
+.quantFieldPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.quantFieldPicker button {
+  min-height: 30px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(248, 250, 252, 0.72);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.quantFieldPicker button.isActive {
+  border-color: rgba(245, 158, 11, 0.7);
+  background: rgba(245, 158, 11, 0.18);
+  color: #fef3c7;
+}
+
+.quantKeypad {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quantKeyButton {
+  aspect-ratio: 1 / 0.78;
+  border: 0;
+  border-radius: 8px;
+  background: #2f343f;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 1.18rem;
+  font-weight: 900;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22);
+}
+
+.quantKeyButton:hover {
+  background: #3b4250;
+}
+
+.quantKeyButton-clear,
+.quantKeyButton-back {
+  background: #7f1d1d;
+}
+
+.quantKeyButton-sign,
+.quantKeyButton-next {
+  background: #b45309;
+}
+
+.quantKeyButton-0 {
+  grid-column: span 1;
+}
+
+.quantWorkSurface {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.quantModeBar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quantModeBar button {
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  background: #ffffff;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: left;
+}
+
+.quantModeBar button span {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.quantModeBar button.isActive {
+  border-color: rgba(49, 130, 246, 0.45);
+  background: #eef6ff;
+  color: var(--brand-strong);
+}
+
+.quantModeBar button.isActive span {
+  color: var(--brand-strong);
+}
+
+.quantWorkCard {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  background: #ffffff;
+}
+
+.quantWorkHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+}
+
+.quantWorkHeader div {
+  display: grid;
+  gap: 4px;
+}
+
+.quantWorkHeader span {
+  color: var(--brand-strong);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.quantWorkHeader h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.28rem;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.quantWorkHeader p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.quantFormAndResults {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.95fr) minmax(260px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.quantCalculatorPage .quantFieldGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quantCalculatorPage .quantField {
+  padding: 10px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.quantCalculatorPage .quantField.isEditing {
+  border-color: rgba(245, 158, 11, 0.62);
+  background: #fffbeb;
+}
+
+.quantCalculatorPage .quantInput {
+  min-height: 42px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+}
+
+.quantCalculatorPage .quantMetric {
+  min-height: 108px;
+  border-radius: 8px;
+}
+
+.quantResultPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.quantResultDisplay {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.quantResultDisplay span,
+.quantResultDisplay small {
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.quantResultDisplay strong {
+  color: #dcfce7;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.quantResultList {
+  display: grid;
+  gap: 8px;
+}
+
+.quantResultList div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.quantResultList div:last-child {
+  border-bottom: 0;
+}
+
+.quantResultList span {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.quantResultList strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  text-align: right;
+}
+
+.quantMemoAppendButton {
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.quantMemoAppendButton:hover {
+  background: #1f2937;
+}
+
+.quantMemoCard {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  background: #ffffff;
+}
+
+.quantMemoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quantMemoHeader div {
+  display: grid;
+  gap: 6px;
+}
+
+.quantMemoHeader h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.18rem;
+  letter-spacing: 0;
+}
+
+.quantMemoTextarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  border-radius: 8px;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  background: #fbfdff;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.94rem;
+  line-height: 1.65;
+  padding: 14px;
+  outline: none;
+}
+
+.quantMemoTextarea:focus {
+  border-color: rgba(49, 130, 246, 0.45);
+  box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.12);
+}
+
+.quantCalculatorPage .quantMiniSection h4 {
+  letter-spacing: 0;
+}
+
+@media (max-width: 1120px) {
+  .quantCalculatorShell {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .quantResultPanel {
+    grid-column: 1 / -1;
+  }
+
+  .quantModeBar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
   .pageContainer {
     width: min(100% - 20px, 980px);
@@ -1980,6 +2397,37 @@ p {
 
   .quantSensitivityTable {
     min-width: 440px;
+  }
+
+  .quantTopPanel,
+  .quantCalculatorShell,
+  .quantFormAndResults {
+    grid-template-columns: 1fr;
+  }
+
+  .quantModeBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quantCalculatorPage .quantFieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .quantWorkHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .quantCalcDisplay output {
+    font-size: 1.65rem;
+  }
+
+  .quantCalculatorDock,
+  .quantWorkCard,
+  .quantResultPanel,
+  .quantMemoCard,
+  .quantTopPanel {
+    padding: 14px;
   }
 
   .youtubeNewsSummary {
