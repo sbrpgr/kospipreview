@@ -1553,6 +1553,86 @@ p {
   background: rgba(255, 255, 255, 0.88);
 }
 
+.quantCurrencyPanel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, auto));
+  gap: 10px;
+  align-items: end;
+  min-width: min(100%, 430px);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  background: #fbfdff;
+}
+
+.quantCurrencyPanel small {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.quantCurrencyGroup,
+.quantManualFxInput {
+  display: grid;
+  gap: 6px;
+}
+
+.quantCurrencyGroup > span,
+.quantManualFxInput > span {
+  color: var(--text-dim);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.quantPillToggle {
+  display: flex;
+  gap: 6px;
+}
+
+.quantPillToggle button {
+  flex: 1 1 0;
+  min-height: 34px;
+  padding: 7px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.quantPillToggle button.isActive {
+  border-color: rgba(49, 130, 246, 0.35);
+  background: var(--brand-bg);
+  color: var(--brand-strong);
+}
+
+.quantPillToggle button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.quantManualFxInput input {
+  width: 100%;
+  min-height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  font-weight: 800;
+  padding: 7px 10px;
+  outline: none;
+}
+
+.quantManualFxInput input:disabled {
+  color: var(--text-dim);
+  background: #f4f6fb;
+}
+
 .quantLiveBar strong,
 .quantFxChip strong {
   color: var(--text);
@@ -2330,6 +2410,10 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .quantCurrencyPanel {
+    grid-template-columns: 1fr;
+  }
+
   .quantResultList {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2393,6 +2477,7 @@ p {
     padding: 20px;
   }
 
+  .quantCurrencyPanel,
   .quantLiveBar,
   .quantFxToolbar {
     flex-direction: column;
