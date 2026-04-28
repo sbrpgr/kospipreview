@@ -30,6 +30,7 @@ type ToolId =
   | "average"
   | "target"
   | "fx"
+  | "return"
   | "opportunity"
   | "dividend"
   | "metrics"
@@ -119,14 +120,27 @@ const TOOL_OPTIONS: Array<{
     ],
   },
   {
+    id: "return",
+    label: "수익률",
+    keyLabel: "RET",
+    description: "원래 가격 대비 현재 수익률",
+    fieldKeys: [
+      "return.originalPrice",
+      "return.currentPrice",
+      "return.investmentAmount",
+    ],
+  },
+  {
     id: "opportunity",
     label: "기회비용",
     keyLabel: "OC",
-    description: "그때 넣었다면 지금 얼마인지",
+    description: "같은 예산의 두 종목 비교",
     fieldKeys: [
-      "opportunity.originalPrice",
-      "opportunity.currentPrice",
-      "opportunity.investmentAmount",
+      "opportunity.budgetAmount",
+      "opportunity.stockOneOriginalPrice",
+      "opportunity.stockOneCurrentPrice",
+      "opportunity.stockTwoOriginalPrice",
+      "opportunity.stockTwoCurrentPrice",
     ],
   },
   {
@@ -330,6 +344,34 @@ function getToneFromSignedValue(value: number | null | undefined): ResultTone {
   return value >= 0 ? "positive" : "negative";
 }
 
+function calculateBudgetScenario(
+  budgetAmount: number,
+  originalPrice: number,
+  currentPrice: number,
+) {
+  if (
+    !Number.isFinite(budgetAmount) ||
+    !Number.isFinite(originalPrice) ||
+    !Number.isFinite(currentPrice) ||
+    budgetAmount < 0 ||
+    originalPrice <= 0
+  ) {
+    return null;
+  }
+
+  const shares = budgetAmount / originalPrice;
+  const currentValue = shares * currentPrice;
+  const profit = currentValue - budgetAmount;
+  const returnPct = ((currentPrice / originalPrice) - 1) * 100;
+
+  return {
+    shares,
+    currentValue,
+    profit,
+    returnPct,
+  };
+}
+
 function Metric({ label, value, note, tone = "default" }: MetricItem) {
   return (
     <div className={`quantMetric quantMetric-${tone}`}>
@@ -452,10 +494,17 @@ export function StockQuantCalculator({
     dividendPerShare: "1.04",
     dividendTaxPct: "15.4",
   });
-  const [opportunityFields, setOpportunityFields] = useState({
+  const [returnFields, setReturnFields] = useState({
     originalPrice: "65000",
     currentPrice: "91000",
     investmentAmount: "1000000",
+  });
+  const [opportunityFields, setOpportunityFields] = useState({
+    budgetAmount: "1000000",
+    stockOneOriginalPrice: "65000",
+    stockOneCurrentPrice: "91000",
+    stockTwoOriginalPrice: "120000",
+    stockTwoCurrentPrice: "156000",
   });
   const [dividendFields, setDividendFields] = useState({
     investmentAmount: "10000000",
@@ -674,23 +723,53 @@ export function StockQuantCalculator({
       suffix: "%",
       setValue: (value) => setFieldValue(setFxFields, "dividendTaxPct", value),
     },
-    "opportunity.originalPrice": {
+    "return.originalPrice": {
       label: "원래 가격",
-      value: opportunityFields.originalPrice,
+      value: returnFields.originalPrice,
       suffix: "원",
-      setValue: (value) => setFieldValue(setOpportunityFields, "originalPrice", value),
+      setValue: (value) => setFieldValue(setReturnFields, "originalPrice", value),
     },
-    "opportunity.currentPrice": {
+    "return.currentPrice": {
       label: "현재 가격",
-      value: opportunityFields.currentPrice,
+      value: returnFields.currentPrice,
       suffix: "원",
-      setValue: (value) => setFieldValue(setOpportunityFields, "currentPrice", value),
+      setValue: (value) => setFieldValue(setReturnFields, "currentPrice", value),
     },
-    "opportunity.investmentAmount": {
+    "return.investmentAmount": {
       label: "넣었을 금액",
-      value: opportunityFields.investmentAmount,
+      value: returnFields.investmentAmount,
       suffix: "원",
-      setValue: (value) => setFieldValue(setOpportunityFields, "investmentAmount", value),
+      setValue: (value) => setFieldValue(setReturnFields, "investmentAmount", value),
+    },
+    "opportunity.budgetAmount": {
+      label: "예산",
+      value: opportunityFields.budgetAmount,
+      suffix: "원",
+      setValue: (value) => setFieldValue(setOpportunityFields, "budgetAmount", value),
+    },
+    "opportunity.stockOneOriginalPrice": {
+      label: "주식 1 원래 가격",
+      value: opportunityFields.stockOneOriginalPrice,
+      suffix: "원",
+      setValue: (value) => setFieldValue(setOpportunityFields, "stockOneOriginalPrice", value),
+    },
+    "opportunity.stockOneCurrentPrice": {
+      label: "주식 1 현재 가격",
+      value: opportunityFields.stockOneCurrentPrice,
+      suffix: "원",
+      setValue: (value) => setFieldValue(setOpportunityFields, "stockOneCurrentPrice", value),
+    },
+    "opportunity.stockTwoOriginalPrice": {
+      label: "주식 2 원래 가격",
+      value: opportunityFields.stockTwoOriginalPrice,
+      suffix: "원",
+      setValue: (value) => setFieldValue(setOpportunityFields, "stockTwoOriginalPrice", value),
+    },
+    "opportunity.stockTwoCurrentPrice": {
+      label: "주식 2 현재 가격",
+      value: opportunityFields.stockTwoCurrentPrice,
+      suffix: "원",
+      setValue: (value) => setFieldValue(setOpportunityFields, "stockTwoCurrentPrice", value),
     },
     "dividend.investmentAmount": {
       label: "투자금",
@@ -886,27 +965,51 @@ export function StockQuantCalculator({
     dividendTaxPct: parseNumber(fxFields.dividendTaxPct),
   });
 
-  const opportunityOriginalPrice = parseNumber(opportunityFields.originalPrice);
-  const opportunityCurrentPrice = parseNumber(opportunityFields.currentPrice);
-  const opportunityInvestmentAmount = parseNumber(opportunityFields.investmentAmount);
-  const opportunityShares =
-    Number.isFinite(opportunityOriginalPrice) && opportunityOriginalPrice > 0
-      ? opportunityInvestmentAmount / opportunityOriginalPrice
+  const returnOriginalPrice = parseNumber(returnFields.originalPrice);
+  const returnCurrentPrice = parseNumber(returnFields.currentPrice);
+  const returnInvestmentAmount = parseNumber(returnFields.investmentAmount);
+  const returnShares =
+    Number.isFinite(returnOriginalPrice) && returnOriginalPrice > 0
+      ? returnInvestmentAmount / returnOriginalPrice
       : null;
-  const opportunityCurrentValue =
-    opportunityShares !== null && Number.isFinite(opportunityCurrentPrice) && opportunityCurrentPrice > 0
-      ? opportunityShares * opportunityCurrentPrice
+  const returnCurrentValue =
+    returnShares !== null && Number.isFinite(returnCurrentPrice) && returnCurrentPrice > 0
+      ? returnShares * returnCurrentPrice
       : null;
-  const opportunityProfit =
-    opportunityCurrentValue !== null && Number.isFinite(opportunityInvestmentAmount)
-      ? opportunityCurrentValue - opportunityInvestmentAmount
+  const returnProfit =
+    returnCurrentValue !== null && Number.isFinite(returnInvestmentAmount)
+      ? returnCurrentValue - returnInvestmentAmount
       : null;
-  const opportunityReturnPct =
-    Number.isFinite(opportunityOriginalPrice) &&
-    opportunityOriginalPrice > 0 &&
-    Number.isFinite(opportunityCurrentPrice)
-      ? ((opportunityCurrentPrice / opportunityOriginalPrice) - 1) * 100
+  const returnPct =
+    Number.isFinite(returnOriginalPrice) &&
+    returnOriginalPrice > 0 &&
+    Number.isFinite(returnCurrentPrice)
+      ? ((returnCurrentPrice / returnOriginalPrice) - 1) * 100
       : null;
+  const opportunityBudgetAmount = parseNumber(opportunityFields.budgetAmount);
+  const stockOneScenario = calculateBudgetScenario(
+    opportunityBudgetAmount,
+    parseNumber(opportunityFields.stockOneOriginalPrice),
+    parseNumber(opportunityFields.stockOneCurrentPrice),
+  );
+  const stockTwoScenario = calculateBudgetScenario(
+    opportunityBudgetAmount,
+    parseNumber(opportunityFields.stockTwoOriginalPrice),
+    parseNumber(opportunityFields.stockTwoCurrentPrice),
+  );
+  const opportunityGap =
+    stockOneScenario && stockTwoScenario
+      ? stockTwoScenario.currentValue - stockOneScenario.currentValue
+      : null;
+  const opportunityGapAbs = opportunityGap !== null ? Math.abs(opportunityGap) : null;
+  const opportunityWinnerLabel =
+    opportunityGap === null
+      ? "-"
+      : opportunityGap > 0
+        ? "주식 2 우위"
+        : opportunityGap < 0
+          ? "주식 1 우위"
+          : "동일";
 
   const dividendIncome = calculateDividendIncome({
     investmentAmount: parseNumber(dividendFields.investmentAmount),
@@ -1047,27 +1150,60 @@ export function StockQuantCalculator({
           { label: "환율 효과", value: formatCompactWon(fxBreakdown?.fxEffectKrw), tone: getToneFromSignedValue(fxBreakdown?.fxEffectKrw) },
           { label: "배당 효과", value: formatCompactWon(fxBreakdown?.dividendEffectKrw), tone: "default" },
         ];
-      case "opportunity":
+      case "return":
         return [
           {
             label: "현재 환산금액",
-            value: formatCompactWon(opportunityCurrentValue),
+            value: formatCompactWon(returnCurrentValue),
             tone: "accent",
           },
           {
-            label: "놓친 손익",
-            value: formatCompactWon(opportunityProfit),
-            tone: getToneFromSignedValue(opportunityProfit),
+            label: "손익",
+            value: formatCompactWon(returnProfit),
+            tone: getToneFromSignedValue(returnProfit),
           },
           {
             label: "수익률",
-            value: formatSignedPercent(opportunityReturnPct),
-            tone: getToneFromSignedValue(opportunityReturnPct),
+            value: formatSignedPercent(returnPct),
+            tone: getToneFromSignedValue(returnPct),
           },
           {
             label: "살 수 있었던 수량",
-            value: formatShares(opportunityShares),
+            value: formatShares(returnShares),
             tone: "default",
+          },
+        ];
+      case "opportunity":
+        return [
+          {
+            label: "기회비용 차이",
+            value: formatCompactWon(opportunityGapAbs),
+            tone: "accent",
+          },
+          {
+            label: "비교 우위",
+            value: opportunityWinnerLabel,
+            tone: "default",
+          },
+          {
+            label: "주식 1 현재가치",
+            value: formatCompactWon(stockOneScenario?.currentValue),
+            tone: getToneFromSignedValue(stockOneScenario?.profit),
+          },
+          {
+            label: "주식 2 현재가치",
+            value: formatCompactWon(stockTwoScenario?.currentValue),
+            tone: getToneFromSignedValue(stockTwoScenario?.profit),
+          },
+          {
+            label: "주식 1 수익률",
+            value: formatSignedPercent(stockOneScenario?.returnPct),
+            tone: getToneFromSignedValue(stockOneScenario?.returnPct),
+          },
+          {
+            label: "주식 2 수익률",
+            value: formatSignedPercent(stockTwoScenario?.returnPct),
+            tone: getToneFromSignedValue(stockTwoScenario?.returnPct),
           },
         ];
       case "dividend":
@@ -1389,8 +1525,25 @@ export function StockQuantCalculator({
                 {renderField("fx.dividendTaxPct")}
               </div>
               <ResultGrid items={activeResults} />
-            </div>
+          </div>
             <p className="quantInsight">{fxDominantLabel}</p>
+          </>
+        );
+      case "return":
+        return (
+          <>
+            <div className="quantFormAndResults">
+              <div className="quantFieldGrid">
+                {renderField("return.originalPrice")}
+                {renderField("return.currentPrice")}
+                {renderField("return.investmentAmount")}
+              </div>
+              <ResultGrid items={activeResults} />
+            </div>
+            <p className="quantInsight">
+              원래 가격에 넣었을 금액을 현재 가격으로 환산해, 가격 변화가 내 돈에 준 영향을 봅니다.
+            </p>
+            <Formula>현재 환산금액 = 넣었을 금액 / 원래 가격 × 현재 가격</Formula>
           </>
         );
       case "opportunity":
@@ -1398,16 +1551,18 @@ export function StockQuantCalculator({
           <>
             <div className="quantFormAndResults">
               <div className="quantFieldGrid">
-                {renderField("opportunity.originalPrice")}
-                {renderField("opportunity.currentPrice")}
-                {renderField("opportunity.investmentAmount")}
+                {renderField("opportunity.budgetAmount")}
+                {renderField("opportunity.stockOneOriginalPrice")}
+                {renderField("opportunity.stockOneCurrentPrice")}
+                {renderField("opportunity.stockTwoOriginalPrice")}
+                {renderField("opportunity.stockTwoCurrentPrice")}
               </div>
               <ResultGrid items={activeResults} />
             </div>
             <p className="quantInsight">
-              원래 가격에 넣었을 금액을 현재 가격으로 환산해, 현금으로 둔 경우와의 차이를 봅니다.
+              같은 예산을 두 종목에 각각 넣었다고 가정하고, 현재 자산가치와 수익률 차이를 비교합니다.
             </p>
-            <Formula>현재 환산금액 = 넣었을 금액 / 원래 가격 × 현재 가격</Formula>
+            <Formula>각 종목 현재가치 = 예산 / 원래 가격 × 현재 가격</Formula>
           </>
         );
       case "dividend":
