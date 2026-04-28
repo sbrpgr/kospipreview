@@ -3896,3 +3896,95 @@ p {
     min-height: 44px;
   }
 }
+
+.quantSeoAccordion {
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+
+.quantSeoAccordion details {
+  border: 1px solid #e8eef6;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.quantSeoAccordion summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 12px 14px;
+  color: #475467;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 780;
+  list-style: none;
+}
+
+.quantSeoAccordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.quantSeoAccordion summary::after {
+  content: "펼치기";
+  color: #98a2b3;
+  font-size: 0.72rem;
+  font-weight: 760;
+}
+
+.quantSeoAccordion details[open] summary {
+  border-bottom: 1px solid #e8eef6;
+}
+
+.quantSeoAccordion details[open] summary::after {
+  content: "접기";
+}
+
+.quantSeoAccordionBody {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 16px;
+  color: #475467;
+  font-size: 0.86rem;
+  line-height: 1.65;
+}
+
+.quantSeoAccordionBody h2,
+.quantSeoAccordionBody h3 {
+  margin: 0;
+  color: #111827;
+  letter-spacing: 0;
+}
+
+.quantSeoAccordionBody h2 {
+  margin-bottom: 8px;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.quantSeoAccordionBody h3 {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  font-weight: 820;
+}
+
+.quantSeoAccordionBody p {
+  margin: 0;
+}
+
+.quantSeoAccordionBody ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.quantSeoAccordionBody li + li {
+  margin-top: 6px;
+}
+
+@media (max-width: 860px) {
+  .quantSeoAccordionBody {
+    grid-template-columns: 1fr;
+  }
+}
