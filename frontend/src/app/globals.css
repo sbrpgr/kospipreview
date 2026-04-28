@@ -1944,7 +1944,7 @@ p {
 
 .quantCalculatorShell {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 280px;
+  grid-template-columns: 300px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
@@ -2074,7 +2074,7 @@ p {
 
 .quantModeBar {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -2187,15 +2187,17 @@ p {
 
 .quantResultPanel {
   display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.8fr) auto;
   gap: 12px;
-  padding: 14px;
+  align-items: stretch;
+  padding: 12px;
   background: #ffffff;
 }
 
 .quantResultDisplay {
   display: grid;
-  gap: 8px;
-  padding: 16px;
+  gap: 6px;
+  padding: 14px;
   border-radius: 8px;
   background: #0f172a;
   color: #ffffff;
@@ -2211,26 +2213,26 @@ p {
 .quantResultDisplay strong {
   color: #dcfce7;
   font-family: var(--font-mono);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   line-height: 1.15;
   word-break: break-word;
 }
 
 .quantResultList {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
 .quantResultList div {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.quantResultList div:last-child {
-  border-bottom: 0;
+  display: grid;
+  gap: 6px;
+  align-content: center;
+  min-height: 74px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfdff;
 }
 
 .quantResultList span {
@@ -2242,12 +2244,14 @@ p {
 .quantResultList strong {
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 0.88rem;
-  text-align: right;
+  font-size: 0.95rem;
+  text-align: left;
+  word-break: break-word;
 }
 
 .quantMemoAppendButton {
-  min-height: 42px;
+  min-width: 92px;
+  min-height: 74px;
   border: 0;
   border-radius: 8px;
   background: #111827;
@@ -2312,15 +2316,23 @@ p {
 
 @media (max-width: 1120px) {
   .quantCalculatorShell {
-    grid-template-columns: 280px minmax(0, 1fr);
-  }
-
-  .quantResultPanel {
-    grid-column: 1 / -1;
+    grid-template-columns: 270px minmax(0, 1fr);
   }
 
   .quantModeBar {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .quantResultPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .quantResultList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quantMemoAppendButton {
+    min-height: 44px;
   }
 }
 
@@ -2407,6 +2419,10 @@ p {
 
   .quantModeBar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quantResultList {
+    grid-template-columns: 1fr;
   }
 
   .quantCalculatorPage .quantFieldGrid {
