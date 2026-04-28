@@ -8,7 +8,6 @@ import {
   calculateDcfValuation,
   calculateDividendIncome,
   calculateFinancialMetrics,
-  calculateFxReturnBreakdown,
   calculateLossRecovery,
   calculateReverseDcf,
   calculateStopPositionSizing,
@@ -24,19 +23,19 @@ type StockQuantCalculatorProps = {
 
 type FieldState = Record<string, string>;
 type ResultTone = "default" | "positive" | "negative" | "accent";
+type CurrencyMode = "krw" | "usd";
+type FxRateMode = "latest" | "manual";
 type ToolId =
-  | "converter"
+  | "return"
+  | "opportunity"
   | "recovery"
   | "average"
   | "target"
-  | "fx"
-  | "return"
-  | "opportunity"
   | "dividend"
+  | "stop"
   | "metrics"
   | "valuation"
-  | "dcf"
-  | "stop";
+  | "dcf";
 
 type FieldController = {
   label: string;
@@ -60,11 +59,28 @@ const TOOL_OPTIONS: Array<{
   fieldKeys: string[];
 }> = [
   {
-    id: "converter",
-    label: "달러 환산",
-    keyLabel: "FX",
-    description: "USD/KRW 기준 환산",
-    fieldKeys: ["fxConverter.usdAmount", "fxConverter.krwAmount"],
+    id: "return",
+    label: "수익률",
+    keyLabel: "RET",
+    description: "원래 가격 대비 현재 수익률",
+    fieldKeys: [
+      "return.originalPrice",
+      "return.currentPrice",
+      "return.investmentAmount",
+    ],
+  },
+  {
+    id: "opportunity",
+    label: "기회비용",
+    keyLabel: "OC",
+    description: "같은 예산의 두 종목 비교",
+    fieldKeys: [
+      "opportunity.budgetAmount",
+      "opportunity.stockOneOriginalPrice",
+      "opportunity.stockOneCurrentPrice",
+      "opportunity.stockTwoOriginalPrice",
+      "opportunity.stockTwoCurrentPrice",
+    ],
   },
   {
     id: "recovery",
@@ -100,47 +116,6 @@ const TOOL_OPTIONS: Array<{
       "target.targetNetReturnPct",
       "target.sellFeePct",
       "target.taxRatePct",
-      "target.buyFxRate",
-      "target.sellFxRate",
-    ],
-  },
-  {
-    id: "fx",
-    label: "환율 손익",
-    keyLabel: "KRW",
-    description: "주가와 환율 효과 분해",
-    fieldKeys: [
-      "fx.buyPrice",
-      "fx.currentPrice",
-      "fx.quantity",
-      "fx.buyFxRate",
-      "fx.currentFxRate",
-      "fx.dividendPerShare",
-      "fx.dividendTaxPct",
-    ],
-  },
-  {
-    id: "return",
-    label: "수익률",
-    keyLabel: "RET",
-    description: "원래 가격 대비 현재 수익률",
-    fieldKeys: [
-      "return.originalPrice",
-      "return.currentPrice",
-      "return.investmentAmount",
-    ],
-  },
-  {
-    id: "opportunity",
-    label: "기회비용",
-    keyLabel: "OC",
-    description: "같은 예산의 두 종목 비교",
-    fieldKeys: [
-      "opportunity.budgetAmount",
-      "opportunity.stockOneOriginalPrice",
-      "opportunity.stockOneCurrentPrice",
-      "opportunity.stockTwoOriginalPrice",
-      "opportunity.stockTwoCurrentPrice",
     ],
   },
   {
@@ -154,6 +129,13 @@ const TOOL_OPTIONS: Array<{
       "dividend.taxRatePct",
       "dividend.targetMonthlyDividend",
     ],
+  },
+  {
+    id: "stop",
+    label: "리스크",
+    keyLabel: "RISK",
+    description: "손절가 기준 수량",
+    fieldKeys: ["stop.allowedLossAmount", "stop.entryPrice", "stop.stopPrice"],
   },
   {
     id: "metrics",
@@ -198,13 +180,6 @@ const TOOL_OPTIONS: Array<{
       "dcf.sharesOutstanding",
       "dcf.currentPrice",
     ],
-  },
-  {
-    id: "stop",
-    label: "리스크",
-    keyLabel: "RISK",
-    description: "손절가 기준 수량",
-    fieldKeys: ["stop.allowedLossAmount", "stop.entryPrice", "stop.stopPrice"],
   },
 ];
 
@@ -292,6 +267,30 @@ function formatCompactWon(value: number | null | undefined) {
   }
 
   return formatWon(value);
+}
+
+function formatCurrency(value: number | null | undefined, currencyMode: CurrencyMode, digits = 0) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "-";
+  }
+
+  if (currencyMode === "usd") {
+    return `${formatNumber(value, digits === 0 ? 2 : digits)} USD`;
+  }
+
+  return formatWon(value, digits);
+}
+
+function formatCompactCurrency(value: number | null | undefined, currencyMode: CurrencyMode) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "-";
+  }
+
+  if (currencyMode === "usd") {
+    return `${formatNumber(value, 2)} USD`;
+  }
+
+  return formatCompactWon(value);
 }
 
 function formatShares(value: number | null | undefined, digits = 2) {
@@ -445,22 +444,19 @@ export function StockQuantCalculator({
   latestUsdKrwChangePct = null,
 }: StockQuantCalculatorProps) {
   const latestUsdKrwText = latestUsdKrw !== null ? formatNumber(latestUsdKrw, 2) : "";
-  const latestUsdKrwLabel =
-    latestUsdKrw !== null ? `USD/KRW ${formatWon(latestUsdKrw, 2)}` : "USD/KRW 갱신 대기";
   const latestUsdKrwMeta =
     latestUsdKrw !== null
       ? `${formatSignedPercent(latestUsdKrwChangePct, 2)} · ${formatDateTime(latestUsdKrwUpdatedAt)}`
       : "환율 데이터 확인 중";
 
-  const [activeTool, setActiveTool] = useState<ToolId>("converter");
-  const [activeField, setActiveField] = useState<string>(TOOL_DEFAULT_FIELD.converter);
+  const [activeTool, setActiveTool] = useState<ToolId>("return");
+  const [activeField, setActiveField] = useState<string>(TOOL_DEFAULT_FIELD.return);
   const [memo, setMemo] = useState("");
+  const [currencyMode, setCurrencyMode] = useState<CurrencyMode>("krw");
+  const [fxRateMode, setFxRateMode] = useState<FxRateMode>("latest");
+  const [manualFxRate, setManualFxRate] = useState(latestUsdKrwText || "1470");
   const [averageDownMode, setAverageDownMode] = useState<"quantity" | "amount">("quantity");
   const [lossRate, setLossRate] = useState("30");
-  const [fxConverterFields, setFxConverterFields] = useState({
-    usdAmount: "100",
-    krwAmount: "1000000",
-  });
   const [averageDownFields, setAverageDownFields] = useState({
     currentAveragePrice: "80000",
     currentQuantity: "10",
@@ -477,22 +473,11 @@ export function StockQuantCalculator({
     targetNetReturnPct: "15",
     sellFeePct: "0.015",
     taxRatePct: "0",
-    buyFxRate: "1",
-    sellFxRate: "1",
   });
   const [stopFields, setStopFields] = useState({
     allowedLossAmount: "200000",
     entryPrice: "72000",
     stopPrice: "66400",
-  });
-  const [fxFields, setFxFields] = useState({
-    buyPrice: "220",
-    currentPrice: "248",
-    quantity: "10",
-    buyFxRate: "1320",
-    currentFxRate: latestUsdKrwText || "1365",
-    dividendPerShare: "1.04",
-    dividendTaxPct: "15.4",
   });
   const [returnFields, setReturnFields] = useState({
     originalPrice: "65000",
@@ -554,6 +539,24 @@ export function StockQuantCalculator({
     setActiveField(TOOL_DEFAULT_FIELD[activeTool]);
   }, [activeTool]);
 
+  const currencySuffix = currencyMode === "usd" ? "USD" : "원";
+  const manualUsdKrw = parseNumber(manualFxRate);
+  const effectiveUsdKrw =
+    fxRateMode === "latest" ? latestUsdKrw : Number.isFinite(manualUsdKrw) ? manualUsdKrw : null;
+  const calculationFxRate = currencyMode === "usd" ? (effectiveUsdKrw ?? Number.NaN) : 1;
+  const fxModeLabel =
+    currencyMode === "usd"
+      ? fxRateMode === "latest"
+        ? "당일 기준가"
+        : "직접 입력"
+      : "원화 직접 계산";
+  const fxRateSummary =
+    currencyMode === "usd"
+      ? effectiveUsdKrw !== null && Number.isFinite(effectiveUsdKrw)
+        ? `${fxModeLabel} · USD/KRW ${formatWon(effectiveUsdKrw, 2)}`
+        : "환율 입력 필요"
+      : "원화 기준 계산";
+
   const fieldControllers: Record<string, FieldController> = {
     "loss.lossRate": {
       label: "손실률",
@@ -561,22 +564,10 @@ export function StockQuantCalculator({
       suffix: "%",
       setValue: setLossRate,
     },
-    "fxConverter.usdAmount": {
-      label: "달러 금액",
-      value: fxConverterFields.usdAmount,
-      suffix: "USD",
-      setValue: (value) => setFieldValue(setFxConverterFields, "usdAmount", value),
-    },
-    "fxConverter.krwAmount": {
-      label: "원화 금액",
-      value: fxConverterFields.krwAmount,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFxConverterFields, "krwAmount", value),
-    },
     "average.currentAveragePrice": {
       label: "현재 평단",
       value: averageDownFields.currentAveragePrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setAverageDownFields, "currentAveragePrice", value),
     },
     "average.currentQuantity": {
@@ -588,13 +579,13 @@ export function StockQuantCalculator({
     "average.currentPrice": {
       label: "현재가",
       value: averageDownFields.currentPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setAverageDownFields, "currentPrice", value),
     },
     "average.extraBuyPrice": {
       label: "추가 매수가",
       value: averageDownFields.extraBuyPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setAverageDownFields, "extraBuyPrice", value),
     },
     "average.extraQuantity": {
@@ -606,13 +597,13 @@ export function StockQuantCalculator({
     "average.extraAmount": {
       label: "추가 금액",
       value: averageDownFields.extraAmount,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setAverageDownFields, "extraAmount", value),
     },
     "average.portfolioValue": {
       label: "포트 총액",
       value: averageDownFields.portfolioValue,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setAverageDownFields, "portfolioValue", value),
     },
     "average.downsideShockPct": {
@@ -624,7 +615,7 @@ export function StockQuantCalculator({
     "target.averagePrice": {
       label: "평단",
       value: targetExitFields.averagePrice,
-      suffix: "원/USD",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setTargetExitFields, "averagePrice", value),
     },
     "target.quantity": {
@@ -651,130 +642,76 @@ export function StockQuantCalculator({
       suffix: "%",
       setValue: (value) => setFieldValue(setTargetExitFields, "taxRatePct", value),
     },
-    "target.buyFxRate": {
-      label: "매수 환율",
-      value: targetExitFields.buyFxRate,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setTargetExitFields, "buyFxRate", value),
-    },
-    "target.sellFxRate": {
-      label: "매도 환율",
-      value: targetExitFields.sellFxRate,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setTargetExitFields, "sellFxRate", value),
-    },
     "stop.allowedLossAmount": {
       label: "허용 손실",
       value: stopFields.allowedLossAmount,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setStopFields, "allowedLossAmount", value),
     },
     "stop.entryPrice": {
       label: "매수가",
       value: stopFields.entryPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setStopFields, "entryPrice", value),
     },
     "stop.stopPrice": {
       label: "손절가",
       value: stopFields.stopPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setStopFields, "stopPrice", value),
-    },
-    "fx.buyPrice": {
-      label: "매수가",
-      value: fxFields.buyPrice,
-      suffix: "USD",
-      setValue: (value) => setFieldValue(setFxFields, "buyPrice", value),
-    },
-    "fx.currentPrice": {
-      label: "현재가",
-      value: fxFields.currentPrice,
-      suffix: "USD",
-      setValue: (value) => setFieldValue(setFxFields, "currentPrice", value),
-    },
-    "fx.quantity": {
-      label: "수량",
-      value: fxFields.quantity,
-      suffix: "주",
-      setValue: (value) => setFieldValue(setFxFields, "quantity", value),
-    },
-    "fx.buyFxRate": {
-      label: "매수 환율",
-      value: fxFields.buyFxRate,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFxFields, "buyFxRate", value),
-    },
-    "fx.currentFxRate": {
-      label: "현재 환율",
-      value: fxFields.currentFxRate,
-      suffix: "원",
-      setValue: (value) => setFieldValue(setFxFields, "currentFxRate", value),
-    },
-    "fx.dividendPerShare": {
-      label: "주당 배당",
-      value: fxFields.dividendPerShare,
-      suffix: "USD",
-      setValue: (value) => setFieldValue(setFxFields, "dividendPerShare", value),
-    },
-    "fx.dividendTaxPct": {
-      label: "배당세",
-      value: fxFields.dividendTaxPct,
-      suffix: "%",
-      setValue: (value) => setFieldValue(setFxFields, "dividendTaxPct", value),
     },
     "return.originalPrice": {
       label: "원래 가격",
       value: returnFields.originalPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setReturnFields, "originalPrice", value),
     },
     "return.currentPrice": {
       label: "현재 가격",
       value: returnFields.currentPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setReturnFields, "currentPrice", value),
     },
     "return.investmentAmount": {
       label: "넣었을 금액",
       value: returnFields.investmentAmount,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setReturnFields, "investmentAmount", value),
     },
     "opportunity.budgetAmount": {
       label: "예산",
       value: opportunityFields.budgetAmount,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setOpportunityFields, "budgetAmount", value),
     },
     "opportunity.stockOneOriginalPrice": {
       label: "주식 1 원래 가격",
       value: opportunityFields.stockOneOriginalPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setOpportunityFields, "stockOneOriginalPrice", value),
     },
     "opportunity.stockOneCurrentPrice": {
       label: "주식 1 현재 가격",
       value: opportunityFields.stockOneCurrentPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setOpportunityFields, "stockOneCurrentPrice", value),
     },
     "opportunity.stockTwoOriginalPrice": {
       label: "주식 2 원래 가격",
       value: opportunityFields.stockTwoOriginalPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setOpportunityFields, "stockTwoOriginalPrice", value),
     },
     "opportunity.stockTwoCurrentPrice": {
       label: "주식 2 현재 가격",
       value: opportunityFields.stockTwoCurrentPrice,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setOpportunityFields, "stockTwoCurrentPrice", value),
     },
     "dividend.investmentAmount": {
       label: "투자금",
       value: dividendFields.investmentAmount,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setDividendFields, "investmentAmount", value),
     },
     "dividend.annualDividendYieldPct": {
@@ -792,7 +729,7 @@ export function StockQuantCalculator({
     "dividend.targetMonthlyDividend": {
       label: "목표 월배당",
       value: dividendFields.targetMonthlyDividend,
-      suffix: "원",
+      suffix: currencySuffix,
       setValue: (value) => setFieldValue(setDividendFields, "targetMonthlyDividend", value),
     },
     "metrics.netIncome": {
@@ -922,10 +859,6 @@ export function StockQuantCalculator({
     fieldControllers[activeField] ?? fieldControllers[TOOL_DEFAULT_FIELD[activeTool]];
 
   const lossRecovery = calculateLossRecovery(parseNumber(lossRate));
-  const fxConverterUsdToKrw =
-    latestUsdKrw !== null ? parseNumber(fxConverterFields.usdAmount) * latestUsdKrw : null;
-  const fxConverterKrwToUsd =
-    latestUsdKrw !== null ? parseNumber(fxConverterFields.krwAmount) / latestUsdKrw : null;
 
   const averageDown = calculateAverageDown({
     currentAveragePrice: parseNumber(averageDownFields.currentAveragePrice),
@@ -945,24 +878,14 @@ export function StockQuantCalculator({
     targetNetReturnPct: parseNumber(targetExitFields.targetNetReturnPct),
     sellFeePct: parseNumber(targetExitFields.sellFeePct),
     taxRatePct: parseNumber(targetExitFields.taxRatePct),
-    buyFxRate: parseNumber(targetExitFields.buyFxRate),
-    sellFxRate: parseNumber(targetExitFields.sellFxRate),
+    buyFxRate: calculationFxRate,
+    sellFxRate: calculationFxRate,
   });
 
   const stopPosition = calculateStopPositionSizing({
     allowedLossAmount: parseNumber(stopFields.allowedLossAmount),
     entryPrice: parseNumber(stopFields.entryPrice),
     stopPrice: parseNumber(stopFields.stopPrice),
-  });
-
-  const fxBreakdown = calculateFxReturnBreakdown({
-    buyPrice: parseNumber(fxFields.buyPrice),
-    currentPrice: parseNumber(fxFields.currentPrice),
-    quantity: parseNumber(fxFields.quantity),
-    buyFxRate: parseNumber(fxFields.buyFxRate),
-    currentFxRate: parseNumber(fxFields.currentFxRate),
-    dividendPerShare: parseNumber(fxFields.dividendPerShare),
-    dividendTaxPct: parseNumber(fxFields.dividendTaxPct),
   });
 
   const returnOriginalPrice = parseNumber(returnFields.originalPrice);
@@ -1010,6 +933,14 @@ export function StockQuantCalculator({
         : opportunityGap < 0
           ? "주식 1 우위"
           : "동일";
+  const returnCurrentValueKrw =
+    currencyMode === "usd" && returnCurrentValue !== null && effectiveUsdKrw !== null
+      ? returnCurrentValue * effectiveUsdKrw
+      : null;
+  const opportunityGapKrw =
+    currencyMode === "usd" && opportunityGapAbs !== null && effectiveUsdKrw !== null
+      ? opportunityGapAbs * effectiveUsdKrw
+      : null;
 
   const dividendIncome = calculateDividendIncome({
     investmentAmount: parseNumber(dividendFields.investmentAmount),
@@ -1073,34 +1004,66 @@ export function StockQuantCalculator({
         )}`
       : "포트폴리오 총액을 넣으면 비중 변화도 같이 계산됩니다.";
 
-  const fxDominantLabel =
-    fxBreakdown && Math.abs(fxBreakdown.fxEffectKrw) > Math.abs(fxBreakdown.stockEffectKrw)
-      ? "환율 효과가 주가 효과보다 크게 반영됐습니다."
-      : "주가 효과가 환율 효과보다 크게 반영됐습니다.";
-
   const reverseDcfMessage = reverseDcf
     ? `현재가는 5년 FCF 연평균 ${formatSignedPercent(reverseDcf.impliedGrowthRatePct)} 시나리오에 가깝습니다.`
     : "입력값 조합상 Reverse DCF를 계산할 수 없습니다.";
 
   const activeResults: MetricItem[] = (() => {
     switch (activeTool) {
-      case "converter":
+      case "return":
         return [
           {
-            label: "달러 → 원화",
-            value:
-              latestUsdKrw !== null && Number.isFinite(fxConverterUsdToKrw ?? Number.NaN)
-                ? formatWon(fxConverterUsdToKrw, 0)
-                : "-",
+            label: "현재 환산금액",
+            value: formatCompactCurrency(returnCurrentValue, currencyMode),
             tone: "accent",
           },
           {
-            label: "원화 → 달러",
-            value:
-              latestUsdKrw !== null && Number.isFinite(fxConverterKrwToUsd ?? Number.NaN)
-                ? `${formatNumber(fxConverterKrwToUsd, 2)} USD`
-                : "-",
-            tone: "positive",
+            label: "손익",
+            value: formatCompactCurrency(returnProfit, currencyMode),
+            tone: getToneFromSignedValue(returnProfit),
+          },
+          {
+            label: "수익률",
+            value: formatSignedPercent(returnPct),
+            tone: getToneFromSignedValue(returnPct),
+          },
+          {
+            label: currencyMode === "usd" ? "원화 환산" : "살 수 있었던 수량",
+            value: currencyMode === "usd" ? formatCompactWon(returnCurrentValueKrw) : formatShares(returnShares),
+            tone: "default",
+          },
+        ];
+      case "opportunity":
+        return [
+          {
+            label: "기회비용 차이",
+            value: formatCompactCurrency(opportunityGapAbs, currencyMode),
+            tone: "accent",
+          },
+          {
+            label: "비교 우위",
+            value: opportunityWinnerLabel,
+            tone: "default",
+          },
+          {
+            label: "주식 1 현재가치",
+            value: formatCompactCurrency(stockOneScenario?.currentValue, currencyMode),
+            tone: getToneFromSignedValue(stockOneScenario?.profit),
+          },
+          {
+            label: "주식 2 현재가치",
+            value: formatCompactCurrency(stockTwoScenario?.currentValue, currencyMode),
+            tone: getToneFromSignedValue(stockTwoScenario?.profit),
+          },
+          {
+            label: currencyMode === "usd" ? "차이 원화환산" : "주식 1 수익률",
+            value: currencyMode === "usd" ? formatCompactWon(opportunityGapKrw) : formatSignedPercent(stockOneScenario?.returnPct),
+            tone: currencyMode === "usd" ? "default" : getToneFromSignedValue(stockOneScenario?.returnPct),
+          },
+          {
+            label: "주식 2 수익률",
+            value: formatSignedPercent(stockTwoScenario?.returnPct),
+            tone: getToneFromSignedValue(stockTwoScenario?.returnPct),
           },
         ];
       case "recovery":
@@ -1119,7 +1082,7 @@ export function StockQuantCalculator({
         ];
       case "average":
         return [
-          { label: "새 평단", value: formatWon(averageDown?.newAveragePrice), tone: "accent" },
+          { label: "새 평단", value: formatCurrency(averageDown?.newAveragePrice, currencyMode), tone: "accent" },
           { label: "총 보유 수량", value: formatShares(averageDown?.totalQuantity), tone: "default" },
           {
             label: "본전까지",
@@ -1128,7 +1091,7 @@ export function StockQuantCalculator({
           },
           {
             label: "추가 하락 손실",
-            value: formatCompactWon(averageDown?.incrementalLossAtShock),
+            value: formatCompactCurrency(averageDown?.incrementalLossAtShock, currencyMode),
             tone: "negative",
           },
         ];
@@ -1136,83 +1099,20 @@ export function StockQuantCalculator({
         return [
           {
             label: "목표 매도가",
-            value: targetExit ? formatNumber(targetExit.targetPricePerShare, 2) : "-",
+            value: targetExit ? formatCurrency(targetExit.targetPricePerShare, currencyMode, 2) : "-",
             tone: "accent",
           },
           { label: "원화 환산", value: formatWon(targetExit?.targetPriceInKrw), tone: "default" },
           { label: "예상 순이익", value: formatCompactWon(targetExit?.netProfit), tone: "positive" },
           { label: "세후 수익률", value: formatSignedPercent(targetExit?.netReturnPct), tone: "positive" },
         ];
-      case "fx":
-        return [
-          { label: "총 수익률", value: formatSignedPercent(fxBreakdown?.totalReturnPct), tone: "positive" },
-          { label: "주가 효과", value: formatCompactWon(fxBreakdown?.stockEffectKrw), tone: "accent" },
-          { label: "환율 효과", value: formatCompactWon(fxBreakdown?.fxEffectKrw), tone: getToneFromSignedValue(fxBreakdown?.fxEffectKrw) },
-          { label: "배당 효과", value: formatCompactWon(fxBreakdown?.dividendEffectKrw), tone: "default" },
-        ];
-      case "return":
-        return [
-          {
-            label: "현재 환산금액",
-            value: formatCompactWon(returnCurrentValue),
-            tone: "accent",
-          },
-          {
-            label: "손익",
-            value: formatCompactWon(returnProfit),
-            tone: getToneFromSignedValue(returnProfit),
-          },
-          {
-            label: "수익률",
-            value: formatSignedPercent(returnPct),
-            tone: getToneFromSignedValue(returnPct),
-          },
-          {
-            label: "살 수 있었던 수량",
-            value: formatShares(returnShares),
-            tone: "default",
-          },
-        ];
-      case "opportunity":
-        return [
-          {
-            label: "기회비용 차이",
-            value: formatCompactWon(opportunityGapAbs),
-            tone: "accent",
-          },
-          {
-            label: "비교 우위",
-            value: opportunityWinnerLabel,
-            tone: "default",
-          },
-          {
-            label: "주식 1 현재가치",
-            value: formatCompactWon(stockOneScenario?.currentValue),
-            tone: getToneFromSignedValue(stockOneScenario?.profit),
-          },
-          {
-            label: "주식 2 현재가치",
-            value: formatCompactWon(stockTwoScenario?.currentValue),
-            tone: getToneFromSignedValue(stockTwoScenario?.profit),
-          },
-          {
-            label: "주식 1 수익률",
-            value: formatSignedPercent(stockOneScenario?.returnPct),
-            tone: getToneFromSignedValue(stockOneScenario?.returnPct),
-          },
-          {
-            label: "주식 2 수익률",
-            value: formatSignedPercent(stockTwoScenario?.returnPct),
-            tone: getToneFromSignedValue(stockTwoScenario?.returnPct),
-          },
-        ];
       case "dividend":
         return [
-          { label: "월 세후 배당", value: formatCompactWon(dividendIncome?.netMonthlyDividend), tone: "positive" },
-          { label: "연 세후 배당", value: formatCompactWon(dividendIncome?.netAnnualDividend), tone: "accent" },
+          { label: "월 세후 배당", value: formatCompactCurrency(dividendIncome?.netMonthlyDividend, currencyMode), tone: "positive" },
+          { label: "연 세후 배당", value: formatCompactCurrency(dividendIncome?.netAnnualDividend, currencyMode), tone: "accent" },
           {
             label: "목표 필요 투자금",
-            value: formatCompactWon(dividendIncome?.requiredCapitalForTargetMonthlyNet),
+            value: formatCompactCurrency(dividendIncome?.requiredCapitalForTargetMonthlyNet, currencyMode),
             tone: "default",
           },
         ];
@@ -1263,8 +1163,8 @@ export function StockQuantCalculator({
         return [
           { label: "정수 기준 수량", value: formatShares(stopPosition?.recommendedWholeShares, 0), tone: "accent" },
           { label: "이론상 수량", value: formatShares(stopPosition?.maxQuantity), tone: "default" },
-          { label: "투입 가능 금액", value: formatCompactWon(stopPosition?.capitalRequired), tone: "default" },
-          { label: "주당 손실", value: formatWon(stopPosition?.lossPerShare), tone: "negative" },
+          { label: "투입 가능 금액", value: formatCompactCurrency(stopPosition?.capitalRequired, currencyMode), tone: "default" },
+          { label: "주당 손실", value: formatCurrency(stopPosition?.lossPerShare, currencyMode), tone: "negative" },
         ];
       default:
         return [];
@@ -1326,46 +1226,6 @@ export function StockQuantCalculator({
     activeController.setValue(nextValue);
   }
 
-  function applyLatestFxToTargetExitSell() {
-    if (!latestUsdKrwText) {
-      return;
-    }
-
-    setTargetExitFields((prev) => ({ ...prev, sellFxRate: latestUsdKrwText }));
-  }
-
-  function applyLatestFxToTargetExitBoth() {
-    if (!latestUsdKrwText) {
-      return;
-    }
-
-    setTargetExitFields((prev) => ({
-      ...prev,
-      buyFxRate: latestUsdKrwText,
-      sellFxRate: latestUsdKrwText,
-    }));
-  }
-
-  function applyLatestFxToBreakdownCurrent() {
-    if (!latestUsdKrwText) {
-      return;
-    }
-
-    setFxFields((prev) => ({ ...prev, currentFxRate: latestUsdKrwText }));
-  }
-
-  function applyLatestFxToBreakdownBoth() {
-    if (!latestUsdKrwText) {
-      return;
-    }
-
-    setFxFields((prev) => ({
-      ...prev,
-      buyFxRate: latestUsdKrwText,
-      currentFxRate: latestUsdKrwText,
-    }));
-  }
-
   function appendActiveSummaryToMemo() {
     const stamp = new Intl.DateTimeFormat("ko-KR", {
       month: "2-digit",
@@ -1400,24 +1260,6 @@ export function StockQuantCalculator({
 
   function renderActiveTool() {
     switch (activeTool) {
-      case "converter":
-        return (
-          <>
-            <div className="quantFxToolbar">
-              <div className="quantFxChip">
-                <strong>{latestUsdKrwLabel}</strong>
-                <span>{latestUsdKrwMeta}</span>
-              </div>
-            </div>
-            <div className="quantFormAndResults">
-              <div className="quantFieldGrid">
-                {renderField("fxConverter.usdAmount")}
-                {renderField("fxConverter.krwAmount")}
-              </div>
-              <ResultGrid items={activeResults} />
-            </div>
-          </>
-        );
       case "recovery":
         return (
           <>
@@ -1468,20 +1310,6 @@ export function StockQuantCalculator({
       case "target":
         return (
           <>
-            <div className="quantFxToolbar">
-              <div className="quantFxChip">
-                <strong>{latestUsdKrwLabel}</strong>
-                <span>해외주식 계산 환율에 바로 적용할 수 있습니다.</span>
-              </div>
-              <div className="quantActionRow">
-                <button type="button" className="quantActionButton" onClick={applyLatestFxToTargetExitSell}>
-                  매도 환율
-                </button>
-                <button type="button" className="quantActionButton" onClick={applyLatestFxToTargetExitBoth}>
-                  둘 다
-                </button>
-              </div>
-            </div>
             <div className="quantFormAndResults">
               <div className="quantFieldGrid">
                 {renderField("target.averagePrice")}
@@ -1489,44 +1317,13 @@ export function StockQuantCalculator({
                 {renderField("target.targetNetReturnPct")}
                 {renderField("target.sellFeePct")}
                 {renderField("target.taxRatePct")}
-                {renderField("target.buyFxRate")}
-                {renderField("target.sellFxRate")}
               </div>
               <ResultGrid items={activeResults} />
             </div>
-            <Formula>목표 매도가 = 목표 총매각대금 / (보유 수량 × 매도 환율)</Formula>
-          </>
-        );
-      case "fx":
-        return (
-          <>
-            <div className="quantFxToolbar">
-              <div className="quantFxChip">
-                <strong>{latestUsdKrwLabel}</strong>
-                <span>현재 환율 기준 손익 분해</span>
-              </div>
-              <div className="quantActionRow">
-                <button type="button" className="quantActionButton" onClick={applyLatestFxToBreakdownCurrent}>
-                  현재 환율
-                </button>
-                <button type="button" className="quantActionButton" onClick={applyLatestFxToBreakdownBoth}>
-                  둘 다
-                </button>
-              </div>
-            </div>
-            <div className="quantFormAndResults">
-              <div className="quantFieldGrid">
-                {renderField("fx.buyPrice")}
-                {renderField("fx.currentPrice")}
-                {renderField("fx.quantity")}
-                {renderField("fx.buyFxRate")}
-                {renderField("fx.currentFxRate")}
-                {renderField("fx.dividendPerShare")}
-                {renderField("fx.dividendTaxPct")}
-              </div>
-              <ResultGrid items={activeResults} />
-          </div>
-            <p className="quantInsight">{fxDominantLabel}</p>
+            <p className="quantInsight">
+              달러 기준으로 계산할 때는 상단 환율 설정의 기준가가 원화 환산과 순이익 계산에 적용됩니다.
+            </p>
+            <Formula>목표 매도가 = 목표 총매각대금 / 보유 수량</Formula>
           </>
         );
       case "return":
@@ -1698,11 +1495,60 @@ export function StockQuantCalculator({
         <div className="quantTitleBlock">
           <span className="quantHeroEyebrow">Stock Calculator</span>
           <h1>주식용 계산기</h1>
-          <p>평단, 본전, 환율, 배당, 재무지표를 한 곳에서 계산합니다.</p>
+          <p>수익률과 기회비용을 먼저 보고, 필요한 계산만 이어서 확인합니다.</p>
         </div>
-        <div className="quantLiveBar">
-          <strong>{latestUsdKrwLabel}</strong>
-          <span>{latestUsdKrwMeta}</span>
+        <div className="quantCurrencyPanel" aria-label="계산 통화 및 환율">
+          <div className="quantCurrencyGroup">
+            <span>계산 통화</span>
+            <div className="quantPillToggle">
+              <button
+                type="button"
+                className={currencyMode === "krw" ? "isActive" : ""}
+                onClick={() => setCurrencyMode("krw")}
+              >
+                원화
+              </button>
+              <button
+                type="button"
+                className={currencyMode === "usd" ? "isActive" : ""}
+                onClick={() => setCurrencyMode("usd")}
+              >
+                달러
+              </button>
+            </div>
+          </div>
+          <div className="quantCurrencyGroup">
+            <span>환율 기준</span>
+            <div className="quantPillToggle">
+              <button
+                type="button"
+                className={fxRateMode === "latest" ? "isActive" : ""}
+                onClick={() => setFxRateMode("latest")}
+                disabled={currencyMode !== "usd"}
+              >
+                당일 기준가
+              </button>
+              <button
+                type="button"
+                className={fxRateMode === "manual" ? "isActive" : ""}
+                onClick={() => setFxRateMode("manual")}
+                disabled={currencyMode !== "usd"}
+              >
+                직접 입력
+              </button>
+            </div>
+          </div>
+          <label className="quantManualFxInput">
+            <span>USD/KRW</span>
+            <input
+              value={manualFxRate}
+              onChange={(event) => setManualFxRate(event.target.value)}
+              inputMode="decimal"
+              disabled={currencyMode !== "usd" || fxRateMode !== "manual"}
+            />
+          </label>
+          <small>{fxRateSummary}</small>
+          <small>{latestUsdKrwMeta}</small>
         </div>
       </section>
 
