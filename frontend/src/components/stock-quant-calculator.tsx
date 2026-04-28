@@ -2,7 +2,11 @@
 
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
-import { calculateAverageDown, calculateTargetExit } from "@/lib/stock-quant-calculator";
+import {
+  calculateAverageDown,
+  calculateLossRecovery,
+  calculateTargetExit,
+} from "@/lib/stock-quant-calculator";
 
 type StockQuantCalculatorProps = {
   latestUsdKrw?: number | null;
@@ -10,7 +14,7 @@ type StockQuantCalculatorProps = {
   latestUsdKrwChangePct?: number | null;
 };
 
-type ToolId = "return" | "opportunity" | "average" | "target" | "dividend";
+type ToolId = "return" | "opportunity" | "recovery" | "average" | "target" | "dividend";
 type CurrencyMode = "krw" | "usd";
 type FxRateMode = "latest" | "manual";
 type FieldState = Record<string, string>;
@@ -56,6 +60,13 @@ const TOOL_OPTIONS: Array<{
       "opportunity.stockTwoOriginalPrice",
       "opportunity.stockTwoCurrentPrice",
     ],
+  },
+  {
+    id: "recovery",
+    label: "본전 계산기",
+    keyLabel: "BE",
+    description: "손실률 기준 본전까지 필요한 상승률",
+    fieldKeys: ["recovery.lossRate"],
   },
   {
     id: "average",
@@ -349,6 +360,7 @@ export function StockQuantCalculator({
   const [fxRateMode, setFxRateMode] = useState<FxRateMode>("latest");
   const [manualFxRate, setManualFxRate] = useState(latestUsdKrwText || "1470");
   const [averageDownMode, setAverageDownMode] = useState<"quantity" | "amount">("quantity");
+  const [lossRate, setLossRate] = useState("30");
   const [returnFields, setReturnFields] = useState({
     originalPrice: "65000",
     currentPrice: "91000",
@@ -464,6 +476,12 @@ export function StockQuantCalculator({
       value: opportunityFields.stockTwoCurrentPrice,
       suffix: currencySuffix,
       setValue: (value) => setFieldValue(setOpportunityFields, "stockTwoCurrentPrice", value),
+    },
+    "recovery.lossRate": {
+      label: "손실률",
+      value: lossRate,
+      suffix: "%",
+      setValue: setLossRate,
     },
     "average.currentAveragePrice": {
       label: "현재 평단",
@@ -616,6 +634,8 @@ export function StockQuantCalculator({
       ? opportunityGapAbs * effectiveUsdKrw
       : null;
 
+  const lossRecovery = calculateLossRecovery(parseNumber(lossRate));
+
   const averageDown = calculateAverageDown({
     currentAveragePrice: parseNumber(averageDownFields.currentAveragePrice),
     currentQuantity: parseNumber(averageDownFields.currentQuantity),
@@ -712,6 +732,25 @@ export function StockQuantCalculator({
             label: "주식 2 수익률",
             value: formatSignedPercent(stockTwoScenario?.returnPct),
             tone: getToneFromSignedValue(stockTwoScenario?.returnPct),
+          },
+        ];
+      case "recovery":
+        return [
+          {
+            label: "본전 필요 상승률",
+            value: lossRecovery ? formatSignedPercent(lossRecovery.neededGainRatePct) : "-",
+            tone: "accent",
+            note: "남은 가격 기준",
+          },
+          {
+            label: "남은 자본",
+            value: lossRecovery ? formatPercent(lossRecovery.remainingCapitalPct, 0) : "-",
+            tone: "default",
+          },
+          {
+            label: "입력 손실률",
+            value: lossRecovery ? formatPercent(lossRecovery.lossRatePct, 1) : "-",
+            tone: "negative",
           },
         ];
       case "average":
@@ -927,6 +966,19 @@ export function StockQuantCalculator({
             <Formula>각 종목 현재가치 = 예산 / 원래 가격 × 현재 가격</Formula>
           </>
         );
+      case "recovery":
+        return (
+          <>
+            <div className="quantFormAndResults">
+              <div className="quantFieldGrid quantFieldGridSingle">{renderField("recovery.lossRate")}</div>
+              <ResultGrid items={activeResults} />
+            </div>
+            <p className="quantInsight">
+              하락한 가격을 기준으로 다시 올라야 하기 때문에, 손실률보다 본전까지 필요한 상승률이 더 커집니다.
+            </p>
+            <Formula>본전 필요 상승률 = 1 / (1 - 손실률) - 1</Formula>
+          </>
+        );
       case "average":
         return (
           <>
@@ -1018,7 +1070,7 @@ export function StockQuantCalculator({
         <div className="quantTitleBlock">
           <span className="quantHeroEyebrow">Stock Calculator</span>
           <h1>주식용 계산기</h1>
-          <p>수익률, 기회비용, 물타기, 목표가, 배당 재투자를 계산합니다.</p>
+          <p>수익률, 기회비용, 본전, 물타기, 목표가, 배당 재투자를 계산합니다.</p>
         </div>
         <div className="quantCurrencyPanel" aria-label="계산 통화 및 환율">
           <div className="quantCurrencyGroup">
