@@ -1306,37 +1306,37 @@ export function StockQuantCalculator({
       </section>
 
       <section className="quantCalculatorShell">
-        <aside className="quantCalculatorDock quantBasicCalculator" aria-label="일반 계산기">
-          <div className="quantCalcDisplay quantBasicDisplay">
-            <span>일반 계산기</span>
-            <strong>{basicHistory}</strong>
-            <output aria-live="polite">{basicDisplay}</output>
-          </div>
+        <aside className="quantSideRail" aria-label="일반 계산기와 계산 메모">
+          <section className="quantCalculatorDock quantBasicCalculator" aria-label="일반 계산기">
+            <div className="quantCalcDisplay quantBasicDisplay">
+              <span>일반 계산기</span>
+              <strong>{basicHistory}</strong>
+              <output aria-live="polite">{basicDisplay}</output>
+            </div>
 
-          <div className="quantBasicActionRow">
-            <button type="button" className="quantBasicActionButton" onClick={appendBasicResultToMemo}>
-              메모 추가
-            </button>
-            <button type="button" className="quantBasicActionButton" onClick={resetBasicCalculator}>
-              초기화
-            </button>
-          </div>
-
-          <div className="quantKeypad quantBasicKeypad">
-            {BASIC_CALCULATOR_ROWS.flat().map((key) => (
-              <button
-                key={key}
-                type="button"
-                className={`quantKeyButton quantBasicKeyButton ${getBasicKeyClass(key)}`}
-                onClick={() => handleBasicCalculatorKey(key)}
-              >
-                {key}
+            <div className="quantBasicActionRow">
+              <button type="button" className="quantBasicActionButton" onClick={appendBasicResultToMemo}>
+                메모 추가
               </button>
-            ))}
-          </div>
-        </aside>
+              <button type="button" className="quantBasicActionButton" onClick={resetBasicCalculator}>
+                초기화
+              </button>
+            </div>
 
-        <section className="quantMiddleStack" aria-label="계산 메모">
+            <div className="quantKeypad quantBasicKeypad">
+              {BASIC_CALCULATOR_ROWS.flat().map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`quantKeyButton quantBasicKeyButton ${getBasicKeyClass(key)}`}
+                  onClick={() => handleBasicCalculatorKey(key)}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+          </section>
+
           <section className="card quantMemoCard quantMemoCardInline">
             <div className="quantMemoHeader">
               <div>
@@ -1354,7 +1354,7 @@ export function StockQuantCalculator({
               placeholder="계산값, 매수 조건, 환율 가정, 리밸런싱 메모를 적어두세요."
             />
           </section>
-        </section>
+        </aside>
 
         <section className="quantWorkSurface">
           <div className="quantModeBar" aria-label="계산 모드">
@@ -1371,27 +1371,6 @@ export function StockQuantCalculator({
             ))}
           </div>
 
-          <aside className="quantResultPanel" aria-label="핵심 결과">
-            <div className="quantResultDisplay">
-              <span>결과</span>
-              <strong>{activeResults[0]?.value ?? "-"}</strong>
-              <small>{activeResults[0]?.label ?? activeToolInfo.label}</small>
-              {activeResults[0]?.note ? <em>{activeResults[0].note}</em> : null}
-            </div>
-            <div className="quantResultList">
-              {activeResults.slice(1).map((item) => (
-                <div key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                  {item.note ? <em>{item.note}</em> : null}
-                </div>
-              ))}
-            </div>
-            <button type="button" className="quantMemoAppendButton" onClick={appendActiveSummaryToMemo}>
-              결과 메모
-            </button>
-          </aside>
-
           <article className="quantWorkCard">
             <div className="quantWorkHeader">
               <div>
@@ -1401,6 +1380,15 @@ export function StockQuantCalculator({
               <p>{activeToolInfo.description}</p>
             </div>
             {renderActiveTool()}
+            <div className="quantWorkFooter">
+              <div>
+                <span>메모 요약</span>
+                <strong>{activeSummary}</strong>
+              </div>
+              <button type="button" className="quantMemoAppendButton" onClick={appendActiveSummaryToMemo}>
+                결과 메모에 추가
+              </button>
+            </div>
           </article>
         </section>
       </section>
