@@ -4,9 +4,9 @@ import { StockQuantCalculator } from "@/components/stock-quant-calculator";
 import { getDataFreshness, getIndicatorData } from "@/lib/data";
 import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
-const PAGE_TITLE = "주식용 퀀트 계산기";
+const PAGE_TITLE = "주식용 계산기";
 const PAGE_DESCRIPTION =
-  "본전 계산, 평단 시뮬레이션, 환율 분해, 배당 월급, PER 역산, DCF와 Reverse DCF를 한 번에 계산하는 별도 툴입니다.";
+  "본전 계산, 평단 시뮬레이션, 환율 분해, 배당 월급, PER 역산, DCF와 Reverse DCF를 한 번에 계산하는 주식 계산기입니다.";
 
 export const metadata: Metadata = {
   title: PAGE_TITLE,
