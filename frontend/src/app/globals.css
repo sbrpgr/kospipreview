@@ -2073,15 +2073,18 @@ p {
 }
 
 .quantModeBar {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
 }
 
 .quantModeBar button {
   display: grid;
+  flex: 0 0 112px;
   gap: 4px;
-  min-height: 58px;
+  min-height: 54px;
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid rgba(17, 24, 39, 0.1);
@@ -2153,13 +2156,17 @@ p {
 
 .quantFormAndResults {
   display: grid;
-  grid-template-columns: minmax(260px, 0.95fr) minmax(260px, 1fr);
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 12px;
   align-items: start;
 }
 
 .quantCalculatorPage .quantFieldGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.quantWorkCard .quantFormAndResults > .quantMetricGrid {
+  display: none;
 }
 
 .quantCalculatorPage .quantField {
@@ -2187,7 +2194,7 @@ p {
 
 .quantResultPanel {
   display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.8fr) auto;
+  grid-template-columns: minmax(210px, 0.78fr) minmax(0, 2fr) auto;
   gap: 12px;
   align-items: stretch;
   padding: 12px;
@@ -2228,7 +2235,7 @@ p {
   display: grid;
   gap: 6px;
   align-content: center;
-  min-height: 74px;
+  min-height: 64px;
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -2251,7 +2258,7 @@ p {
 
 .quantMemoAppendButton {
   min-width: 92px;
-  min-height: 74px;
+  min-height: 64px;
   border: 0;
   border-radius: 8px;
   background: #111827;
@@ -2319,15 +2326,15 @@ p {
     grid-template-columns: 270px minmax(0, 1fr);
   }
 
-  .quantModeBar {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .quantResultPanel {
     grid-template-columns: 1fr;
   }
 
   .quantResultList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quantCalculatorPage .quantFieldGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2415,10 +2422,6 @@ p {
   .quantCalculatorShell,
   .quantFormAndResults {
     grid-template-columns: 1fr;
-  }
-
-  .quantModeBar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .quantResultList {
