@@ -3151,3 +3151,198 @@ p {
     min-height: 220px;
   }
 }
+
+.quantCalculatorPage .quantCalculatorShell {
+  grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.quantSideRail {
+  display: grid;
+  gap: 14px;
+  align-self: start;
+  position: sticky;
+  top: 82px;
+}
+
+.quantSideRail .quantBasicCalculator {
+  position: static;
+}
+
+.quantSideRail .quantMemoCardInline {
+  min-height: 0;
+}
+
+.quantSideRail .quantMemoCardInline .quantMemoTextarea {
+  min-height: 190px;
+  height: auto;
+}
+
+.quantCalculatorPage .quantWorkSurface {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.quantCalculatorPage .quantModeBar {
+  grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.quantCalculatorPage .quantModeBar button {
+  min-height: 54px;
+  border-color: transparent;
+  background: transparent;
+  text-align: center;
+}
+
+.quantCalculatorPage .quantModeBar button.isActive {
+  border-color: rgba(49, 130, 246, 0.28);
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.quantCalculatorPage .quantWorkCard {
+  padding: 20px;
+  gap: 18px;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.quantCalculatorPage .quantWorkHeader {
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.quantCalculatorPage .quantFormAndResults {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.quantCalculatorPage .quantFieldGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.quantCalculatorPage .quantFieldGridSingle {
+  grid-template-columns: minmax(0, 360px);
+}
+
+.quantCalculatorPage .quantField {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+}
+
+.quantCalculatorPage .quantWorkCard .quantFormAndResults > .quantMetricGrid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.quantCalculatorPage .quantMetricGrid .quantMetric:first-child {
+  border-color: #0f172a;
+  background: #0f172a;
+}
+
+.quantCalculatorPage .quantMetricGrid .quantMetric:first-child .quantMetricLabel,
+.quantCalculatorPage .quantMetricGrid .quantMetric:first-child .quantMetricNote {
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.quantCalculatorPage .quantMetricGrid .quantMetric:first-child .quantMetricValue {
+  color: #dbeafe;
+}
+
+.quantWorkFooter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.quantWorkFooter div {
+  display: grid;
+  gap: 4px;
+}
+
+.quantWorkFooter span {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.quantWorkFooter strong {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.quantWorkFooter .quantMemoAppendButton {
+  width: auto;
+  min-width: 132px;
+  min-height: 42px;
+  padding: 8px 14px;
+}
+
+.quantOpportunityLayout {
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.quantOpportunityLayout .quantField {
+  background: #ffffff;
+}
+
+.quantOpportunityPair {
+  grid-template-columns: 74px repeat(2, minmax(0, 1fr));
+  background: #ffffff;
+}
+
+@media (max-width: 1180px) {
+  .quantCalculatorPage .quantCalculatorShell {
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  }
+
+  .quantSideRail {
+    position: static;
+  }
+
+  .quantCalculatorPage .quantWorkSurface {
+    grid-column: auto;
+  }
+
+  .quantCalculatorPage .quantFieldGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .quantCalculatorPage .quantCalculatorShell,
+  .quantCalculatorPage .quantFieldGrid,
+  .quantCalculatorPage .quantWorkCard .quantFormAndResults > .quantMetricGrid,
+  .quantWorkFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .quantWorkFooter .quantMemoAppendButton {
+    width: 100%;
+  }
+
+  .quantOpportunityPair {
+    grid-template-columns: 1fr;
+  }
+}
