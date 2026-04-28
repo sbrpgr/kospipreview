@@ -17,6 +17,7 @@ type StockQuantCalculatorProps = {
 type ToolId = "return" | "opportunity" | "recovery" | "average" | "target" | "dividend";
 type CurrencyMode = "krw" | "usd";
 type FxRateMode = "latest" | "manual";
+type BasicOperator = "+" | "-" | "×" | "÷";
 type FieldState = Record<string, string>;
 type ResultTone = "default" | "positive" | "negative" | "accent";
 
@@ -114,16 +115,60 @@ const TOOL_DEFAULT_FIELD = TOOL_OPTIONS.reduce<Record<ToolId, string>>((acc, too
   return acc;
 }, {} as Record<ToolId, string>);
 
-const KEY_ROWS = [
-  ["7", "8", "9", "back"],
-  ["4", "5", "6", "clear"],
-  ["1", "2", "3", "sign"],
-  ["0", "00", ".", "next"],
+const BASIC_CALCULATOR_ROWS = [
+  ["AC", "±", "%", "÷"],
+  ["7", "8", "9", "×"],
+  ["4", "5", "6", "-"],
+  ["1", "2", "3", "+"],
+  ["0", ".", "⌫", "="],
 ] as const;
+
+type BasicCalculatorKey = (typeof BASIC_CALCULATOR_ROWS)[number][number];
 
 function parseNumber(value: string) {
   const normalized = value.replace(/,/g, "").trim();
   return normalized ? Number(normalized) : Number.NaN;
+}
+
+function formatBasicNumber(value: number) {
+  if (!Number.isFinite(value)) {
+    return "오류";
+  }
+
+  const rounded = Math.round((value + Number.EPSILON) * 10_000_000_000) / 10_000_000_000;
+  return String(rounded);
+}
+
+function calculateBasicResult(left: number, operator: BasicOperator, right: number) {
+  switch (operator) {
+    case "+":
+      return left + right;
+    case "-":
+      return left - right;
+    case "×":
+      return left * right;
+    case "÷":
+      return right === 0 ? null : left / right;
+    default:
+      return null;
+  }
+}
+
+function isBasicOperatorKey(key: BasicCalculatorKey): key is BasicOperator {
+  return key === "+" || key === "-" || key === "×" || key === "÷";
+}
+
+function getBasicKeyClass(key: BasicCalculatorKey) {
+  if (isBasicOperatorKey(key)) {
+    return "isOperator";
+  }
+  if (key === "=") {
+    return "isEquals";
+  }
+  if (key === "AC" || key === "±" || key === "%" || key === "⌫") {
+    return "isUtility";
+  }
+  return "isNumber";
 }
 
 function isFiniteNumber(value: number | null | undefined): value is number {
@@ -364,6 +409,11 @@ export function StockQuantCalculator({
   const [activeTool, setActiveTool] = useState<ToolId>("return");
   const [activeField, setActiveField] = useState<string>(TOOL_DEFAULT_FIELD.return);
   const [memo, setMemo] = useState("");
+  const [basicDisplay, setBasicDisplay] = useState("0");
+  const [basicStoredValue, setBasicStoredValue] = useState<number | null>(null);
+  const [basicOperator, setBasicOperator] = useState<BasicOperator | null>(null);
+  const [basicWaitingForValue, setBasicWaitingForValue] = useState(false);
+  const [basicHistory, setBasicHistory] = useState("일반 계산");
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>("krw");
   const [fxRateMode, setFxRateMode] = useState<FxRateMode>("latest");
   const [manualFxRate, setManualFxRate] = useState(latestUsdKrwText || "1470");
@@ -584,8 +634,6 @@ export function StockQuantCalculator({
   };
 
   const activeToolInfo = TOOL_OPTIONS.find((tool) => tool.id === activeTool) ?? TOOL_OPTIONS[0];
-  const activeController =
-    fieldControllers[activeField] ?? fieldControllers[TOOL_DEFAULT_FIELD[activeTool]];
 
   const returnOriginalPrice = parseNumber(returnFields.originalPrice);
   const returnCurrentPrice = parseNumber(returnFields.currentPrice);
@@ -856,57 +904,177 @@ export function StockQuantCalculator({
           .join(" / ")}`
       : `${activeToolInfo.label}: 계산값 없음`;
 
-  const activeToolFieldControllers = activeToolInfo.fieldKeys
-    .filter((key) => activeTool !== "average" || key !== (averageDownMode === "quantity" ? "average.extraAmount" : "average.extraQuantity"))
-    .map((key) => ({ key, controller: fieldControllers[key] }))
-    .filter((item): item is { key: string; controller: FieldController } => Boolean(item.controller));
+  function resetBasicCalculator() {
+    setBasicDisplay("0");
+    setBasicStoredValue(null);
+    setBasicOperator(null);
+    setBasicWaitingForValue(false);
+    setBasicHistory("일반 계산");
+  }
 
-  function handleKeypadPress(key: (typeof KEY_ROWS)[number][number]) {
-    if (!activeController) {
+  function inputBasicDigit(digit: string) {
+    if (basicWaitingForValue || basicDisplay === "오류") {
+      setBasicDisplay(digit);
+      setBasicWaitingForValue(false);
       return;
     }
 
-    if (key === "clear") {
-      activeController.setValue("");
+    if (basicDisplay === "0") {
+      setBasicDisplay(digit);
       return;
     }
 
-    if (key === "back") {
-      activeController.setValue(activeController.value.slice(0, -1));
+    if (basicDisplay === "-0") {
+      setBasicDisplay(`-${digit}`);
       return;
     }
 
-    if (key === "sign") {
-      activeController.setValue(activeController.value.startsWith("-") ? activeController.value.slice(1) : `-${activeController.value || "0"}`);
+    const nextDisplay = `${basicDisplay}${digit}`;
+    setBasicDisplay(nextDisplay.length > 32 ? nextDisplay.slice(0, 32) : nextDisplay);
+  }
+
+  function commitBasicOperator(nextOperator: BasicOperator) {
+    const inputValue = parseNumber(basicDisplay);
+
+    if (!Number.isFinite(inputValue)) {
+      setBasicDisplay("오류");
+      setBasicStoredValue(null);
+      setBasicOperator(null);
+      setBasicWaitingForValue(true);
+      setBasicHistory("계산 오류");
       return;
     }
 
-    if (key === "next") {
-      const fieldKeys = activeToolFieldControllers.map((item) => item.key);
-      const currentIndex = fieldKeys.indexOf(activeField);
-      const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % fieldKeys.length : 0;
-      setActiveField(fieldKeys[nextIndex]);
+    if (basicStoredValue !== null && basicOperator !== null && !basicWaitingForValue) {
+      const result = calculateBasicResult(basicStoredValue, basicOperator, inputValue);
+
+      if (result === null) {
+        setBasicDisplay("오류");
+        setBasicStoredValue(null);
+        setBasicOperator(null);
+        setBasicWaitingForValue(true);
+        setBasicHistory("나눗셈 오류");
+        return;
+      }
+
+      const formattedResult = formatBasicNumber(result);
+      setBasicStoredValue(result);
+      setBasicDisplay(formattedResult);
+      setBasicHistory(`${formattedResult} ${nextOperator}`);
+    } else {
+      const storedValue = basicStoredValue ?? inputValue;
+      setBasicStoredValue(storedValue);
+      setBasicHistory(`${formatBasicNumber(storedValue)} ${nextOperator}`);
+    }
+
+    setBasicOperator(nextOperator);
+    setBasicWaitingForValue(true);
+  }
+
+  function finishBasicCalculation() {
+    if (basicStoredValue === null || basicOperator === null) {
       return;
     }
 
-    if (key === "." && activeController.value.includes(".")) {
+    const inputValue = parseNumber(basicDisplay);
+    if (!Number.isFinite(inputValue)) {
+      setBasicDisplay("오류");
+      setBasicStoredValue(null);
+      setBasicOperator(null);
+      setBasicWaitingForValue(true);
+      setBasicHistory("계산 오류");
       return;
     }
 
-    const currentValue = activeController.value;
-    const nextValue =
-      key === "."
-        ? currentValue
-          ? `${currentValue}.`
-          : "0."
-        : currentValue === "0"
-          ? key
-          : `${currentValue}${key}`;
-    activeController.setValue(nextValue);
+    const result = calculateBasicResult(basicStoredValue, basicOperator, inputValue);
+    if (result === null) {
+      setBasicDisplay("오류");
+      setBasicStoredValue(null);
+      setBasicOperator(null);
+      setBasicWaitingForValue(true);
+      setBasicHistory("나눗셈 오류");
+      return;
+    }
+
+    setBasicHistory(`${formatBasicNumber(basicStoredValue)} ${basicOperator} ${basicDisplay} =`);
+    setBasicDisplay(formatBasicNumber(result));
+    setBasicStoredValue(null);
+    setBasicOperator(null);
+    setBasicWaitingForValue(true);
+  }
+
+  function handleBasicCalculatorKey(key: BasicCalculatorKey) {
+    if (/^\d$/.test(key)) {
+      inputBasicDigit(key);
+      return;
+    }
+
+    if (isBasicOperatorKey(key)) {
+      commitBasicOperator(key);
+      return;
+    }
+
+    if (key === ".") {
+      if (basicWaitingForValue || basicDisplay === "오류") {
+        setBasicDisplay("0.");
+        setBasicWaitingForValue(false);
+        return;
+      }
+
+      if (!basicDisplay.includes(".")) {
+        setBasicDisplay(`${basicDisplay}.`);
+      }
+      return;
+    }
+
+    if (key === "AC") {
+      resetBasicCalculator();
+      return;
+    }
+
+    if (key === "⌫") {
+      if (basicWaitingForValue || basicDisplay === "오류") {
+        return;
+      }
+
+      if (basicDisplay.length <= 1 || (basicDisplay.startsWith("-") && basicDisplay.length === 2)) {
+        setBasicDisplay("0");
+        return;
+      }
+
+      setBasicDisplay(basicDisplay.slice(0, -1));
+      return;
+    }
+
+    if (key === "±") {
+      if (basicDisplay === "0" || basicDisplay === "오류") {
+        return;
+      }
+      setBasicDisplay(basicDisplay.startsWith("-") ? basicDisplay.slice(1) : `-${basicDisplay}`);
+      return;
+    }
+
+    if (key === "%") {
+      const inputValue = parseNumber(basicDisplay);
+      if (Number.isFinite(inputValue)) {
+        setBasicDisplay(formatBasicNumber(inputValue / 100));
+      }
+      return;
+    }
+
+    if (key === "=") {
+      finishBasicCalculation();
+    }
   }
 
   function appendActiveSummaryToMemo() {
     setMemo((prev) => `${prev.trimEnd()}${prev.trim() ? "\n" : ""}${activeSummary}`);
+  }
+
+  function appendBasicResultToMemo() {
+    const expression =
+      basicHistory === "일반 계산" ? basicDisplay : `${basicHistory} ${basicDisplay}`;
+    setMemo((prev) => `${prev.trimEnd()}${prev.trim() ? "\n" : ""}일반 계산기: ${expression}`);
   }
 
   function renderField(key: string, label?: string, hint?: string) {
@@ -1078,7 +1246,7 @@ export function StockQuantCalculator({
         <div className="quantTitleBlock">
           <span className="quantHeroEyebrow">Stock Calculator</span>
           <h1>주식용 계산기</h1>
-          <p>수익률, 기회비용, 본전, 물타기, 목표가, 배당 재투자를 계산합니다.</p>
+          <p>일반 계산과 수익률, 기회비용, 본전, 물타기, 목표가, 배당 재투자를 계산합니다.</p>
         </div>
         <div className="quantCurrencyPanel" aria-label="계산 통화 및 환율">
           <div className="quantCurrencyGroup">
@@ -1138,42 +1306,55 @@ export function StockQuantCalculator({
       </section>
 
       <section className="quantCalculatorShell">
-        <aside className="quantCalculatorDock" aria-label="숫자 패드">
-          <div className="quantCalcDisplay">
-            <span>입력 중</span>
-            <strong>{activeController?.label ?? "필드 선택"}</strong>
-            <output>
-              {activeController?.value || "0"}
-              {activeController?.suffix ? <small>{activeController.suffix}</small> : null}
-            </output>
+        <aside className="quantCalculatorDock quantBasicCalculator" aria-label="일반 계산기">
+          <div className="quantCalcDisplay quantBasicDisplay">
+            <span>일반 계산기</span>
+            <strong>{basicHistory}</strong>
+            <output aria-live="polite">{basicDisplay}</output>
           </div>
 
-          <div className="quantFieldPicker" aria-label="입력 필드">
-            {activeToolFieldControllers.map(({ key, controller }) => (
+          <div className="quantBasicActionRow">
+            <button type="button" className="quantBasicActionButton" onClick={appendBasicResultToMemo}>
+              메모 추가
+            </button>
+            <button type="button" className="quantBasicActionButton" onClick={resetBasicCalculator}>
+              초기화
+            </button>
+          </div>
+
+          <div className="quantKeypad quantBasicKeypad">
+            {BASIC_CALCULATOR_ROWS.flat().map((key) => (
               <button
                 key={key}
                 type="button"
-                className={activeField === key ? "isActive" : ""}
-                onClick={() => setActiveField(key)}
+                className={`quantKeyButton quantBasicKeyButton ${getBasicKeyClass(key)}`}
+                onClick={() => handleBasicCalculatorKey(key)}
               >
-                {controller.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="quantKeypad">
-            {KEY_ROWS.flat().map((key) => (
-              <button
-                key={key}
-                type="button"
-                className={`quantKeyButton quantKeyButton-${key}`}
-                onClick={() => handleKeypadPress(key)}
-              >
-                {key === "back" ? "⌫" : key === "clear" ? "C" : key === "sign" ? "±" : key === "next" ? "↵" : key}
+                {key}
               </button>
             ))}
           </div>
         </aside>
+
+        <section className="quantMiddleStack" aria-label="계산 메모">
+          <section className="card quantMemoCard quantMemoCardInline">
+            <div className="quantMemoHeader">
+              <div>
+                <span className="quantSectionEyebrow">Memo</span>
+                <h2>계산 메모</h2>
+              </div>
+              <button type="button" className="quantActionButton" onClick={() => setMemo("")}>
+                비우기
+              </button>
+            </div>
+            <textarea
+              className="quantMemoTextarea"
+              value={memo}
+              onChange={(event) => setMemo(event.target.value)}
+              placeholder="계산값, 매수 조건, 환율 가정, 리밸런싱 메모를 적어두세요."
+            />
+          </section>
+        </section>
 
         <section className="quantWorkSurface">
           <div className="quantModeBar" aria-label="계산 모드">
@@ -1222,24 +1403,6 @@ export function StockQuantCalculator({
             {renderActiveTool()}
           </article>
         </section>
-      </section>
-
-      <section className="card quantMemoCard">
-        <div className="quantMemoHeader">
-          <div>
-            <span className="quantSectionEyebrow">Memo</span>
-            <h2>계산 메모</h2>
-          </div>
-          <button type="button" className="quantActionButton" onClick={() => setMemo("")}>
-            비우기
-          </button>
-        </div>
-        <textarea
-          className="quantMemoTextarea"
-          value={memo}
-          onChange={(event) => setMemo(event.target.value)}
-          placeholder="계산값, 매수 조건, 환율 가정, 리밸런싱 메모를 적어두세요."
-        />
       </section>
     </main>
   );
