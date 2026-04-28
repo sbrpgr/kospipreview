@@ -6,7 +6,7 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const PAGE_TITLE = "주식용 계산기";
 const PAGE_DESCRIPTION =
-  "수익률, 기회비용, 본전 계산, 물타기 계산, 목표가, 배당 재투자를 원화 또는 달러 기준으로 계산하는 주식 계산기입니다.";
+  "일반 계산기와 수익률, 기회비용, 본전 계산, 물타기 계산, 목표가, 배당 재투자를 원화 또는 달러 기준으로 계산하는 주식 계산기입니다.";
 
 export const metadata: Metadata = {
   title: PAGE_TITLE,
@@ -58,7 +58,7 @@ export default async function QuantCalculatorPage() {
   const latestUsdKrwUpdatedAt = usdKrwIndicator?.checkedAt || usdKrwIndicator?.updatedAt || null;
 
   return (
-    <div className="pageContainer">
+    <div className="pageContainer quantPageContainer">
       <SiteHeader lastUpdated={updatedAt} status={freshness.status} />
       <StockQuantCalculator
         latestUsdKrw={latestUsdKrw}
