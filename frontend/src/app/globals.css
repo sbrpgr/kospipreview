@@ -3346,3 +3346,553 @@ p {
     grid-template-columns: 1fr;
   }
 }
+
+.quantPageContainer .headerNav a {
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.quantPageContainer .headerNav a.isAccent {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.quantCalculatorPage {
+  --quant-line: #d9e2ee;
+  --quant-line-soft: #e8eef6;
+  --quant-muted: #667085;
+  --quant-panel: #ffffff;
+  --quant-subtle: #f6f8fb;
+  --quant-ink: #111827;
+}
+
+.quantCalculatorPage .quantTopPanel,
+.quantCalculatorPage .quantCalculatorDock,
+.quantCalculatorPage .quantMemoCard,
+.quantCalculatorPage .quantWorkCard {
+  border-color: var(--quant-line-soft);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.quantCalculatorPage .quantTopPanel {
+  padding: 20px;
+  background: #ffffff;
+}
+
+.quantCalculatorPage .quantHeroEyebrow,
+.quantCalculatorPage .quantSectionEyebrow {
+  border-radius: 6px;
+  padding: 4px 7px;
+  border-color: #dbe7ff;
+  background: #f3f7ff;
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.quantCalculatorPage .quantTitleBlock h1 {
+  font-size: clamp(1.55rem, 2.2vw, 1.95rem);
+  font-weight: 850;
+}
+
+.quantCalculatorPage .quantTitleBlock p {
+  max-width: 620px;
+  color: var(--quant-muted);
+  font-size: 0.9rem;
+}
+
+.quantCalculatorPage .quantCurrencyPanel {
+  border-color: var(--quant-line-soft);
+  border-radius: 8px;
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.quantCalculatorPage .quantCurrencyGroup > span,
+.quantCalculatorPage .quantManualFxInput > span,
+.quantCalculatorPage .quantFieldLabel {
+  color: #475467;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.quantCalculatorPage .quantPillToggle {
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--quant-line);
+  border-radius: 8px;
+  background: #eef2f7;
+}
+
+.quantCalculatorPage .quantPillToggle button {
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #667085;
+  font-size: 0.78rem;
+  font-weight: 750;
+  box-shadow: none;
+}
+
+.quantCalculatorPage .quantPillToggle button.isActive {
+  background: #ffffff;
+  color: var(--quant-ink);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.quantCalculatorPage .quantManualFxInput input {
+  min-height: 40px;
+  border-color: var(--quant-line);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--quant-ink);
+  font-size: 0.82rem;
+}
+
+.quantCalculatorPage .quantCurrencyMeta small {
+  color: #667085;
+  font-size: 0.72rem;
+}
+
+.quantCalculatorPage .quantCalculatorShell {
+  grid-template-columns: minmax(278px, 320px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.quantSideRail {
+  gap: 12px;
+}
+
+.quantCalculatorPage .quantCalculatorDock {
+  gap: 12px;
+  padding: 12px;
+  border-color: #1f2937;
+  background: #111827;
+}
+
+.quantCalculatorPage .quantCalcDisplay,
+.quantCalculatorPage .quantBasicDisplay {
+  min-height: 142px;
+  padding: 14px;
+  border-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #0b1020;
+}
+
+.quantCalculatorPage .quantCalcDisplay span,
+.quantCalculatorPage .quantCalcDisplay small {
+  color: rgba(226, 232, 240, 0.62);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.quantCalculatorPage .quantBasicDisplay strong {
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.quantCalculatorPage .quantBasicDisplay output {
+  color: #f8fafc;
+  font-size: clamp(1.65rem, 3vw, 2.25rem);
+  font-weight: 750;
+}
+
+.quantCalculatorPage .quantBasicActionRow {
+  gap: 6px;
+}
+
+.quantCalculatorPage .quantBasicActionButton,
+.quantCalculatorPage .quantActionButton,
+.quantCalculatorPage .quantMemoAppendButton,
+.quantCalculatorPage .quantSegmented button,
+.quantCalculatorPage .quantModeBar button {
+  border-radius: 7px;
+  letter-spacing: 0;
+}
+
+.quantCalculatorPage .quantBasicActionButton {
+  min-height: 36px;
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+  color: #e5e7eb;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.quantCalculatorPage .quantBasicActionButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.quantCalculatorPage .quantBasicKeypad {
+  gap: 7px;
+}
+
+.quantCalculatorPage .quantKeyButton,
+.quantCalculatorPage .quantBasicKeyButton {
+  min-height: 48px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 7px;
+  background: #202938;
+  color: #f8fafc;
+  box-shadow: none;
+  font-size: 1.02rem;
+  font-weight: 760;
+}
+
+.quantCalculatorPage .quantBasicKeyButton:hover {
+  background: #2b3445;
+}
+
+.quantCalculatorPage .quantBasicKeyButton.isUtility {
+  background: #313b4d;
+  color: #dbe3ef;
+}
+
+.quantCalculatorPage .quantBasicKeyButton.isOperator {
+  border-color: rgba(59, 130, 246, 0.42);
+  background: #1d4ed8;
+}
+
+.quantCalculatorPage .quantBasicKeyButton.isEquals {
+  border-color: rgba(20, 184, 166, 0.4);
+  background: #0f766e;
+}
+
+.quantCalculatorPage .quantMemoCard {
+  padding: 14px;
+  background: #ffffff;
+}
+
+.quantCalculatorPage .quantMemoHeader h2 {
+  font-size: 1rem;
+  font-weight: 820;
+}
+
+.quantCalculatorPage .quantActionButton {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-color: var(--quant-line);
+  background: #ffffff;
+  color: #344054;
+  font-size: 0.76rem;
+  font-weight: 760;
+}
+
+.quantCalculatorPage .quantActionButton:hover {
+  border-color: #b8c4d5;
+  background: #f8fafc;
+}
+
+.quantSideRail .quantMemoCardInline .quantMemoTextarea {
+  min-height: 178px;
+}
+
+.quantCalculatorPage .quantMemoTextarea {
+  border-color: var(--quant-line);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--quant-ink);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.quantCalculatorPage .quantWorkSurface {
+  gap: 12px;
+}
+
+.quantCalculatorPage .quantModeBar {
+  gap: 4px;
+  padding: 4px;
+  border-color: var(--quant-line-soft);
+  border-radius: 8px;
+  background: #eef2f7;
+}
+
+.quantCalculatorPage .quantModeBar button {
+  min-height: 48px;
+  padding: 8px 9px;
+  border: 0;
+  background: transparent;
+  color: #667085;
+  font-size: 0.8rem;
+  font-weight: 760;
+  text-align: center;
+  box-shadow: none;
+}
+
+.quantCalculatorPage .quantModeBar button span {
+  color: #98a2b3;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.quantCalculatorPage .quantModeBar button.isActive {
+  background: #ffffff;
+  color: var(--quant-ink);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.quantCalculatorPage .quantModeBar button.isActive span {
+  color: #2563eb;
+}
+
+.quantCalculatorPage .quantWorkCard {
+  padding: 20px;
+  background: #ffffff;
+}
+
+.quantCalculatorPage .quantWorkHeader {
+  gap: 8px;
+  padding-bottom: 14px;
+}
+
+.quantCalculatorPage .quantWorkHeader span {
+  color: #2563eb;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.quantCalculatorPage .quantWorkHeader h2 {
+  font-size: 1.24rem;
+  font-weight: 850;
+}
+
+.quantCalculatorPage .quantWorkHeader p {
+  color: var(--quant-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.quantCalculatorPage .quantFieldGrid,
+.quantCalculatorPage .quantOpportunityLayout {
+  padding: 12px;
+  border-color: var(--quant-line-soft);
+  border-radius: 8px;
+  background: var(--quant-subtle);
+}
+
+.quantCalculatorPage .quantField {
+  gap: 6px;
+  padding: 11px;
+  border-color: var(--quant-line-soft);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.quantCalculatorPage .quantField.isEditing {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.11);
+}
+
+.quantCalculatorPage .quantInput {
+  min-height: 42px;
+  border-color: var(--quant-line);
+  border-radius: 7px;
+  color: var(--quant-ink);
+  font-size: 0.9rem;
+  font-weight: 720;
+}
+
+.quantCalculatorPage .quantInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.quantCalculatorPage .quantInputSuffix {
+  color: #98a2b3;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.quantCalculatorPage .quantMetric {
+  min-height: 96px;
+  gap: 6px;
+  padding: 13px;
+  border-color: var(--quant-line-soft);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.quantCalculatorPage .quantMetric-positive,
+.quantCalculatorPage .quantMetric-negative,
+.quantCalculatorPage .quantMetric-accent {
+  background: #ffffff;
+}
+
+.quantCalculatorPage .quantMetricLabel {
+  color: #667085;
+  font-size: 0.74rem;
+  font-weight: 760;
+}
+
+.quantCalculatorPage .quantMetricValue {
+  color: var(--quant-ink);
+  font-size: clamp(1.02rem, 1.8vw, 1.18rem);
+  font-weight: 820;
+}
+
+.quantCalculatorPage .quantMetric-positive .quantMetricValue {
+  color: #dc2626;
+}
+
+.quantCalculatorPage .quantMetric-negative .quantMetricValue {
+  color: #2563eb;
+}
+
+.quantCalculatorPage .quantMetric-accent .quantMetricValue {
+  color: var(--quant-ink);
+}
+
+.quantCalculatorPage .quantMetricGrid .quantMetric:first-child {
+  border-color: #111827;
+  background: #111827;
+}
+
+.quantCalculatorPage .quantMetricGrid .quantMetric:first-child .quantMetricValue {
+  color: #ffffff;
+}
+
+.quantCalculatorPage .quantMetricGrid .quantMetric:first-child .quantMetricLabel,
+.quantCalculatorPage .quantMetricGrid .quantMetric:first-child .quantMetricNote {
+  color: rgba(255, 255, 255, 0.64);
+}
+
+.quantCalculatorPage .quantMetricNote {
+  color: #667085;
+  font-size: 0.73rem;
+}
+
+.quantCalculatorPage .quantInsight {
+  margin-top: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--quant-line-soft);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #667085;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.quantCalculatorPage .quantFormula {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.quantCalculatorPage .quantFormula summary {
+  width: fit-content;
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid var(--quant-line);
+  border-radius: 7px;
+  background: #ffffff;
+  color: #475467;
+  font-size: 0.76rem;
+  font-weight: 760;
+}
+
+.quantCalculatorPage .quantFormula code {
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #344054;
+  font-size: 0.78rem;
+}
+
+.quantCalculatorPage .quantSegmented {
+  margin-bottom: 0;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--quant-line-soft);
+  border-radius: 8px;
+  background: #eef2f7;
+}
+
+.quantCalculatorPage .quantSegmented button {
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: #667085;
+  font-size: 0.78rem;
+  font-weight: 760;
+}
+
+.quantCalculatorPage .quantSegmented button.isActive {
+  background: #ffffff;
+  color: var(--quant-ink);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.quantWorkFooter {
+  padding: 12px;
+  border-color: var(--quant-line-soft);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.quantWorkFooter span {
+  color: #667085;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.quantWorkFooter strong {
+  color: #344054;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.quantCalculatorPage .quantMemoAppendButton {
+  min-height: 40px;
+  border: 1px solid #111827;
+  background: #111827;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 780;
+}
+
+.quantCalculatorPage .quantMemoAppendButton:hover {
+  border-color: #1f2937;
+  background: #1f2937;
+}
+
+.quantCalculatorPage .quantOpportunityPair {
+  border-color: var(--quant-line-soft);
+  border-radius: 8px;
+}
+
+.quantCalculatorPage .quantOpportunityPair > strong {
+  color: #344054;
+  font-size: 0.8rem;
+  font-weight: 820;
+}
+
+@media (max-width: 1180px) {
+  .quantCalculatorPage .quantCalculatorShell {
+    grid-template-columns: minmax(260px, 318px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .quantCalculatorPage .quantTopPanel,
+  .quantCalculatorPage .quantCurrencyPanel,
+  .quantCalculatorPage .quantFieldGrid,
+  .quantCalculatorPage .quantOpportunityLayout,
+  .quantCalculatorPage .quantWorkCard {
+    padding: 14px;
+  }
+
+  .quantCalculatorPage .quantModeBar button {
+    min-height: 44px;
+  }
+}
