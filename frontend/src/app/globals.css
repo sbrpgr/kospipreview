@@ -2649,3 +2649,137 @@ p {
     box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
   }
 }
+
+.quantCalculatorPage .quantCurrencyPanel {
+  width: min(100%, 700px);
+  min-width: 0;
+  grid-template-columns: 150px 230px 150px;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.quantCurrencyMeta {
+  grid-column: 1 / -1;
+  display: flex;
+  min-height: 18px;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quantCalculatorPage .quantPillToggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+}
+
+.quantCalculatorPage .quantPillToggle button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.quantCalculatorPage .quantManualFxInput input,
+.quantCalculatorPage .quantPillToggle button {
+  min-height: 38px;
+}
+
+.quantCalculatorPage .quantModeBar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.quantCalculatorPage .quantModeBar button {
+  flex: initial;
+  min-width: 0;
+  min-height: 58px;
+}
+
+.quantCalculatorPage .quantFormAndResults {
+  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+  gap: 16px;
+}
+
+.quantCalculatorPage .quantWorkCard .quantFormAndResults > .quantMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quantCalculatorPage .quantFieldGrid {
+  gap: 10px;
+}
+
+.quantOpportunityLayout {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.quantOpportunityBudget {
+  max-width: 360px;
+}
+
+.quantOpportunityPair {
+  display: grid;
+  grid-template-columns: 76px repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.quantOpportunityPair > strong {
+  align-self: center;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.quantOpportunityPair .quantField {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+@media (max-width: 1120px) {
+  .quantCalculatorPage .quantCurrencyPanel {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quantCalculatorPage .quantManualFxInput {
+    grid-column: 1 / -1;
+  }
+
+  .quantCalculatorPage .quantFormAndResults {
+    grid-template-columns: 1fr;
+  }
+
+  .quantCalculatorPage .quantWorkCard .quantFormAndResults > .quantMetricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .quantCalculatorPage .quantCurrencyPanel,
+  .quantCalculatorPage .quantModeBar,
+  .quantCalculatorPage .quantWorkCard .quantFormAndResults > .quantMetricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .quantCurrencyMeta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .quantOpportunityBudget {
+    max-width: none;
+  }
+
+  .quantOpportunityPair {
+    grid-template-columns: 1fr;
+  }
+}
