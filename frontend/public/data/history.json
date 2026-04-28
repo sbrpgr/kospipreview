@@ -1,8 +1,8 @@
 {
   "summary": {
-    "mae30d": 30.77
+    "mae30d": 30.82
   },
-  "generatedAt": "2026-04-28T17:14:38.644480+00:00",
+  "generatedAt": "2026-04-28T18:54:08.036149+00:00",
   "records": [
     {
       "date": "2026-04-28",
@@ -11,7 +11,7 @@
       "ewyFxSimpleOpen": 6656.95,
       "low": 6613.61,
       "high": 6675.09,
-      "actualOpen": 6646.8,
+      "actualOpen": 6647.48,
       "hit": true,
       "isSynthetic": false
     },
@@ -64,8 +64,8 @@
       "modelPrediction": 6106.17,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6074.69,
-      "low": 6078.48,
-      "high": 6133.86,
+      "low": 6078.43,
+      "high": 6133.91,
       "actualOpen": 6302.54,
       "hit": false,
       "isSynthetic": false
@@ -75,8 +75,8 @@
       "modelPrediction": 6343.79,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6412.73,
-      "low": 6316.1,
-      "high": 6371.48,
+      "low": 6316.05,
+      "high": 6371.53,
       "actualOpen": 6213.92,
       "hit": false,
       "isSynthetic": false
@@ -86,8 +86,8 @@
       "modelPrediction": 6326.88,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6355.61,
-      "low": 6299.19,
-      "high": 6354.57,
+      "low": 6299.13,
+      "high": 6354.62,
       "actualOpen": 6227.33,
       "hit": false,
       "isSynthetic": false
@@ -97,8 +97,8 @@
       "modelPrediction": 6018.88,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5988.06,
-      "low": 5991.18,
-      "high": 6046.57,
+      "low": 5991.13,
+      "high": 6046.62,
       "actualOpen": 6149.49,
       "hit": false,
       "isSynthetic": false
@@ -108,8 +108,8 @@
       "modelPrediction": 6113.15,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6175.71,
-      "low": 6085.46,
-      "high": 6140.84,
+      "low": 6085.41,
+      "high": 6140.89,
       "actualOpen": 6141.6,
       "hit": false,
       "isSynthetic": false
@@ -119,8 +119,8 @@
       "modelPrediction": 5917.84,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5949.02,
-      "low": 5890.15,
-      "high": 5945.53,
+      "low": 5890.1,
+      "high": 5945.58,
       "actualOpen": 5960.0,
       "hit": false,
       "isSynthetic": false
@@ -130,8 +130,8 @@
       "modelPrediction": 5830.41,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5818.26,
-      "low": 5802.72,
-      "high": 5858.1,
+      "low": 5802.67,
+      "high": 5858.15,
       "actualOpen": 5737.28,
       "hit": false,
       "isSynthetic": false
@@ -141,8 +141,8 @@
       "modelPrediction": 5688.35,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5663.31,
-      "low": 5660.66,
-      "high": 5716.04,
+      "low": 5660.61,
+      "high": 5716.09,
       "actualOpen": 5876.12,
       "hit": false,
       "isSynthetic": false
@@ -152,8 +152,8 @@
       "modelPrediction": 6091.25,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6429.61,
-      "low": 6055.25,
-      "high": 6127.25,
+      "low": 6055.18,
+      "high": 6127.31,
       "actualOpen": 5826.45,
       "hit": false,
       "isSynthetic": false
