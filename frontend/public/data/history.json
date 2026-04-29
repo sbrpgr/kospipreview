@@ -1,9 +1,20 @@
 {
   "summary": {
-    "mae30d": 30.82
+    "mae30d": 30.75
   },
-  "generatedAt": "2026-04-29T00:08:55.727736+00:00",
+  "generatedAt": "2026-04-29T04:01:43.758730+00:00",
   "records": [
+    {
+      "date": "2026-04-29",
+      "modelPrediction": 6589.76,
+      "nightFuturesSimpleOpen": null,
+      "ewyFxSimpleOpen": 6567.92,
+      "low": 6558.94,
+      "high": 6620.59,
+      "actualOpen": 6619.0,
+      "hit": true,
+      "isSynthetic": false
+    },
     {
       "date": "2026-04-28",
       "modelPrediction": 6644.35,
@@ -11,7 +22,7 @@
       "ewyFxSimpleOpen": 6656.95,
       "low": 6613.61,
       "high": 6675.09,
-      "actualOpen": 6647.48,
+      "actualOpen": 6646.8,
       "hit": true,
       "isSynthetic": false
     },
@@ -50,13 +61,13 @@
     },
     {
       "date": "2026-04-22",
-      "modelPrediction": 6398.68,
+      "modelPrediction": 6302.16,
       "nightFuturesSimpleOpen": null,
-      "ewyFxSimpleOpen": 6386.2,
-      "low": 6368.61,
-      "high": 6428.75,
+      "ewyFxSimpleOpen": 6265.53,
+      "low": 6274.49,
+      "high": 6329.84,
       "actualOpen": 6387.57,
-      "hit": true,
+      "hit": false,
       "isSynthetic": false
     },
     {
@@ -64,19 +75,19 @@
       "modelPrediction": 6106.17,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6074.69,
-      "low": 6078.43,
-      "high": 6133.91,
+      "low": 6078.49,
+      "high": 6133.85,
       "actualOpen": 6302.54,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-04-20",
-      "modelPrediction": 6343.79,
+      "modelPrediction": 6342.41,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6412.73,
-      "low": 6316.05,
-      "high": 6371.53,
+      "low": 6314.74,
+      "high": 6370.09,
       "actualOpen": 6213.92,
       "hit": false,
       "isSynthetic": false
@@ -86,8 +97,8 @@
       "modelPrediction": 6326.88,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6355.61,
-      "low": 6299.13,
-      "high": 6354.62,
+      "low": 6299.2,
+      "high": 6354.55,
       "actualOpen": 6227.33,
       "hit": false,
       "isSynthetic": false
@@ -97,19 +108,19 @@
       "modelPrediction": 6018.88,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5988.06,
-      "low": 5991.13,
-      "high": 6046.62,
+      "low": 5991.2,
+      "high": 6046.55,
       "actualOpen": 6149.49,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-04-15",
-      "modelPrediction": 6113.15,
+      "modelPrediction": 6112.02,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6175.71,
-      "low": 6085.41,
-      "high": 6140.89,
+      "low": 6084.35,
+      "high": 6139.7,
       "actualOpen": 6141.6,
       "hit": false,
       "isSynthetic": false
@@ -119,8 +130,8 @@
       "modelPrediction": 5917.84,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5949.02,
-      "low": 5890.1,
-      "high": 5945.58,
+      "low": 5890.16,
+      "high": 5945.52,
       "actualOpen": 5960.0,
       "hit": false,
       "isSynthetic": false
@@ -130,8 +141,8 @@
       "modelPrediction": 5830.41,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5818.26,
-      "low": 5802.67,
-      "high": 5858.15,
+      "low": 5802.73,
+      "high": 5858.09,
       "actualOpen": 5737.28,
       "hit": false,
       "isSynthetic": false
@@ -141,19 +152,19 @@
       "modelPrediction": 5688.35,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5663.31,
-      "low": 5660.61,
-      "high": 5716.09,
+      "low": 5660.67,
+      "high": 5716.03,
       "actualOpen": 5876.12,
       "hit": false,
       "isSynthetic": false
     },
     {
       "date": "2026-04-09",
-      "modelPrediction": 6091.25,
+      "modelPrediction": 6089.5,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6429.61,
-      "low": 6055.18,
-      "high": 6127.31,
+      "low": 6053.52,
+      "high": 6125.48,
       "actualOpen": 5826.45,
       "hit": false,
       "isSynthetic": false
