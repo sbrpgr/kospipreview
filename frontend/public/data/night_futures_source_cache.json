@@ -1,9 +1,9 @@
 {
   "quote": {
-    "price": 1043.8,
+    "price": 1045.65,
     "previous_close": 1050.3,
-    "change_pct": -0.618870798819382,
-    "updated_at": "2026-05-04T16:19:38+00:00",
+    "change_pct": -0.44273064838615817,
+    "updated_at": "2026-05-04T17:56:17+00:00",
     "update_mode": "cache-json",
     "description": "KOSPI 200 Night Futures",
     "exchange": "KRX",
@@ -13,5 +13,5 @@
     "day_close_updated_at": null,
     "day_close_date": null
   },
-  "fetched_at": "2026-05-04T16:19:55.107162+00:00"
+  "fetched_at": "2026-05-04T17:56:27.865398+00:00"
 }
