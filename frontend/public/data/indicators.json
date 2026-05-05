@@ -3,38 +3,38 @@
     {
       "key": "ewy",
       "label": "EWY (Korea ETF)",
-      "value": "$163.41",
-      "changePct": 0.87,
-      "updatedAt": "2026-05-04T23:59:04+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "value": "$166.15",
+      "changePct": 1.56,
+      "updatedAt": "2026-05-05T08:35:26+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/EWY",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "krw",
       "label": "USD/KRW",
-      "value": "1,475.44원",
-      "changePct": 0.25,
-      "updatedAt": "2026-05-05T06:35:00+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "value": "1,473.37원",
+      "changePct": 0.11,
+      "updatedAt": "2026-05-05T08:37:00+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KRW%3DX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "wti",
       "label": "WTI",
-      "value": "$105.08",
-      "changePct": -1.26,
-      "updatedAt": "2026-05-05T06:25:00+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "value": "$103.57",
+      "changePct": -2.68,
+      "updatedAt": "2026-05-05T08:27:00+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/CL%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "sp500",
@@ -42,10 +42,10 @@
       "value": "7,200.75",
       "changePct": -0.41,
       "updatedAt": "2026-05-04T20:48:00+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EGSPC",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     }
   ],
@@ -56,35 +56,35 @@
       "value": "27,651.82",
       "changePct": -0.21,
       "updatedAt": "2026-05-04T21:15:00+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ENDX",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     },
     {
       "key": "vix",
       "label": "VIX",
-      "value": "18.28",
-      "changePct": 7.59,
-      "updatedAt": "2026-05-04T20:14:00+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "value": "17.85",
+      "changePct": -2.41,
+      "updatedAt": "2026-05-05T08:22:00+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EVIX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "koru",
       "label": "KORU 3x",
-      "value": "$619.49",
-      "changePct": 2.79,
-      "updatedAt": "2026-05-04T23:59:44+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "value": "$648.52",
+      "changePct": 4.3,
+      "updatedAt": "2026-05-05T08:36:43+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/KORU",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "k200f",
@@ -92,7 +92,7 @@
       "value": "N/A",
       "changePct": 0,
       "updatedAt": "",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "",
       "dataSource": "실시간 수집",
       "displayTag": "(본 장 시작전)",
@@ -107,23 +107,23 @@
       "value": "48,941.90",
       "changePct": -1.13,
       "updatedAt": "2026-05-04T20:48:00+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5EDJI",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     },
     {
       "key": "gold",
       "label": "Gold",
-      "value": "$4,545.70",
-      "changePct": 0.58,
-      "updatedAt": "2026-05-05T06:25:00+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "value": "$4,562.90",
+      "changePct": 0.96,
+      "updatedAt": "2026-05-05T08:26:00+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/GC%3DF",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
-      "isPremarket": false
+      "isPremarket": true
     },
     {
       "key": "us10y",
@@ -131,7 +131,7 @@
       "value": "4.45%",
       "changePct": 1.55,
       "updatedAt": "2026-05-04T18:59:00+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ETNX",
       "dataSource": "Yahoo Finance",
       "displayTag": "",
@@ -143,13 +143,13 @@
       "value": "10,534.66",
       "changePct": -0.57,
       "updatedAt": "2026-05-04T21:15:00+00:00",
-      "checkedAt": "2026-05-05T06:35:33.471223+00:00",
+      "checkedAt": "2026-05-05T08:37:10.816483+00:00",
       "sourceUrl": "https://finance.yahoo.com/quote/%5ESOX",
       "dataSource": "Yahoo Finance",
-      "displayTag": "",
+      "displayTag": "(본 장 시작전)",
       "isPremarket": false
     }
   ],
-  "generatedAt": "2026-05-05T06:35:33.471223+00:00",
-  "isUsPremarketNow": false
+  "generatedAt": "2026-05-05T08:37:10.816483+00:00",
+  "isUsPremarketNow": true
 }
