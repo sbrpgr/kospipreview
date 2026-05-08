@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T04:28:51.007909+00:00",
+  "generatedAt": "2026-05-08T06:17:20.129713+00:00",
   "predictionDate": "2026년 05월 11일",
   "predictionDateIso": "2026-05-11",
   "pointPrediction": null,
@@ -28,8 +28,8 @@
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,
-    "coreAnchorPct": -0.46,
-    "rawModelPct": -0.46,
+    "coreAnchorPct": -0.43,
+    "rawModelPct": -0.43,
     "rawResidualPct": 0.0,
     "ewyFxIntercept": 0.2338,
     "ewyFxEwyCoef": 0.3581,
@@ -42,10 +42,10 @@
     "regimeAdjustmentPct": null,
     "regimeState": null,
     "trendFollowApplied": true,
-    "trendFollowSignalPct": -2.51,
-    "trendFollowMinPct": -1.96,
-    "trendFollowAdjustmentPct": -1.51,
-    "prevCloseChangePct": 0.52,
+    "trendFollowSignalPct": -2.4,
+    "trendFollowMinPct": -1.88,
+    "trendFollowAdjustmentPct": -1.45,
+    "prevCloseChangePct": -0.03,
     "krxBaselineDate": "2026-05-07",
     "predictionPhase": "session",
     "anchorSource": "ewy_synthetic_k200",
@@ -53,11 +53,11 @@
       "intercept": -0.08456,
       "coefficients": {
         "broad_factor": -0.094706,
-        "tech_factor": -0.080188,
+        "tech_factor": -0.080189,
         "semi_factor": -0.37395,
         "wti_z": 0.447398,
         "gold_z": -0.213455,
-        "us10y_z": 0.415367
+        "us10y_z": 0.415368
       },
       "means": {
         "sp500": 0.116112,
