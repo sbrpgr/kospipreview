@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-14T01:34:19.301816+00:00",
+  "generatedAt": "2026-05-14T05:30:58.757158+00:00",
   "predictionDate": "2026년 05월 15일",
   "predictionDateIso": "2026-05-15",
   "pointPrediction": null,
@@ -28,8 +28,8 @@
     "nightFuturesAnchorPct": null,
     "auxiliaryAnchorPct": null,
     "bridgeAnchorPct": null,
-    "coreAnchorPct": 0.49,
-    "rawModelPct": 0.49,
+    "coreAnchorPct": 0.51,
+    "rawModelPct": 0.51,
     "rawResidualPct": 0.0,
     "ewyFxIntercept": 0.2608,
     "ewyFxEwyCoef": 0.3543,
@@ -42,30 +42,30 @@
     "regimeAdjustmentPct": null,
     "regimeState": null,
     "trendFollowApplied": true,
-    "trendFollowSignalPct": 0.86,
-    "trendFollowMinPct": 0.6,
-    "trendFollowAdjustmentPct": 0.11,
-    "prevCloseChangePct": -1.5,
+    "trendFollowSignalPct": 0.95,
+    "trendFollowMinPct": 0.67,
+    "trendFollowAdjustmentPct": 0.15,
+    "prevCloseChangePct": -0.49,
     "krxBaselineDate": "2026-05-13",
     "predictionPhase": "session",
     "anchorSource": "ewy_synthetic_k200",
     "residualModel": {
       "intercept": -0.152307,
       "coefficients": {
-        "broad_factor": -0.139256,
-        "tech_factor": -0.627006,
-        "semi_factor": -0.537931,
-        "wti_z": 0.453505,
-        "gold_z": -0.199378,
-        "us10y_z": 0.473245
+        "broad_factor": -0.138723,
+        "tech_factor": -0.627186,
+        "semi_factor": -0.537704,
+        "wti_z": 0.456737,
+        "gold_z": -0.198075,
+        "us10y_z": 0.472373
       },
       "means": {
         "sp500": 0.132949,
         "nasdaq": 0.229063,
         "dow": 0.063331,
-        "sox": 0.626012,
-        "wti": 0.375338,
-        "gold": 0.071029,
+        "sox": 0.626011,
+        "wti": 0.373431,
+        "gold": 0.070585,
         "us10y": 0.004005
       },
       "stds": {
@@ -73,8 +73,8 @@
         "nasdaq": 1.177979,
         "dow": 0.838446,
         "sox": 2.474779,
-        "wti": 4.440337,
-        "gold": 1.987957,
+        "wti": 4.440963,
+        "gold": 1.987874,
         "us10y": 0.039681
       },
       "broadPcaComponents": [
