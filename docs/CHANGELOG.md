@@ -1,5 +1,72 @@
 # Changelog
 
+## 2026-05-15
+
+- YouTube 뉴스 기능 전면 제거 (AdSense 재심사 대응)
+  - 제거 배경: AdSense 심사 거절(가치 없는 콘텐츠) 원인 분석 결과, Gemini 자동 요약 기반 YouTube 뉴스가
+    자동생성 콘텐츠로 분류될 위험이 높고 플랫폼 정체성(퀀트 리서치)과 결이 다르다는 판단으로 제거 결정.
+  - 삭제된 파일:
+    - `frontend/src/components/youtube-news-summary.tsx`
+    - `frontend/src/components/youtube-news-archive.tsx`
+    - `frontend/src/components/youtube-news-post-viewer.tsx`
+    - `frontend/src/lib/youtube-news.ts`, `youtube-news-types.ts`, `youtube-news-format.ts`,
+      `youtube-news-client.ts`, `youtube-news-board.ts`
+    - `frontend/src/app/youtube-news/` (board + post 페이지)
+    - `frontend/src/app/news/[date]/[run]/` (구 리포트 페이지)
+    - `frontend/scripts/sync-news.mjs`
+    - `frontend/public/data/youtube-news.json`
+    - `.github/workflows/publish-youtube-news.yml`
+    - `publish_youtube_news.cmd`
+    - `scripts/publish_youtube_news.ps1`, `update_youtube_news_content.ps1`
+    - `YOUTUBE_NEWS_WORK_SPEC.md`
+  - 수정된 파일:
+    - `frontend/src/components/live-dashboard.tsx`: 뉴스 state, 폴링 useEffect, JSX 섹션 제거
+    - `frontend/src/components/site-header.tsx`: 유튜브 뉴스 nav 링크 제거
+    - `frontend/src/app/page.tsx`: `getYoutubeNewsIndex` 호출 및 prop 제거
+    - `frontend/package.json`: `sync-news`, `predev`, `prebuild` 스크립트 제거
+    - `firebase.json`: `/news/**` 리다이렉트 및 `/youtube-news/**` 캐시 헤더 제거
+  - 빌드 확인: `npm run build` 통과, 에러 없음, 15개 정적 페이지 정상 생성.
+  - Cloud Run `/api/news/**` 엔드포인트는 프론트엔드 미사용 상태로 잔존 (제거 시 Cloud Run 재배포 필요,
+    AdSense 재심사와 무관하므로 별도 처리).
+  - 배포: `deploy-hosting` 워크플로우 사용.
+
+- AdSense 재심사 콘텐츠 전략 수립
+  - YouTube 뉴스 제거 + 계산기 유지(격하) + 데이터 기반 인사이트 콘텐츠 신설 방향으로 결정.
+  - 인사이트 콘텐츠: 플랫폼 자체 데이터(history.json, 지표 시계열)에서 추출한 원본 분석 글.
+    예: "환율 급변 구간 시초가 반응", "EWY 상승인데 시초가가 내린 날의 공통점" 등.
+  - 구체적 형식 및 신설 페이지 작업은 미착수.
+
+## 2026-05-04
+
+- YouTube news quality cleanup
+  - Removed fallback transcript-summary items from publishable `digest_db.json` files.
+  - Quality rule: publish only items with `summary_provider: "gemini"`.
+  - Removed `48` non-Gemini items across `9` report digests and updated each report `count`.
+  - Republished through `publish_youtube_news.cmd` / `publish-youtube-news` only.
+  - Production API verification after cleanup:
+    - status `200`
+    - source `bucket`
+    - latest items `43`
+    - reports `19`
+    - fallback-summary matches `0`
+  - No Cloud Run, Cloud Build, or Firebase Hosting deploy was used.
+
+## 2026-05-02
+
+- Cost-safe deployment split
+  - Replaced routine production deploy usage with Hosting-only workflow `deploy-hosting`.
+  - Added Cloud Run-only infrastructure workflow `cloudrun-deploy`.
+  - Cloud Build and Cloud Run deploy must not run for frontend, calculator, copy, news, or JSON-only work.
+
+- JSON-only scheduled data updates
+  - `retrain-model` now rebuilds model JSON and uploads generated JSON to Cloud Storage.
+  - `refresh-night-futures` now acts as manual fallback JSON refresh and Cloud Storage upload only.
+  - Routine data updates no longer redeploy Firebase Hosting.
+
+- Live refresh cost guardrails
+  - Cloud Scheduler refresh is configured for KST weekdays outside `09:00~16:59`.
+  - Refresh overlap now returns `202 already_running` instead of a failed `409`.
+
 ## 2026-04-23
 
 - YouTube news dynamic API conversion (Cloud Run + Storage)

@@ -8,13 +8,7 @@
     ],
     "cleanUrls": true,
     "trailingSlash": false,
-    "redirects": [
-      {
-        "source": "/news/**",
-        "destination": "/youtube-news",
-        "type": 301
-      }
-    ],
+    "redirects": [],
     "rewrites": [
       {
         "source": "/api/**",
@@ -79,24 +73,6 @@
       },
       {
         "source": "/history",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          }
-        ]
-      },
-      {
-        "source": "/youtube-news",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          }
-        ]
-      },
-      {
-        "source": "/youtube-news/**",
         "headers": [
           {
             "key": "Cache-Control",

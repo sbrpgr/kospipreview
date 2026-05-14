@@ -3,10 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "sync-news": "node scripts/sync-news.mjs",
-    "predev": "npm run sync-news",
+    "clean": "node scripts/clean-out.mjs",
     "dev": "next dev",
-    "prebuild": "npm run sync-news",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
