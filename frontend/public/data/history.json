@@ -1,8 +1,8 @@
 {
   "summary": {
-    "mae30d": 31.76
+    "mae30d": 31.54
   },
-  "generatedAt": "2026-05-14T16:51:38.554585+00:00",
+  "generatedAt": "2026-05-14T18:25:54.288708+00:00",
   "records": [
     {
       "date": "2026-05-14",
@@ -11,7 +11,7 @@
       "ewyFxSimpleOpen": 7968.61,
       "low": 7899.53,
       "high": 7962.53,
-      "actualOpen": 7873.91,
+      "actualOpen": 7875.34,
       "hit": false,
       "isSynthetic": false
     },
@@ -64,8 +64,8 @@
       "modelPrediction": 7578.82,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 7735.86,
-      "low": 7550.23,
-      "high": 7607.4,
+      "low": 7550.43,
+      "high": 7607.2,
       "actualOpen": 7499.07,
       "hit": false,
       "isSynthetic": false
@@ -75,8 +75,8 @@
       "modelPrediction": 7148.36,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 7377.54,
-      "low": 7119.78,
-      "high": 7176.95,
+      "low": 7119.98,
+      "high": 7176.75,
       "actualOpen": 7093.01,
       "hit": false,
       "isSynthetic": false
@@ -86,8 +86,8 @@
       "modelPrediction": 6605.8,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6590.0,
-      "low": 6577.21,
-      "high": 6634.38,
+      "low": 6577.41,
+      "high": 6634.18,
       "actualOpen": 6782.93,
       "hit": false,
       "isSynthetic": false
@@ -97,8 +97,8 @@
       "modelPrediction": 6696.65,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6668.55,
-      "low": 6668.06,
-      "high": 6725.23,
+      "low": 6668.27,
+      "high": 6725.03,
       "actualOpen": 6739.39,
       "hit": false,
       "isSynthetic": false
@@ -108,8 +108,8 @@
       "modelPrediction": 6565.59,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6533.53,
-      "low": 6537.0,
-      "high": 6594.18,
+      "low": 6537.21,
+      "high": 6593.97,
       "actualOpen": 6619.0,
       "hit": false,
       "isSynthetic": false
@@ -119,8 +119,8 @@
       "modelPrediction": 6662.98,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6683.63,
-      "low": 6634.39,
-      "high": 6691.56,
+      "low": 6634.59,
+      "high": 6691.36,
       "actualOpen": 6646.8,
       "hit": true,
       "isSynthetic": false
@@ -130,8 +130,8 @@
       "modelPrediction": 6615.68,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6655.73,
-      "low": 6587.1,
-      "high": 6644.27,
+      "low": 6587.3,
+      "high": 6644.06,
       "actualOpen": 6533.6,
       "hit": false,
       "isSynthetic": false
@@ -141,8 +141,8 @@
       "modelPrediction": 6326.43,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6226.23,
-      "low": 6297.85,
-      "high": 6355.02,
+      "low": 6298.05,
+      "high": 6354.81,
       "actualOpen": 6496.1,
       "hit": false,
       "isSynthetic": false
@@ -152,8 +152,8 @@
       "modelPrediction": 6634.98,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6888.55,
-      "low": 6606.4,
-      "high": 6663.57,
+      "low": 6606.6,
+      "high": 6663.37,
       "actualOpen": 6488.83,
       "hit": false,
       "isSynthetic": false
@@ -163,8 +163,8 @@
       "modelPrediction": 6302.16,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6265.53,
-      "low": 6273.58,
-      "high": 6330.75,
+      "low": 6273.78,
+      "high": 6330.55,
       "actualOpen": 6387.57,
       "hit": false,
       "isSynthetic": false
@@ -174,8 +174,8 @@
       "modelPrediction": 6106.17,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6074.69,
-      "low": 6077.58,
-      "high": 6134.75,
+      "low": 6077.79,
+      "high": 6134.55,
       "actualOpen": 6302.54,
       "hit": false,
       "isSynthetic": false
@@ -185,8 +185,8 @@
       "modelPrediction": 6343.07,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6412.73,
-      "low": 6314.49,
-      "high": 6371.66,
+      "low": 6314.69,
+      "high": 6371.45,
       "actualOpen": 6213.92,
       "hit": false,
       "isSynthetic": false
@@ -196,8 +196,8 @@
       "modelPrediction": 6326.88,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6355.61,
-      "low": 6298.29,
-      "high": 6355.46,
+      "low": 6298.49,
+      "high": 6355.26,
       "actualOpen": 6227.33,
       "hit": false,
       "isSynthetic": false
@@ -207,8 +207,8 @@
       "modelPrediction": 6018.88,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5988.06,
-      "low": 5990.29,
-      "high": 6047.46,
+      "low": 5990.49,
+      "high": 6047.26,
       "actualOpen": 6149.49,
       "hit": false,
       "isSynthetic": false
@@ -218,8 +218,8 @@
       "modelPrediction": 6115.3,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6175.71,
-      "low": 6086.71,
-      "high": 6143.89,
+      "low": 6086.92,
+      "high": 6143.68,
       "actualOpen": 6141.6,
       "hit": true,
       "isSynthetic": false
@@ -229,8 +229,8 @@
       "modelPrediction": 5917.84,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5949.02,
-      "low": 5889.26,
-      "high": 5946.43,
+      "low": 5889.46,
+      "high": 5946.22,
       "actualOpen": 5960.0,
       "hit": false,
       "isSynthetic": false
@@ -240,8 +240,8 @@
       "modelPrediction": 5830.41,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5818.26,
-      "low": 5801.82,
-      "high": 5859.0,
+      "low": 5802.03,
+      "high": 5858.79,
       "actualOpen": 5737.28,
       "hit": false,
       "isSynthetic": false
@@ -251,8 +251,8 @@
       "modelPrediction": 5688.35,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 5663.31,
-      "low": 5659.76,
-      "high": 5716.94,
+      "low": 5659.97,
+      "high": 5716.73,
       "actualOpen": 5876.12,
       "hit": false,
       "isSynthetic": false
@@ -262,8 +262,8 @@
       "modelPrediction": 6084.16,
       "nightFuturesSimpleOpen": null,
       "ewyFxSimpleOpen": 6429.61,
-      "low": 6047.0,
-      "high": 6121.32,
+      "low": 6047.26,
+      "high": 6121.06,
       "actualOpen": 5826.45,
       "hit": false,
       "isSynthetic": false
