@@ -37,3 +37,11 @@
 - Full paper index and add procedure: `docs/PAPERS_INDEX.md`.
 - Current total: 15 papers (No.1–No.15). Next paper is No.16.
 - Always deploy with `deploy-hosting` workflow after adding papers.
+
+## AdSense Policy Rule
+
+- AdSense status: 재검토 요청 대기 중 (2026-05-16 기준). 상세 내역: `docs/ADSENSE_VALUE_RECOVERY_PLAN.md`.
+- `noindex` 적용 페이지: `/contact`, `/operations-policy` — sitemap에서도 제외됨.
+- `index` 유지 필수 페이지: `/terms`, `/privacy`, `/disclaimer` (AdSense 정책 필수).
+- 신규 페이지 추가 시: 콘텐츠가 충분한지 확인 후 sitemap 등재 여부 결정. 유틸리티·단순 링크 페이지는 noindex 처리.
+- 홈 초기 렌더: `hasSyncedOnce` 초기값을 `initialIndicators.primary.length > 0`으로 설정 — 크롤러가 서버 데이터를 즉시 볼 수 있음. 이 동작을 되돌리지 말 것.
