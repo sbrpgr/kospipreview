@@ -30,6 +30,79 @@ type LiveDashboardProps = {
   initialFreshness: FreshnessData;
 };
 
+const PAPERS_HOME = [
+  {
+    num: "No. 10",
+    href: "/papers/prediction-alert-score-design",
+    title: "예측 신뢰도 붕괴 사전 감지와 동적 경보 점수 설계",
+    abstract: "R², MAE30d, CSI, VIX를 결합한 복합 예측 경보 점수(PAS)를 설계하고 2026년 4월 충격 구간 소급 시뮬레이션으로 경보 성능을 검증한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 9",
+    href: "/papers/kospi-24h-tracking-indicators",
+    title: "코스피 24시간 추적을 위한 다중 실시간 프록시 지표 체계",
+    abstract: "폐장 후 익일 개장까지 17.5시간의 정보 공백을 분해하고 EWY·SOX·금리·원자재 지표별 정보 기여도를 실증 평가하여 복합 24시간 추적 지수를 설계한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 8",
+    href: "/papers/night-futures-signal-limitations",
+    title: "야간 K200 선물 신호의 구조적 공백과 EWY 대체 신호의 한계",
+    abstract: "27거래일 전 기간 야간선물이 null로 기록된 구조적 원인을 규명하고 EWY 대체 신호의 오차 분포와 고변동 구간 과대반응 메커니즘을 분석한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 7",
+    href: "/papers/multilayer-prediction-architecture",
+    title: "코스피 시초가 예측 모델의 계층적 설계 체계",
+    abstract: "EWY 코어 레이어, 잔차 Ridge, K200 매핑, 트렌드팔로우 플로어의 4계층 구조와 각 레이어의 설계 철학 및 실증적 기여도를 현재 파라미터와 함께 기술한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 6",
+    href: "/papers/total-signal-failure-days",
+    title: "전신호 동시 이탈日의 구조적 조건",
+    abstract: "모델·EWY·야간선물이 동시에 같은 방향으로 크게 이탈하는 날의 공통 선행 조건을 실측 6건으로 규명하고 상방 편향 비대칭성을 분석한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 5",
+    href: "/papers/ewy-time-varying-coefficient",
+    title: "EWY-코스피 가격 전달 계수의 시변성과 투자 의사결정 함의",
+    abstract: "Rolling Ridge 추정을 통해 EWY-코스피 전달 계수(β)의 시변성을 분석하고 R² 및 MAE30d를 실시간 모델 신뢰도 지표로 활용하는 동적 체계를 제안한다.",
+    date: "2026-05-15",
+  },
+  {
+    num: "No. 4",
+    href: "/papers/opening-gap-asymmetry",
+    title: "코스피 개장 갭 형성의 비대칭성과 통계 모델의 하방 리스크 과소추정 문제",
+    abstract: "코스피 시초가 갭의 상·하방 비대칭성을 실측 데이터로 확인하고 이산적 정치 충격에 의한 극단 갭 과소추정 메커니즘과 투자적 함의를 분석한다.",
+    date: "2026-05-15",
+  },
+  {
+    num: "No. 3",
+    href: "/papers/signal-convergence-index",
+    title: "다중 예측 신호 수렴도 지수(CSI)의 시초가 예측 불확실성 대용변수 활용 연구",
+    abstract: "세 예측 신호의 발산 폭을 정량화한 수렴도 지수(CSI)가 당일 예측 오차의 유효한 선행지표인지를 실증적으로 검증한다.",
+    date: "2026-05-15",
+  },
+  {
+    num: "No. 2",
+    href: "/papers/regime-dependent-accuracy",
+    title: "시장 레짐 전환이 코스피 시초가 예측 정확도에 미치는 구조적 영향",
+    abstract: "2026년 4월 관세 충격 전후 실측 데이터를 이용해 VIX 임계값 기반 레짐 분류가 예측 정확도에 미치는 구조적 영향을 분석한다.",
+    date: "2026-05-15",
+  },
+  {
+    num: "No. 1",
+    href: "/papers/oil-fx-ewy-kospi-model",
+    title: "유가·환율·EWY 복합 신호를 활용한 코스피 시초가 예측모델 개발 연구",
+    abstract: "WTI 유가, 달러-원 환율, EWY ETF 세 신호의 독립 설명력과 최적 조합을 실증 분석하고 Ridge 회귀 기반 복합 예측모델의 구조와 한계를 규명한다.",
+    date: "2026-05-15",
+  },
+] as const;
+
 const POLL_INTERVAL_MS = 30_000;
 const OPERATION_STATUS_INTERVAL_MS = 30_000;
 const NIGHT_OPERATION_HOURS_LABEL = "17:00~09:00(변동 가능)";
@@ -539,6 +612,24 @@ export function LiveDashboard({
             <div className="sectionLoadingText">시장 지표를 동기화하는 중입니다.</div>
           </div>
         )}
+
+        <div className="sectionTitleRow" style={{ marginTop: "48px" }}>
+          <h2 className="sectionTitle">연구논문</h2>
+          <a href="/papers" style={{ fontSize: "0.85rem", color: "var(--brand)", textDecoration: "none", fontFamily: "var(--font-mono)" }}>전체 보기 →</a>
+        </div>
+        <div className="sectionSubtext" style={{ marginBottom: "20px" }}>
+          실측 데이터와 백테스트 결과를 바탕으로 작성된 Working Paper 시리즈입니다. 투자 조언이 아닌 연구 목적의 자료입니다.
+        </div>
+        <div className="paperList">
+          {PAPERS_HOME.map((paper) => (
+            <a key={paper.href} href={paper.href} className="paperCard">
+              <div className="paperCardNum">{paper.num} · {paper.date}</div>
+              <h3 className="paperCardTitle">{paper.title}</h3>
+              <p className="paperCardAbstract">{paper.abstract}</p>
+              <div className="paperCardMeta">전문 읽기 →</div>
+            </a>
+          ))}
+        </div>
 
         {hasLiveSnapshot ? (
           <ChartSection history={history} />
