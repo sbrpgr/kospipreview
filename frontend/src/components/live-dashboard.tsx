@@ -421,7 +421,9 @@ export function LiveDashboard({
   const [history, setHistory] = useState(initialHistory);
   const [livePredictionSeries, setLivePredictionSeries] = useState(initialLivePredictionSeries);
   const [freshness, setFreshness] = useState(initialFreshness);
-  const [hasSyncedOnce, setHasSyncedOnce] = useState(false);
+  const [hasSyncedOnce, setHasSyncedOnce] = useState(
+    () => initialIndicators.primary.length > 0
+  );
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
   const [isSyncing, setIsSyncing] = useState(false);

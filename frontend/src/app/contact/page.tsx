@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/contact",
   },
+  robots: {
+    index: false,
+    follow: true,
+  },
   openGraph: {
     title: `${CONTACT_TITLE} | ${SITE_NAME}`,
     description: CONTACT_DESCRIPTION,

@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/operations-policy",
   },
+  robots: {
+    index: false,
+    follow: true,
+  },
   openGraph: {
     title: `${POLICY_TITLE} | ${SITE_NAME}`,
     description: POLICY_DESCRIPTION,

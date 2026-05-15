@@ -44,9 +44,7 @@ const ROUTES = [
   { path: "/about", changeFrequency: "weekly" as const, priority: 0.8 },
   { path: "/quant-calculator", changeFrequency: "weekly" as const, priority: 0.75 },
   { path: "/terms", changeFrequency: "monthly" as const, priority: 0.7 },
-  { path: "/operations-policy", changeFrequency: "monthly" as const, priority: 0.7 },
   { path: "/privacy", changeFrequency: "monthly" as const, priority: 0.65 },
-  { path: "/contact", changeFrequency: "monthly" as const, priority: 0.65 },
   { path: "/disclaimer", changeFrequency: "monthly" as const, priority: 0.65 },
 ] as const;
 
