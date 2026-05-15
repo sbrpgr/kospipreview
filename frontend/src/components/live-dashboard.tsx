@@ -32,6 +32,41 @@ type LiveDashboardProps = {
 
 const PAPERS_HOME = [
   {
+    num: "No. 15",
+    href: "/papers/dynamic-band-width-mae30d-adjustment",
+    title: "MAE30d 연동 동적 예측 밴드 너비 조정 체계",
+    abstract: "MAE30d에 연동한 하이브리드 동적 밴드를 설계하고, 충격 레짐에서 적중률을 0%→30.77%로 개선하는 시뮬레이션 결과를 제시한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 14",
+    href: "/papers/us10y-nonlinear-impact-on-kospi",
+    title: "미국 10년물 금리가 코스피 시초가에 미치는 영향의 비선형성",
+    abstract: "US10Y 4.5%를 임계값으로 추정하여, 그 이하에서는 금리 상승이 코스피 호재, 초과 시 악재로 전환되는 비선형 구조를 실증 분석한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 13",
+    href: "/papers/simultaneous-quote-information-asymmetry",
+    title: "동시호가 8분이 만드는 정보 비대칭",
+    abstract: "동시호가 구간에서 기관·외국인 수급이 EWY 신호를 역방향으로 상쇄하는 메커니즘을 실측 케이스로 분석하고 수급 프록시 편입 방향을 논한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 12",
+    href: "/papers/krw-regime-ewy-coefficient-shift",
+    title: "달러-원 환율 1,400원대 진입 이후 EWY 전달 계수의 구조 변화",
+    abstract: "고환율 레짐에서 EWY 계수가 저환율 레짐 대비 14% 압축되는 현상과 메커니즘을 Rolling Ridge 추정으로 규명한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 11",
+    href: "/papers/opening-gap-mean-reversion",
+    title: "코스피 시초가 갭의 평균 회귀 경향",
+    abstract: "100포인트 초과 상방 갭 발생 익일 하방 회귀 확률이 68%임을 실증하고, 대형 갭 익일은 정상 레짐 대비 예측 오차가 2~8배 높은 고난이도 구간임을 분석한다.",
+    date: "2026-05-16",
+  },
+  {
     num: "No. 10",
     href: "/papers/prediction-alert-score-design",
     title: "예측 신뢰도 붕괴 사전 감지와 동적 경보 점수 설계",
