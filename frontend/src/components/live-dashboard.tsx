@@ -621,7 +621,7 @@ export function LiveDashboard({
           실측 데이터와 백테스트 결과를 바탕으로 작성된 Working Paper 시리즈입니다. 투자 조언이 아닌 연구 목적의 자료입니다.
         </div>
         <div className="paperList">
-          {PAPERS_HOME.map((paper) => (
+          {PAPERS_HOME.slice(0, 3).map((paper) => (
             <a key={paper.href} href={paper.href} className="paperCard">
               <div className="paperCardNum">{paper.num} · {paper.date}</div>
               <h3 className="paperCardTitle">{paper.title}</h3>
