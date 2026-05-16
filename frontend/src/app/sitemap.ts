@@ -48,6 +48,7 @@ const ROUTES = [
   { path: "/papers/kospi-gap-event-taxonomy", changeFrequency: "monthly" as const, priority: 0.84 },
   { path: "/papers/kospi-predictability-ceiling-information-entropy", changeFrequency: "monthly" as const, priority: 0.84 },
   { path: "/about", changeFrequency: "weekly" as const, priority: 0.8 },
+  { path: "/contact", changeFrequency: "monthly" as const, priority: 0.75 },
   { path: "/quant-calculator", changeFrequency: "weekly" as const, priority: 0.75 },
   { path: "/terms", changeFrequency: "monthly" as const, priority: 0.7 },
   { path: "/privacy", changeFrequency: "monthly" as const, priority: 0.65 },

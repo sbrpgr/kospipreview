@@ -19,7 +19,7 @@ concurrency:
 
 permissions:
   actions: write
-  contents: write
+  contents: read
 
 jobs:
   retrain:
@@ -27,8 +27,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -44,60 +42,28 @@ jobs:
       - name: Rebuild model artifacts
         run: python ./scripts/backtest_and_generate.py
 
-      - name: Setup Node
-        uses: actions/setup-node@v5
+      - name: Refresh night futures and live prediction series
+        run: python ./scripts/refresh_night_futures.py
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: kospipreview
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: kospipreview
 
-      - name: Clean stale static export output
-        run: rm -rf frontend/out
-
-      - name: Build frontend
-        working-directory: frontend
-        env:
-          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
-        run: npm run build
-
-      - name: Sync latest data into static export
-        shell: bash
+      - name: Publish generated JSON to Cloud Storage
         run: |
-          mkdir -p frontend/out/data
-          cp frontend/public/data/*.json frontend/out/data/
-
-      - name: Commit updated data files
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git ls-files -z 'frontend/public/data/*.json' | xargs -0 -r git add
-          git diff --cached --quiet || git commit -m "chore: auto-update data $(date -u +'%Y-%m-%d %H:%M UTC')"
-
-      - name: Push changes
-        run: |
-          # Guard against transient untracked/unstaged files generated during the job.
-          git pull --rebase --autostash origin "${{ github.ref_name }}"
-          git push origin "HEAD:${{ github.ref_name }}"
-
-      - name: Prepare Firebase credentials
-        shell: bash
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
-            echo "FIREBASE_SERVICE_ACCOUNT secret is missing." >&2
-            exit 1
-          fi
-
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
-
-      - name: Deploy to Firebase Hosting
-        run: npx firebase-tools@latest deploy --project kospipreview --only hosting --non-interactive
+          gcloud storage cp \
+            frontend/public/data/*.json \
+            gs://kospipreview-live-data/ \
+            --cache-control=no-store \
+            --content-type="application/json; charset=utf-8" \
+            --quiet
 
       - name: Queue next polling run
         if: success() && github.event_name == 'workflow_dispatch' && github.event.inputs.loop == 'on'

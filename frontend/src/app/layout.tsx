@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SiteFooter } from "@/components/site-footer";
 import { ThirdPartyScripts } from "@/components/third-party-scripts";
 import {
   ADSENSE_PUBLISHER_ID,
@@ -153,6 +154,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         {children}
+        <SiteFooter />
         <ThirdPartyScripts />
       </body>
     </html>
