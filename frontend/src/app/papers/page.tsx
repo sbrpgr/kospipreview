@@ -23,6 +23,54 @@ export const metadata: Metadata = {
 
 const PAPERS = [
   {
+    num: "No. 21",
+    href: "/papers/kospi-predictability-ceiling-information-entropy",
+    title: "코스피 시초가 예측 가능성의 이론적 상한 — Shannon 상호 정보량으로 측정한 예측 엔트로피와 불가예측 하한",
+    abstract:
+      "Shannon 상호 정보량으로 EWY 신호의 이론적 최대 예측력을 추정하고, 동시호가 과정에서 생성되는 불가예측 엔트로피 하한(정상 레짐 MAE 최소 4.8pt)을 도출한다. 강한 EWY 신호(±3% 초과)에서 예측력이 오히려 감소하는 '정보 과부하 역설'을 실증한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 20",
+    href: "/papers/kospi-gap-event-taxonomy",
+    title: "코스피 시초가 갭을 유발하는 이벤트·이슈의 다각적 분류와 예측 가능성 평가 — 1,462거래일 실증 분류표",
+    abstract:
+      "1,462거래일에서 발생한 대형 갭 138건을 통화정책·무역관세·지정학·기업실적·경제지표·수급기술·복합 7개 범주로 분류하고, 범주별 예측 가능성(방향 정확도 38~67%)과 최적 대응 전략을 제시한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 19",
+    href: "/papers/prediction-accuracy-extreme-regime-analysis",
+    title: "KOSPI Dawn 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건과 사전 탐지 지표",
+    abstract:
+      "고정확도 구간(MAE<8pt, 방향 일치 79.4%)과 저정확도 구간(MAE>30pt, 방향 일치 41.2%)의 공통 선행 조건을 실증하고, VIX·EWY 변화율·환율 변동성 3개 지표로 구성된 정확도 신호등 시스템을 제안한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 16",
+    href: "/papers/overnight-kospi-synthetic-index",
+    title: "야간 선물 없이 더 정확한 코스피 야간 지수 추정하기 — 글로벌 합성 바스켓 회귀의 이론과 실증",
+    abstract:
+      "K200 야간선물(RMSE 21.3pt) 대신 S&P 500·나스닥·닛케이·SOX·달러인덱스를 결합한 글로벌 합성 바스켓 Rolling Ridge 회귀(RMSE 14.8pt)를 제안하고, EWY 공백 구간(04:30~09:00 KST)에서 오차 8.4배 감소를 실증한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 18",
+    href: "/papers/intraday-pattern-impact-on-next-opening",
+    title: "코스피 당일 장중 패턴이 익일 시초가에 미치는 영향 — 마감 방향성·거래량 이상·시간대별 수익률의 예측 기여도",
+    abstract:
+      "마감 모멘텀·고점 대비 종가 위치·갭 메움 더미 등 6개 장중 변수의 익일 시초가 예측력을 1,462거래일로 실증하고, EWY 중립일에서 장중 신호 조합의 방향 일치율이 65~71%에 달함을 보인다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 17",
+    href: "/papers/additional-indices-for-kospi-prediction",
+    title: "코스피 시초가 예측력 향상을 위한 추가 획득 가능 지수와 신호 체계 — SOX·VIX·ADR·채권·원자재의 편입 효과 분석",
+    abstract:
+      "SOX, 삼성전자 ADR, DXY 세 변수를 기존 모델에 추가하면 R²가 0.274→0.341로 개선됨을 증분 R² 분석으로 실증하고, 다중공선성 진단과 실시간 접근성 평가를 통해 최적 편입 조합을 도출한다.",
+    date: "2026-05-16",
+  },
+  {
     num: "No. 15",
     href: "/papers/dynamic-band-width-mae30d-adjustment",
     title: "MAE30d 연동 동적 예측 밴드 너비 조정 체계 — 고정 밴드의 충격 레짐 적중률 저하 문제와 해결 방안",

@@ -32,6 +32,34 @@ type LiveDashboardProps = {
 
 const PAPERS_HOME = [
   {
+    num: "No. 21",
+    href: "/papers/kospi-predictability-ceiling-information-entropy",
+    title: "코스피 시초가 예측 가능성의 이론적 상한 — Shannon 상호 정보량과 불가예측 엔트로피",
+    abstract: "Shannon 상호 정보량으로 EWY 신호의 이론적 최대 예측력과 불가예측 엔트로피 하한(정상 MAE ≥ 4.8pt)을 도출하고, 강한 신호에서 예측력이 역전되는 '정보 과부하 역설'을 실증한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 20",
+    href: "/papers/kospi-gap-event-taxonomy",
+    title: "코스피 시초가 갭 유발 이벤트의 다각적 분류와 예측 가능성 평가",
+    abstract: "대형 갭 138건을 7개 범주로 분류하고 범주별 방향 예측 정확도(38~67%)와 최적 대응 전략을 제시한다. 무역·관세 갭이 평균 187pt로 가장 크고 예측 정확도가 가장 낮다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 19",
+    href: "/papers/prediction-accuracy-extreme-regime-analysis",
+    title: "KOSPI Dawn 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건",
+    abstract: "고정확도(MAE<8pt, 방향 일치 79.4%)와 저정확도(MAE>30pt, 방향 일치 41.2%) 구간의 공통 선행 조건을 실증하고 정확도 신호등 3색 시스템을 제안한다.",
+    date: "2026-05-16",
+  },
+  {
+    num: "No. 17",
+    href: "/papers/additional-indices-for-kospi-prediction",
+    title: "추가 획득 가능 지수와 신호 체계 — SOX·ADR·DXY 편입 효과 분석",
+    abstract: "SOX, 삼성전자 ADR, DXY를 기존 모델에 추가하면 R²가 0.274→0.341로 개선됨을 증분 R² 분석으로 실증하고, 최적 편입 조합을 도출한다.",
+    date: "2026-05-16",
+  },
+  {
     num: "No. 15",
     href: "/papers/dynamic-band-width-mae30d-adjustment",
     title: "MAE30d 연동 동적 예측 밴드 너비 조정 체계",
