@@ -311,9 +311,9 @@ export default async function Page() {
             다음과 같이 도출된다. 정규분포 근사하에서:
           </p>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", background: "var(--surface-strong)", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", overflowX: "auto" }}>
-            h(Y|X) = ½ log₂(2πe · σ²_{Y|X})
-            σ²_{Y|X} = σ²_Y · exp(−2·I(X;Y) / log₂ e)   [비트 단위 → nat 변환]
-            MAE_min ≈ σ_{Y|X} · √(2/π)   [정규분포의 평균절대편차 공식]
+            h(Y|X) = ½ log₂(2πe · σ²&#95;YX)
+            σ²&#95;YX = σ²_Y · exp(−2·I(X;Y) / log₂ e)   [비트 단위 → nat 변환]
+            MAE_min ≈ σ&#95;YX · √(2/π)   [정규분포의 평균절대편차 공식]
           </div>
           <p>
             실제 코스피 포인트 단위로의 환산은 σ_Y(코스피 로그수익률의 표준편차)에 평균
@@ -503,11 +503,11 @@ export default async function Page() {
           </p>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", background: "var(--surface-strong)", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", overflowX: "auto" }}>
             정상 레짐:
-              σ_{Y|X} = 0.0062 × exp(−0.84 / ln 2)^{0.5} ≈ 0.00172
+              σ&#95;YX = 0.0062 × exp(−0.84 / ln 2)^0.5 ≈ 0.00172
               MAE_min  = 0.00172 × √(2/π) × 2,800 ≈ 4.8pt
 
             충격 레짐:
-              σ_{Y|X} = 0.0062 × exp(−0.31 / ln 2)^{0.5} ≈ 0.00762
+              σ&#95;YX = 0.0062 × exp(−0.31 / ln 2)^0.5 ≈ 0.00762
               MAE_min  = 0.00762 × √(2/π) × 2,800 ≈ 21.3pt
           </div>
 
@@ -664,7 +664,7 @@ export default async function Page() {
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", background: "var(--surface-strong)", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", overflowX: "auto" }}>
             구간 1: I(t) &gt; 0.70 bits
               → 신뢰도 HIGH
-              → 예측 밴드 = 표준 밴드 (±1σ_{Y|X})
+              → 예측 밴드 = 표준 밴드 (±1σ&#95;YX)
               → 사용자 인터페이스: 녹색 표시
 
             구간 2: 0.40 &lt; I(t) ≤ 0.70 bits
