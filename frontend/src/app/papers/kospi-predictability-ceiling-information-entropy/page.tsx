@@ -278,8 +278,8 @@ export default async function Page() {
             주요 변수는 다음과 같이 정의한다:
           </p>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", background: "var(--surface-strong)", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", overflowX: "auto" }}>
-            X_t = ln(EWY_t / EWY_{t-1})   [EWY 로그 일수익률, 미국 장 마감 기준]
-            Y_t = ln(KOSPI_open_t / KOSPI_close_{t-1})  [코스피 시초가 로그수익률]
+            X_t = ln(EWY_t / EWY_&#123;t-1&#125;)   [EWY 로그 일수익률, 미국 장 마감 기준]
+            Y_t = ln(KOSPI_open_t / KOSPI_close_&#123;t-1&#125;)  [코스피 시초가 로그수익률]
           </div>
           <p>
             EWY의 수익률은 한국 시간 기준 다음날 아침에 코스피 시초가에 선행하는 정보로
