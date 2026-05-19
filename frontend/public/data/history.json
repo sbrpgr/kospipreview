@@ -17,7 +17,9 @@
       "prevClose": 7981.41,
       "futuresDayClose": 1245.5,
       "nightFuturesClose": 1242.51,
-      "nightFuturesError": 10.11
+      "nightFuturesError": 10.11,
+      "actualClose": 7493.18,
+      "dayFuturesClose": 1172.7
     },
     {
       "date": "2026-05-14",
@@ -32,7 +34,9 @@
       "prevClose": 7844.01,
       "futuresDayClose": 1222.25,
       "nightFuturesClose": 1227.14,
-      "nightFuturesError": 1.23
+      "nightFuturesError": 1.23,
+      "actualClose": 7981.41,
+      "dayFuturesClose": 1245.5
     },
     {
       "date": "2026-05-13",
@@ -47,7 +51,9 @@
       "prevClose": 7643.15,
       "futuresDayClose": 1186.0,
       "nightFuturesClose": 1158.6,
-      "nightFuturesError": -47.08
+      "nightFuturesError": -47.08,
+      "actualClose": 7844.01,
+      "dayFuturesClose": 1222.25
     },
     {
       "date": "2026-05-12",
@@ -62,7 +68,9 @@
       "prevClose": 7822.24,
       "futuresDayClose": 1214.25,
       "nightFuturesClose": 1239.02,
-      "nightFuturesError": 28.27
+      "nightFuturesError": 28.27,
+      "actualClose": 7643.15,
+      "dayFuturesClose": 1186.0
     },
     {
       "date": "2026-05-11",
@@ -77,7 +85,9 @@
       "prevClose": 7498.0,
       "futuresDayClose": 1153.25,
       "nightFuturesClose": 1209.99,
-      "nightFuturesError": 91.66
+      "nightFuturesError": 91.66,
+      "actualClose": 7822.24,
+      "dayFuturesClose": 1214.25
     },
     {
       "date": "2026-05-08",
@@ -92,7 +102,9 @@
       "prevClose": 7490.05,
       "futuresDayClose": 1158.7,
       "nightFuturesClose": 1123.01,
-      "nightFuturesError": -94.66
+      "nightFuturesError": -94.66,
+      "actualClose": 7498.0,
+      "dayFuturesClose": 1153.25
     },
     {
       "date": "2026-05-07",
@@ -107,7 +119,9 @@
       "prevClose": 7384.56,
       "futuresDayClose": 1131.7,
       "nightFuturesClose": 1148.0,
-      "nightFuturesError": -8.15
+      "nightFuturesError": -8.15,
+      "actualClose": 7490.05,
+      "dayFuturesClose": 1158.7
     },
     {
       "date": "2026-05-06",
@@ -122,7 +136,9 @@
       "prevClose": 6936.99,
       "futuresDayClose": 1111.2,
       "nightFuturesClose": null,
-      "nightFuturesError": null
+      "nightFuturesError": null,
+      "actualClose": 7384.56,
+      "dayFuturesClose": 1131.7
     },
     {
       "date": "2026-05-04",
@@ -137,7 +153,9 @@
       "prevClose": 6598.87,
       "futuresDayClose": 998.5,
       "nightFuturesClose": null,
-      "nightFuturesError": null
+      "nightFuturesError": null,
+      "actualClose": 6936.99,
+      "dayFuturesClose": 1050.5
     },
     {
       "date": "2026-04-30",
@@ -152,7 +170,9 @@
       "prevClose": 6690.9,
       "futuresDayClose": 1005.25,
       "nightFuturesClose": 991.08,
-      "nightFuturesError": -143.0
+      "nightFuturesError": -143.0,
+      "actualClose": 6598.87,
+      "dayFuturesClose": 998.5
     },
     {
       "date": "2026-04-29",
@@ -167,7 +187,9 @@
       "prevClose": 6641.02,
       "futuresDayClose": 1001.9,
       "nightFuturesClose": 982.86,
-      "nightFuturesError": -104.25
+      "nightFuturesError": -104.25,
+      "actualClose": 6690.9,
+      "dayFuturesClose": 1005.25
     },
     {
       "date": "2026-04-28",
@@ -182,7 +204,9 @@
       "prevClose": 6615.03,
       "futuresDayClose": 996.95,
       "nightFuturesClose": 999.24,
-      "nightFuturesError": -16.84
+      "nightFuturesError": -16.84,
+      "actualClose": 6641.02,
+      "dayFuturesClose": 1001.9
     },
     {
       "date": "2026-04-27",
@@ -197,7 +221,9 @@
       "prevClose": 6475.63,
       "futuresDayClose": 973.95,
       "nightFuturesClose": 987.2,
-      "nightFuturesError": 30.13
+      "nightFuturesError": 30.13,
+      "actualClose": 6615.03,
+      "dayFuturesClose": 996.95
     },
     {
       "date": "2026-04-24",
@@ -212,7 +238,9 @@
       "prevClose": 6475.81,
       "futuresDayClose": 979.95,
       "nightFuturesClose": 970.93,
-      "nightFuturesError": -79.76
+      "nightFuturesError": -79.76,
+      "actualClose": 6475.63,
+      "dayFuturesClose": 973.95
     },
     {
       "date": "2026-04-23",
@@ -227,7 +255,9 @@
       "prevClose": 6417.93,
       "futuresDayClose": 967.65,
       "nightFuturesClose": 992.03,
-      "nightFuturesError": 90.93
+      "nightFuturesError": 90.93,
+      "actualClose": 6475.81,
+      "dayFuturesClose": 979.95
     },
     {
       "date": "2026-04-22",
@@ -242,7 +272,9 @@
       "prevClose": 6388.47,
       "futuresDayClose": 965.1,
       "nightFuturesClose": 950.53,
-      "nightFuturesError": -95.74
+      "nightFuturesError": -95.74,
+      "actualClose": 6417.93,
+      "dayFuturesClose": 967.65
     },
     {
       "date": "2026-04-21",
@@ -257,7 +289,9 @@
       "prevClose": 6191.92,
       "futuresDayClose": 939.35,
       "nightFuturesClose": 950.06,
-      "nightFuturesError": -40.09
+      "nightFuturesError": -40.09,
+      "actualClose": 6388.47,
+      "dayFuturesClose": 965.1
     },
     {
       "date": "2026-04-20",
@@ -272,7 +306,9 @@
       "prevClose": 6191.92,
       "futuresDayClose": 935.75,
       "nightFuturesClose": 962.04,
-      "nightFuturesError": 151.7
+      "nightFuturesError": 151.7,
+      "actualClose": 6219.09,
+      "dayFuturesClose": 939.35
     },
     {
       "date": "2026-04-17",
@@ -287,7 +323,9 @@
       "prevClose": 6226.05,
       "futuresDayClose": 943.8,
       "nightFuturesClose": 945.31,
-      "nightFuturesError": 8.95
+      "nightFuturesError": 8.95,
+      "actualClose": 6191.92,
+      "dayFuturesClose": 935.75
     },
     {
       "date": "2026-04-16",
@@ -302,7 +340,9 @@
       "prevClose": 6091.39,
       "futuresDayClose": 924.75,
       "nightFuturesClose": 923.36,
-      "nightFuturesError": -66.99
+      "nightFuturesError": -66.99,
+      "actualClose": 6226.05,
+      "dayFuturesClose": 943.8
     },
     {
       "date": "2026-04-15",
@@ -317,7 +357,9 @@
       "prevClose": 5967.75,
       "futuresDayClose": 901.9,
       "nightFuturesClose": 930.04,
-      "nightFuturesError": 12.08
+      "nightFuturesError": 12.08,
+      "actualClose": 6091.39,
+      "dayFuturesClose": 924.75
     },
     {
       "date": "2026-04-14",
@@ -332,7 +374,9 @@
       "prevClose": 5808.62,
       "futuresDayClose": 872.0,
       "nightFuturesClose": 899.99,
-      "nightFuturesError": 34.8
+      "nightFuturesError": 34.8,
+      "actualClose": 5967.75,
+      "dayFuturesClose": 901.9
     },
     {
       "date": "2026-04-13",
@@ -347,7 +391,9 @@
       "prevClose": 5858.87,
       "futuresDayClose": 883.5,
       "nightFuturesClose": 888.45,
-      "nightFuturesError": 154.42
+      "nightFuturesError": 154.42,
+      "actualClose": 5808.62,
+      "dayFuturesClose": 872.0
     },
     {
       "date": "2026-04-10",
@@ -362,7 +408,9 @@
       "prevClose": 5778.01,
       "futuresDayClose": 867.05,
       "nightFuturesClose": 885.08,
-      "nightFuturesError": 21.84
+      "nightFuturesError": 21.84,
+      "actualClose": 5858.87,
+      "dayFuturesClose": 883.5
     },
     {
       "date": "2026-04-09",
@@ -373,7 +421,9 @@
       "high": 6133.07,
       "actualOpen": 5826.45,
       "hit": false,
-      "isSynthetic": false
+      "isSynthetic": false,
+      "actualClose": 5778.01,
+      "dayFuturesClose": 867.05
     }
   ]
 }

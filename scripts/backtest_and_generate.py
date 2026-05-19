@@ -3217,6 +3217,8 @@ def _build_archive_history_row(
         "is_synthetic": False,
         "prev_close": resolved_prev_close,
         "futures_day_close": futures_day_close,
+        "actual_close": None,
+        "day_futures_close": None,
         "night_futures_close": night_futures_close,
         "night_futures_error": night_futures_error,
     }
@@ -3254,6 +3256,8 @@ def _estimate_history_row_from_dataset(
             "is_synthetic": True,
             "prev_close": prev_close,
             "futures_day_close": None,
+            "actual_close": None,
+            "day_futures_close": None,
             "night_futures_close": None,
             "night_futures_error": None,
         }
@@ -3323,8 +3327,46 @@ def _estimate_history_row_from_dataset(
     }
 
 
-def _apply_archive_market_data(history_df: pd.DataFrame, prediction_archive: list[dict]) -> pd.DataFrame:
-    """archive에 저장된 prevClose/futuresDayClose/nightFutures 데이터를 history_df 전체 날짜에 적용."""
+def _extract_kospi_close_by_date(history_market: dict[str, pd.DataFrame]) -> dict[date, float]:
+    """yfinance KOSPI 데이터에서 날짜별 당일 종가를 반환."""
+    frame = history_market.get("kospi", pd.DataFrame())
+    close_series = frame["Close"].dropna() if "Close" in frame else pd.Series(dtype=float)
+    return {pd.Timestamp(ts).date(): float(v) for ts, v in close_series.items()}
+
+
+def _build_k200f_close_by_date(
+    prediction_archive: list[dict],
+    kospi_close_by_date: dict[date, float],
+) -> dict[date, float]:
+    """
+    archive의 futuresDayClose는 해당 prediction date 직전 마지막 거래일의 K200F 종가.
+    KOSPI 거래일 목록을 기준으로 역산해 날짜별 K200F 종가 lookup을 만든다.
+    """
+    sorted_trading = sorted(kospi_close_by_date.keys())
+    result: dict[date, float] = {}
+    for entry in prediction_archive:
+        pred_date_iso = entry.get("predictionDateIso")
+        futures_close = entry.get("futuresDayClose")
+        if not pred_date_iso or futures_close is None:
+            continue
+        try:
+            pred_date = date.fromisoformat(pred_date_iso)
+            futures_close_f = float(futures_close)
+        except (ValueError, TypeError):
+            continue
+        prev_days = [d for d in sorted_trading if d < pred_date]
+        if prev_days:
+            last_day = max(prev_days)
+            result[last_day] = futures_close_f
+    return result
+
+
+def _apply_archive_market_data(
+    history_df: pd.DataFrame,
+    prediction_archive: list[dict],
+    history_market: dict[str, pd.DataFrame] | None = None,
+) -> pd.DataFrame:
+    """archive/yfinance 데이터를 history_df 전체 날짜에 적용."""
     if history_df.empty or not prediction_archive:
         return history_df
 
@@ -3332,7 +3374,17 @@ def _apply_archive_market_data(history_df: pd.DataFrame, prediction_archive: lis
     if not lookup:
         return history_df
 
-    for col in ("prev_close", "futures_day_close", "night_futures_close", "night_futures_error"):
+    kospi_close_by_date: dict[date, float] = {}
+    k200f_close_by_date: dict[date, float] = {}
+    if history_market:
+        kospi_close_by_date = _extract_kospi_close_by_date(history_market)
+        k200f_close_by_date = _build_k200f_close_by_date(prediction_archive, kospi_close_by_date)
+
+    for col in (
+        "prev_close", "futures_day_close",
+        "actual_close", "day_futures_close",
+        "night_futures_close", "night_futures_error",
+    ):
         if col not in history_df.columns:
             history_df[col] = np.nan
 
@@ -3350,6 +3402,15 @@ def _apply_archive_market_data(history_df: pd.DataFrame, prediction_archive: lis
         except (ValueError, TypeError):
             continue
         arc = lookup.get(target_date)
+
+        # 당일 종가 / 주간선물 종가 (yfinance + archive 역산)
+        actual_close = kospi_close_by_date.get(target_date)
+        day_futures_close = k200f_close_by_date.get(target_date)
+        if pd.isna(history_df.at[idx, "actual_close"]) and actual_close is not None:
+            history_df.at[idx, "actual_close"] = round(actual_close, 2)
+        if pd.isna(history_df.at[idx, "day_futures_close"]) and day_futures_close is not None:
+            history_df.at[idx, "day_futures_close"] = round(day_futures_close, 2)
+
         if arc is None:
             continue
 
@@ -3417,6 +3478,8 @@ def _fill_recent_history_gaps(
                 "hit",
                 "prev_close",
                 "futures_day_close",
+                "actual_close",
+                "day_futures_close",
                 "night_futures_close",
                 "night_futures_error",
             ]
@@ -3506,7 +3569,7 @@ def build_history_df(
         prediction_archive=prediction_archive,
     )
 
-    df = _apply_archive_market_data(df, prediction_archive)
+    df = _apply_archive_market_data(df, prediction_archive, history_market)
 
     if "date" in df.columns:
         parsed_dates = pd.to_datetime(df["date"], errors="coerce")
@@ -3600,6 +3663,8 @@ def write_history_json(result: dict, history_df: pd.DataFrame) -> None:
             "date": row["date"],
             "prevClose": safe_round(row.get("prev_close")),
             "futuresDayClose": safe_round(row.get("futures_day_close")),
+            "actualClose": safe_round(row.get("actual_close")),
+            "dayFuturesClose": safe_round(row.get("day_futures_close")),
             "nightFuturesClose": safe_round(row.get("night_futures_close")),
             "modelPrediction": safe_round(row["pred_open"]),
             "nightFuturesSimpleOpen": safe_round(row.get("night_simple_open")),
