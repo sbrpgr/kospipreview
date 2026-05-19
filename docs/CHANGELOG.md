@@ -1,6 +1,62 @@
 # Changelog
 
+## 2026-05-19
+
+- history.json 마켓 데이터 5개 필드 복구 및 자동 누적 구조 완성
+
+  **배경**: `929591d1`, `e0c9b843` 커밋에서 `actualClose`·`dayFuturesClose`·`nightFuturesClose`가
+  `write_history_json`에서 제거된 채 누적이 중단됐고, 프론트엔드(`accuracy-table.tsx`)는
+  이미 이 필드들을 표시하도록 구현되어 있었음.
+
+  **복구된 필드 (history.json 레코드당)**:
+  | JSON 키 | 설명 |
+  |---|---|
+  | `actualClose` | 당일 KOSPI 종가 (yfinance `^KS11` Close) |
+  | `dayFuturesClose` | 당일 K200F 주간선물 종가 (archive 역산) |
+  | `prevClose` | 전일 KOSPI 종가 (모델 입력 기준값) |
+  | `futuresDayClose` | 전일 K200F 종가 (모델 입력 기준값) |
+  | `nightFuturesClose` | 야간선물 종가 (`futuresDayClose × (1 + changePct/100)`) |
+  | `nightFuturesSimpleOpen` | 야간선물 환산치 (야간선물→코스피 환산 예측값) |
+  | `nightFuturesError` | 야간선물 오차 (`nightFuturesSimpleOpen − actualOpen`) |
+
+  **코드 변경 (`scripts/backtest_and_generate.py`)**:
+  - `normalize_prediction_archive_entry`: `prevClose`, `futuresDayClose`,
+    `nightFuturesSimpleChangePct` 를 prediction 저장 시 archive에 함께 기록
+  - `_extract_kospi_close_by_date`: yfinance KOSPI 데이터에서 날짜별 당일 종가 추출
+  - `_build_k200f_close_by_date`: archive의 `futuresDayClose`를 KOSPI 거래일 역산으로
+    날짜별 K200F 종가 lookup 생성
+  - `_apply_archive_market_data` (신규): `_fill_recent_history_gaps` 이후에 실행,
+    archive에 있는 **전체** 날짜에 시장 데이터 일괄 적용 (기존 최근 5일 한계 해소)
+  - `write_history_json`: 7개 필드 전부 출력
+
+  **데이터 백필**:
+  - `prediction_archive.json`: git 커밋 1,521개 전수 스캔 → 27개 엔트리 전부 복원
+  - `history.json`: archive + yfinance로 25개 레코드 직접 백필
+
+  **이후 자동 누적**: retrain 사이클(5분마다)마다 yfinance + archive 역산으로 신규 날짜
+  자동 입력. 예측 생성 시 `prevClose`·`futuresDayClose`·`nightFuturesSimpleChangePct`가
+  archive에 저장되므로 미래 데이터도 누락 없이 쌓임.
+
 ## 2026-05-15
+
+- 리서치 콘텐츠 자동 작성 에이전트 및 계획 수립
+  - `docs/RESEARCH_CONTENT_PLAN.md`: 20개 아티클 전체 명세
+    - 완료 3개 + 대기 17개 (제목, 데이터 근거, 섹션 구성 포함)
+    - 번호 4~20번 각 아티클에 실제 JSON 수치와 섹션 개요 기술
+  - `scripts/write_research_content.py`: Claude API 기반 자동 작성 에이전트
+    - `python scripts/write_research_content.py <번호|all>` 형식으로 실행
+    - history.json, prediction.json 실데이터를 컨텍스트로 주입
+    - 아티클당 claude-sonnet-4-6 1회 호출 → Next.js page.tsx 파일 자동 생성
+    - 실행 전 `pip install anthropic` 및 `ANTHROPIC_API_KEY` 환경변수 필요
+  - 실행 후 수동 처리 항목: `research/page.tsx` ARTICLES 배열 추가, `sitemap.ts` 경로 추가, `deploy-hosting`
+
+- 리서치 콘텐츠 섹션 신설 및 배포
+  - `/research` 인덱스 페이지 및 아티클 3개 작성 (실데이터 기반)
+    - `model-in-volatile-markets`: 2026년 4월 관세 충격 13연속 밴드 이탈 실측 분석
+    - `ewy-krw-core-signals`: EWY 계수 0.3535, 환율 계수 0.2, R² 23.49% 실수치 해설
+    - `reading-the-prediction-band`: 17개 실측 기록 전수 표, 백테스트 75% vs 최근 23.5% 비교
+  - 내비게이션 "리서치" 링크 추가, 사이트맵 등록
+  - `deploy-hosting` 워크플로우로 프로덕션 배포 완료 (run 25887537992, success)
 
 - YouTube 뉴스 기능 전면 제거 (AdSense 재심사 대응)
   - 제거 배경: AdSense 심사 거절(가치 없는 콘텐츠) 원인 분석 결과, Gemini 자동 요약 기반 YouTube 뉴스가
