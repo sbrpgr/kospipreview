@@ -3323,6 +3323,67 @@ def _estimate_history_row_from_dataset(
     }
 
 
+def _apply_archive_market_data(history_df: pd.DataFrame, prediction_archive: list[dict]) -> pd.DataFrame:
+    """archive에 저장된 prevClose/futuresDayClose/nightFutures 데이터를 history_df 전체 날짜에 적용."""
+    if history_df.empty or not prediction_archive:
+        return history_df
+
+    lookup = _build_prediction_archive_lookup(prediction_archive)
+    if not lookup:
+        return history_df
+
+    for col in ("prev_close", "futures_day_close", "night_futures_close", "night_futures_error"):
+        if col not in history_df.columns:
+            history_df[col] = np.nan
+
+    def _arc_float(arc: dict, key: str) -> float | None:
+        raw = arc.get(key)
+        try:
+            return float(raw) if raw is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    for idx in history_df.index:
+        date_str = str(history_df.at[idx, "date"])
+        try:
+            target_date = date.fromisoformat(date_str)
+        except (ValueError, TypeError):
+            continue
+        arc = lookup.get(target_date)
+        if arc is None:
+            continue
+
+        prev_close = _arc_float(arc, "prevClose")
+        futures_day_close = _arc_float(arc, "futuresDayClose")
+        night_change_pct = _arc_float(arc, "nightFuturesSimpleChangePct")
+        night_simple = _arc_float(arc, "nightFuturesSimplePoint")
+
+        night_futures_close: float | None = None
+        if futures_day_close is not None and night_change_pct is not None:
+            night_futures_close = round(futures_day_close * (1 + night_change_pct / 100), 2)
+
+        actual_open = history_df.at[idx, "actual_open"]
+        night_futures_error: float | None = None
+        if night_simple is not None and actual_open is not None:
+            try:
+                night_futures_error = round(float(night_simple) - float(actual_open), 2)
+            except (TypeError, ValueError):
+                pass
+
+        if pd.isna(history_df.at[idx, "prev_close"]) and prev_close is not None:
+            history_df.at[idx, "prev_close"] = prev_close
+        if pd.isna(history_df.at[idx, "futures_day_close"]) and futures_day_close is not None:
+            history_df.at[idx, "futures_day_close"] = futures_day_close
+        if pd.isna(history_df.at[idx, "night_futures_close"]) and night_futures_close is not None:
+            history_df.at[idx, "night_futures_close"] = night_futures_close
+        if pd.isna(history_df.at[idx, "night_futures_error"]) and night_futures_error is not None:
+            history_df.at[idx, "night_futures_error"] = night_futures_error
+        if pd.isna(history_df.at[idx, "night_simple_open"]) and night_simple is not None:
+            history_df.at[idx, "night_simple_open"] = round(float(night_simple), 2)
+
+    return history_df
+
+
 def _fill_recent_history_gaps(
     history_df: pd.DataFrame,
     result: dict,
@@ -3444,6 +3505,8 @@ def build_history_df(
         dataset=dataset,
         prediction_archive=prediction_archive,
     )
+
+    df = _apply_archive_market_data(df, prediction_archive)
 
     if "date" in df.columns:
         parsed_dates = pd.to_datetime(df["date"], errors="coerce")
