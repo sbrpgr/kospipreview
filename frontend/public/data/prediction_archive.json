@@ -8,8 +8,11 @@
       "rangeLow": 7330.63,
       "rangeHigh": 7394.58,
       "pointPrediction": 7362.6,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 7326.19
+      "nightFuturesSimplePoint": 7446.54,
+      "ewyFxSimplePoint": 7326.19,
+      "prevClose": 7493.18,
+      "futuresDayClose": 1172.7,
+      "nightFuturesSimpleChangePct": -0.62
     },
     {
       "predictionDateIso": "2026-05-15",
@@ -18,8 +21,11 @@
       "rangeLow": 7969.73,
       "rangeHigh": 8032.8,
       "pointPrediction": 8001.27,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 7964.05
+      "nightFuturesSimplePoint": 7961.86,
+      "ewyFxSimplePoint": 7964.05,
+      "prevClose": 7981.41,
+      "futuresDayClose": 1245.5,
+      "nightFuturesSimpleChangePct": -0.24
     },
     {
       "predictionDateIso": "2026-05-14",
@@ -28,8 +34,11 @@
       "rangeLow": 7899.53,
       "rangeHigh": 7962.53,
       "pointPrediction": 7931.03,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 7968.61
+      "nightFuturesSimplePoint": 7875.14,
+      "ewyFxSimplePoint": 7968.61,
+      "prevClose": 7844.01,
+      "futuresDayClose": 1222.25,
+      "nightFuturesSimpleChangePct": 0.4
     },
     {
       "predictionDateIso": "2026-05-13",
@@ -38,8 +47,11 @@
       "rangeLow": 7441.52,
       "rangeHigh": 7504.32,
       "pointPrediction": 7472.92,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 7413.7
+      "nightFuturesSimplePoint": 7466.57,
+      "ewyFxSimplePoint": 7413.7,
+      "prevClose": 7643.15,
+      "futuresDayClose": 1186.0,
+      "nightFuturesSimpleChangePct": -2.31
     },
     {
       "predictionDateIso": "2026-05-12",
@@ -48,8 +60,11 @@
       "rangeLow": 7932.53,
       "rangeHigh": 7995.35,
       "pointPrediction": 7963.94,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 8004.37
+      "nightFuturesSimplePoint": 7981.68,
+      "ewyFxSimplePoint": 8004.37,
+      "prevClose": 7822.24,
+      "futuresDayClose": 1214.25,
+      "nightFuturesSimpleChangePct": 2.04
     },
     {
       "predictionDateIso": "2026-05-11",
@@ -58,8 +73,11 @@
       "rangeLow": 7722.55,
       "rangeHigh": 7784.91,
       "pointPrediction": 7753.73,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 7863.79
+      "nightFuturesSimplePoint": 7866.97,
+      "ewyFxSimplePoint": 7863.79,
+      "prevClose": 7498.0,
+      "futuresDayClose": 1153.25,
+      "nightFuturesSimpleChangePct": 4.92
     },
     {
       "predictionDateIso": "2026-05-08",
@@ -68,8 +86,11 @@
       "rangeLow": 7279.87,
       "rangeHigh": 7342.32,
       "pointPrediction": 7311.1,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 7237.05
+      "nightFuturesSimplePoint": 7259.28,
+      "ewyFxSimplePoint": 7237.05,
+      "prevClose": 7490.05,
+      "futuresDayClose": 1158.7,
+      "nightFuturesSimpleChangePct": -3.08
     },
     {
       "predictionDateIso": "2026-05-07",
@@ -78,8 +99,11 @@
       "rangeLow": 7382.51,
       "rangeHigh": 7444.85,
       "pointPrediction": 7413.68,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 7413.95
+      "nightFuturesSimplePoint": 7490.92,
+      "ewyFxSimplePoint": 7413.95,
+      "prevClose": 7384.56,
+      "futuresDayClose": 1131.7,
+      "nightFuturesSimpleChangePct": 1.44
     },
     {
       "predictionDateIso": "2026-05-06",
@@ -89,7 +113,9 @@
       "rangeHigh": 7242.26,
       "pointPrediction": 7211.09,
       "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 7425.18
+      "ewyFxSimplePoint": 7425.18,
+      "prevClose": 6936.99,
+      "futuresDayClose": 1111.2
     },
     {
       "predictionDateIso": "2026-05-05",
@@ -98,8 +124,11 @@
       "rangeLow": 6917.19,
       "rangeHigh": 6979.53,
       "pointPrediction": 6948.36,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6906.96
+      "nightFuturesSimplePoint": 6880.86,
+      "ewyFxSimplePoint": 6906.96,
+      "prevClose": 6936.99,
+      "futuresDayClose": 1050.5,
+      "nightFuturesSimpleChangePct": -0.81
     },
     {
       "predictionDateIso": "2026-05-04",
@@ -109,7 +138,9 @@
       "rangeHigh": 6801.39,
       "pointPrediction": 6770.6,
       "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6819.85
+      "ewyFxSimplePoint": 6819.85,
+      "prevClose": 6598.87,
+      "futuresDayClose": 998.5
     },
     {
       "predictionDateIso": "2026-05-01",
@@ -118,8 +149,11 @@
       "rangeLow": 6603.34,
       "rangeHigh": 6664.9,
       "pointPrediction": 6634.12,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6649.28
+      "nightFuturesSimplePoint": 6713.53,
+      "ewyFxSimplePoint": 6649.28,
+      "prevClose": 6598.87,
+      "futuresDayClose": 998.5,
+      "nightFuturesSimpleChangePct": 1.74
     },
     {
       "predictionDateIso": "2026-04-30",
@@ -128,8 +162,11 @@
       "rangeLow": 6669.23,
       "rangeHigh": 6730.83,
       "pointPrediction": 6700.03,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6666.24
+      "nightFuturesSimplePoint": 6596.39,
+      "ewyFxSimplePoint": 6666.24,
+      "prevClose": 6690.9,
+      "futuresDayClose": 1005.25,
+      "nightFuturesSimpleChangePct": -1.41
     },
     {
       "predictionDateIso": "2026-04-29",
@@ -138,8 +175,11 @@
       "rangeLow": 6558.94,
       "rangeHigh": 6620.59,
       "pointPrediction": 6589.76,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6567.92
+      "nightFuturesSimplePoint": 6514.75,
+      "ewyFxSimplePoint": 6567.92,
+      "prevClose": 6641.02,
+      "futuresDayClose": 1001.9,
+      "nightFuturesSimpleChangePct": -1.9
     },
     {
       "predictionDateIso": "2026-04-28",
@@ -148,8 +188,11 @@
       "rangeLow": 6613.61,
       "rangeHigh": 6675.09,
       "pointPrediction": 6644.35,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6656.95
+      "nightFuturesSimplePoint": 6629.96,
+      "ewyFxSimplePoint": 6656.95,
+      "prevClose": 6615.03,
+      "futuresDayClose": 996.95,
+      "nightFuturesSimpleChangePct": 0.23
     },
     {
       "predictionDateIso": "2026-04-27",
@@ -158,8 +201,11 @@
       "rangeLow": 6472.38,
       "rangeHigh": 6533.88,
       "pointPrediction": 6503.13,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6514.95
+      "nightFuturesSimplePoint": 6563.73,
+      "ewyFxSimplePoint": 6514.95,
+      "prevClose": 6475.63,
+      "futuresDayClose": 973.95,
+      "nightFuturesSimpleChangePct": 1.36
     },
     {
       "predictionDateIso": "2026-04-24",
@@ -168,8 +214,11 @@
       "rangeLow": 6462.94,
       "rangeHigh": 6523.74,
       "pointPrediction": 6493.34,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6486.09
+      "nightFuturesSimplePoint": 6416.34,
+      "ewyFxSimplePoint": 6486.09,
+      "prevClose": 6475.81,
+      "futuresDayClose": 979.95,
+      "nightFuturesSimpleChangePct": -0.92
     },
     {
       "predictionDateIso": "2026-04-23",
@@ -178,8 +227,11 @@
       "rangeLow": 6477.91,
       "rangeHigh": 6538.62,
       "pointPrediction": 6508.26,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6547.37
+      "nightFuturesSimplePoint": 6579.76,
+      "ewyFxSimplePoint": 6547.37,
+      "prevClose": 6417.93,
+      "futuresDayClose": 967.65,
+      "nightFuturesSimpleChangePct": 2.52
     },
     {
       "predictionDateIso": "2026-04-22",
@@ -188,8 +240,11 @@
       "rangeLow": 6368.61,
       "rangeHigh": 6428.75,
       "pointPrediction": 6398.68,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6386.2
+      "nightFuturesSimplePoint": 6291.83,
+      "ewyFxSimplePoint": 6386.2,
+      "prevClose": 6388.47,
+      "futuresDayClose": 965.1,
+      "nightFuturesSimpleChangePct": -1.51
     },
     {
       "predictionDateIso": "2026-04-21",
@@ -198,8 +253,11 @@
       "rangeLow": 6271.39,
       "rangeHigh": 6331.15,
       "pointPrediction": 6301.27,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6332.46
+      "nightFuturesSimplePoint": 6262.45,
+      "ewyFxSimplePoint": 6332.46,
+      "prevClose": 6191.92,
+      "futuresDayClose": 939.35,
+      "nightFuturesSimpleChangePct": 1.14
     },
     {
       "predictionDateIso": "2026-04-20",
@@ -208,8 +266,11 @@
       "rangeLow": 6294.62,
       "rangeHigh": 6354.32,
       "pointPrediction": 6324.47,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6362.36
+      "nightFuturesSimplePoint": 6365.62,
+      "ewyFxSimplePoint": 6362.36,
+      "prevClose": 6191.92,
+      "futuresDayClose": 935.75,
+      "nightFuturesSimpleChangePct": 2.81
     },
     {
       "predictionDateIso": "2026-04-17",
@@ -218,8 +279,11 @@
       "rangeLow": 6210.09,
       "rangeHigh": 6269.25,
       "pointPrediction": 6239.67,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6232.51
+      "nightFuturesSimplePoint": 6236.28,
+      "ewyFxSimplePoint": 6232.51,
+      "prevClose": 6226.05,
+      "futuresDayClose": 943.8,
+      "nightFuturesSimpleChangePct": 0.16
     },
     {
       "predictionDateIso": "2026-04-16",
@@ -228,8 +292,11 @@
       "rangeLow": 6079.74,
       "rangeHigh": 6138.93,
       "pointPrediction": 6109.34,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6118.79
+      "nightFuturesSimplePoint": 6082.5,
+      "ewyFxSimplePoint": 6118.79,
+      "prevClose": 6091.39,
+      "futuresDayClose": 924.75,
+      "nightFuturesSimpleChangePct": -0.15
     },
     {
       "predictionDateIso": "2026-04-15",
@@ -238,8 +305,11 @@
       "rangeLow": 6056.44,
       "rangeHigh": 6108.92,
       "pointPrediction": 6082.68,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6115.5
+      "nightFuturesSimplePoint": 6153.68,
+      "ewyFxSimplePoint": 6115.5,
+      "prevClose": 5967.75,
+      "futuresDayClose": 901.9,
+      "nightFuturesSimpleChangePct": 3.12
     },
     {
       "predictionDateIso": "2026-04-14",
@@ -248,8 +318,11 @@
       "rangeLow": 5855.79,
       "rangeHigh": 5898.45,
       "pointPrediction": 5877.12,
-      "nightFuturesSimplePoint": null,
-      "ewyFxSimplePoint": 6006.14
+      "nightFuturesSimplePoint": 5994.8,
+      "ewyFxSimplePoint": 6006.14,
+      "prevClose": 5808.62,
+      "futuresDayClose": 872.0,
+      "nightFuturesSimpleChangePct": 3.21
     },
     {
       "predictionDateIso": "2026-04-13",
@@ -259,7 +332,10 @@
       "rangeHigh": 5905.98,
       "pointPrediction": 5884.52,
       "nightFuturesSimplePoint": 5891.7,
-      "ewyFxSimplePoint": null
+      "ewyFxSimplePoint": null,
+      "prevClose": 5858.87,
+      "futuresDayClose": 883.5,
+      "nightFuturesSimpleChangePct": 0.56
     },
     {
       "predictionDateIso": "2026-04-10",
@@ -269,7 +345,10 @@
       "rangeHigh": 5857.1,
       "pointPrediction": 5835.78,
       "nightFuturesSimplePoint": 5897.96,
-      "ewyFxSimplePoint": null
+      "ewyFxSimplePoint": null,
+      "prevClose": 5778.01,
+      "futuresDayClose": 867.05,
+      "nightFuturesSimpleChangePct": 2.08
     }
   ]
 }

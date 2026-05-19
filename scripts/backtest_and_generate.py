@@ -404,6 +404,19 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         except (TypeError, ValueError):
             ewy_fx_simple = None
 
+    def _safe_float(key: str) -> float | None:
+        raw = payload.get(key)
+        if raw is None:
+            return None
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return None
+
+    prev_close = _safe_float("prevClose")
+    futures_day_close = _safe_float("futuresDayClose")
+    night_change_pct = _safe_float("nightFuturesSimpleChangePct")
+
     return {
         "predictionDateIso": prediction_date_iso,
         "predictionDate": payload.get("predictionDate"),
@@ -413,6 +426,9 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         "pointPrediction": round(point, 2),
         "nightFuturesSimplePoint": round(night_simple, 2) if night_simple is not None else None,
         "ewyFxSimplePoint": round(ewy_fx_simple, 2) if ewy_fx_simple is not None else None,
+        "prevClose": round(prev_close, 2) if prev_close is not None else None,
+        "futuresDayClose": round(futures_day_close, 2) if futures_day_close is not None else None,
+        "nightFuturesSimpleChangePct": round(night_change_pct, 4) if night_change_pct is not None else None,
     }
 
 
@@ -3164,17 +3180,28 @@ def _build_archive_history_row(
         actual_change = actual_open - prev_close
         direction_hit = np.sign(predicted_change) == np.sign(actual_change)
 
-    night_simple_raw = archive_entry.get("nightFuturesSimplePoint")
-    try:
-        night_simple_open = float(night_simple_raw) if night_simple_raw is not None else None
-    except (TypeError, ValueError):
-        night_simple_open = None
+    def _arc_float(key: str) -> float | None:
+        raw = archive_entry.get(key)
+        try:
+            return float(raw) if raw is not None else None
+        except (TypeError, ValueError):
+            return None
 
-    ewy_fx_simple_raw = archive_entry.get("ewyFxSimplePoint")
-    try:
-        ewy_fx_simple_open = float(ewy_fx_simple_raw) if ewy_fx_simple_raw is not None else None
-    except (TypeError, ValueError):
-        ewy_fx_simple_open = None
+    night_simple_open = _arc_float("nightFuturesSimplePoint")
+    ewy_fx_simple_open = _arc_float("ewyFxSimplePoint")
+    arc_prev_close = _arc_float("prevClose")
+    futures_day_close = _arc_float("futuresDayClose")
+    night_change_pct = _arc_float("nightFuturesSimpleChangePct")
+
+    night_futures_close: float | None = None
+    if futures_day_close is not None and night_change_pct is not None:
+        night_futures_close = round(futures_day_close * (1 + night_change_pct / 100), 2)
+
+    night_futures_error: float | None = None
+    if night_simple_open is not None:
+        night_futures_error = round(night_simple_open - actual_open, 2)
+
+    resolved_prev_close = arc_prev_close if arc_prev_close is not None else prev_close
 
     return {
         "date": target_date.isoformat(),
@@ -3188,6 +3215,10 @@ def _build_archive_history_row(
         "hit": low <= actual_open <= high,
         "direction_hit": bool(direction_hit),
         "is_synthetic": False,
+        "prev_close": resolved_prev_close,
+        "futures_day_close": futures_day_close,
+        "night_futures_close": night_futures_close,
+        "night_futures_error": night_futures_error,
     }
 
 
@@ -3221,6 +3252,10 @@ def _estimate_history_row_from_dataset(
             "hit": low <= actual_open <= high,
             "direction_hit": np.sign(point_open - prev_close_value) == np.sign(actual_open - prev_close_value),
             "is_synthetic": True,
+            "prev_close": prev_close,
+            "futures_day_close": None,
+            "night_futures_close": None,
+            "night_futures_error": None,
         }
 
     model_dataset = result.get("model_dataset", dataset)
@@ -3281,6 +3316,10 @@ def _estimate_history_row_from_dataset(
         "hit": low <= actual_open <= high,
         "direction_hit": np.sign(point_open - prev_close_value) == np.sign(actual_open - prev_close_value),
         "is_synthetic": True,
+        "prev_close": prev_close,
+        "futures_day_close": None,
+        "night_futures_close": None,
+        "night_futures_error": None,
     }
 
 
@@ -3315,6 +3354,10 @@ def _fill_recent_history_gaps(
                 "high",
                 "error",
                 "hit",
+                "prev_close",
+                "futures_day_close",
+                "night_futures_close",
+                "night_futures_error",
             ]
         )
     else:
@@ -3480,16 +3523,25 @@ def write_history_json(result: dict, history_df: pd.DataFrame) -> None:
             return False
         return bool(value)
 
+    def safe_round(val: object, ndigits: int = 2) -> float | None:
+        if val is None:
+            return None
+        try:
+            f = float(val)
+            return None if pd.isna(f) else round(f, ndigits)
+        except (TypeError, ValueError):
+            return None
+
     records = [
         {
             "date": row["date"],
-            "modelPrediction": round(float(row["pred_open"]), 2) if not pd.isna(row["pred_open"]) else None,
-            "nightFuturesSimpleOpen": (
-                round(float(row["night_simple_open"]), 2) if not pd.isna(row.get("night_simple_open")) else None
-            ),
-            "ewyFxSimpleOpen": (
-                round(float(row["ewy_fx_simple_open"]), 2) if not pd.isna(row.get("ewy_fx_simple_open")) else None
-            ),
+            "prevClose": safe_round(row.get("prev_close")),
+            "futuresDayClose": safe_round(row.get("futures_day_close")),
+            "nightFuturesClose": safe_round(row.get("night_futures_close")),
+            "modelPrediction": safe_round(row["pred_open"]),
+            "nightFuturesSimpleOpen": safe_round(row.get("night_simple_open")),
+            "nightFuturesError": safe_round(row.get("night_futures_error")),
+            "ewyFxSimpleOpen": safe_round(row.get("ewy_fx_simple_open")),
             "low": row["low"],
             "high": row["high"],
             "actualOpen": row["actual_open"],
