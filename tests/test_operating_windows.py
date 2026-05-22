@@ -187,6 +187,39 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(records[0]["nightFuturesSimpleChangePct"], -0.62)
         self.assertEqual(records[0]["nightFuturesClose"], 1165.43)
 
+    def test_live_data_seed_merge_preserves_history_non_null_fields(self):
+        primary_payload = {
+            "generatedAt": "2026-05-22T13:44:00+00:00",
+            "records": [
+                {
+                    "date": "2026-05-22",
+                    "actualOpen": 7873.12,
+                    "actualClose": 7847.71,
+                    "dayFuturesClose": 1228.15,
+                    "nightFuturesClose": None,
+                    "nightFuturesSimpleOpen": 7833.01,
+                }
+            ],
+        }
+        fallback_payload = {
+            "generatedAt": "2026-05-22T13:37:00+00:00",
+            "records": [
+                {
+                    "date": "2026-05-22",
+                    "actualOpen": 7873.12,
+                    "actualClose": 7847.71,
+                    "dayFuturesClose": 1228.15,
+                    "nightFuturesClose": 1229.25,
+                    "nightFuturesSimpleOpen": 7853.14,
+                }
+            ],
+        }
+
+        merged = merge_live_data_seed.merge_history_payload(primary_payload, fallback_payload)
+
+        self.assertEqual(merged["records"][0]["nightFuturesClose"], 1229.25)
+        self.assertEqual(merged["records"][0]["nightFuturesSimpleOpen"], 7833.01)
+
     def test_ewy_bridge_samples_five_two_minute_slots_from_premarket_open(self):
         model_payload = {}
         day_close = 872.0

@@ -49,6 +49,9 @@ bucket-backed `history.json` payload together with the other live JSON files.
 - `prediction_archive.json` normalization now preserves both
   `nightFuturesClose` and `nightFuturesSimpleChangePct` across the backtest and
   live refresh scripts.
+- Before publishing rebuilt JSON, existing bucket `history.json` verification
+  fields are merged back when the regenerated row would otherwise replace a
+  non-null historical field with `null`.
 
 These fixes do not change model formulas, frontend rendering, Cloud Run code, or
 Scheduler cadence.

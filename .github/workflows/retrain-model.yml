@@ -60,15 +60,21 @@ jobs:
             --quiet
           cp .live-data-seed/bucket/*.json frontend/public/data/
           python ./scripts/merge_live_data_seed.py \
-            --fallback .live-data-seed/bundled/prediction_archive.json \
-            --bucket .live-data-seed/bucket/prediction_archive.json \
-            --output frontend/public/data/prediction_archive.json
+            --archive-fallback .live-data-seed/bundled/prediction_archive.json \
+            --archive-bucket .live-data-seed/bucket/prediction_archive.json \
+            --archive-output frontend/public/data/prediction_archive.json
 
       - name: Rebuild model artifacts
         run: python ./scripts/backtest_and_generate.py
 
       - name: Refresh night futures and live prediction series
         run: python ./scripts/refresh_night_futures.py
+
+      - name: Preserve existing history verification fields
+        run: |
+          python ./scripts/merge_live_data_seed.py \
+            --history-fallback .live-data-seed/bucket/history.json \
+            --history-output frontend/public/data/history.json
 
       - name: Publish generated JSON to Cloud Storage
         run: |

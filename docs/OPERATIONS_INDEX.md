@@ -41,7 +41,9 @@ If work resumes later, read these documents in order:
 - Live refresh performance control: `YAHOO_FETCH_WORKERS` default `6`
 - Data refresh workflows seed current JSON from `gs://kospipreview-live-data/`
   before rebuilding and merge archive fallback fields so archive/history state is
-  not reset to incomplete bundled or bucket files.
+  not reset to incomplete bundled or bucket files. Before publish, regenerated
+  `history.json` rows keep existing non-null bucket verification fields when the
+  regenerated value is `null`.
 
 ## Current Operating Schedule
 
