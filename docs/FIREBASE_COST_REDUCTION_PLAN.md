@@ -2,6 +2,8 @@
 
 Date: 2026-05-22 KST
 
+Related work spec: `docs/LIVE_DASHBOARD_API_WORK_SPEC_2026-05-22.md`
+
 ## Current Finding
 
 - Billing console could not be read from this workstation because `gcloud` is not installed and the Google Cloud Console URL requires an authenticated browser session.
