@@ -1,0 +1,125 @@
+name: cloudrun-deploy
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CLOUD_RUN_SERVICE_ACCOUNT: firebase-adminsdk-fbsvc@kospipreview.iam.gserviceaccount.com
+  PROJECT_ID: kospipreview
+  REGION: asia-northeast3
+  SERVICE_NAME: kospi-live-data
+  LIVE_DATA_BUCKET: kospipreview-live-data
+  SCHEDULER_JOB_NAME: kospi-live-refresh
+  SCHEDULER_SCHEDULE: "* 0-8,17-23 * * 1-5"
+  SCHEDULER_TIME_ZONE: Asia/Seoul
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: cloudrun-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Deploy Cloud Run live data service
+        env:
+          REFRESH_BEARER_TOKEN: ${{ secrets.REFRESH_BEARER_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${REFRESH_BEARER_TOKEN:-}" ]; then
+            echo "::error::REFRESH_BEARER_TOKEN GitHub secret is required for the Cloud Scheduler refresh endpoint"
+            exit 1
+          fi
+
+          IMAGE="gcr.io/${PROJECT_ID}/${SERVICE_NAME}:${GITHUB_SHA}"
+          gcloud builds submit \
+            --project "${PROJECT_ID}" \
+            --tag "$IMAGE" \
+            --suppress-logs \
+            --quiet
+
+          gcloud run deploy "${SERVICE_NAME}" \
+            --image "$IMAGE" \
+            --project "${PROJECT_ID}" \
+            --region "${REGION}" \
+            --service-account "${CLOUD_RUN_SERVICE_ACCOUNT}" \
+            --allow-unauthenticated \
+            --update-env-vars "LIVE_DATA_BUCKET=${LIVE_DATA_BUCKET},REFRESH_BEARER_TOKEN=${REFRESH_BEARER_TOKEN},LIVE_JSON_CACHE_SECONDS=10,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240,NEWS_BUCKET_NAME=${LIVE_DATA_BUCKET},NEWS_STORAGE_PREFIX=youtube-news,NEWS_INDEX_FILE_NAME=youtube-news.json,NEWS_CACHE_SECONDS=15" \
+            --quiet
+
+      - name: Configure Cloud Scheduler live refresh window
+        env:
+          REFRESH_BEARER_TOKEN: ${{ secrets.REFRESH_BEARER_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          service_url="$(gcloud run services describe "${SERVICE_NAME}" \
+            --project "${PROJECT_ID}" \
+            --region "${REGION}" \
+            --format="value(status.url)")"
+
+          if gcloud scheduler jobs describe "${SCHEDULER_JOB_NAME}" \
+            --project "${PROJECT_ID}" \
+            --location "${REGION}" >/dev/null 2>&1; then
+            gcloud scheduler jobs update http "${SCHEDULER_JOB_NAME}" \
+              --project "${PROJECT_ID}" \
+              --location "${REGION}" \
+              --schedule "${SCHEDULER_SCHEDULE}" \
+              --time-zone "${SCHEDULER_TIME_ZONE}" \
+              --uri "${service_url}/api/tasks/refresh" \
+              --http-method POST \
+              --update-headers "Authorization=Bearer ${REFRESH_BEARER_TOKEN}"
+          else
+            gcloud scheduler jobs create http "${SCHEDULER_JOB_NAME}" \
+              --project "${PROJECT_ID}" \
+              --location "${REGION}" \
+              --schedule "${SCHEDULER_SCHEDULE}" \
+              --time-zone "${SCHEDULER_TIME_ZONE}" \
+              --uri "${service_url}/api/tasks/refresh" \
+              --http-method POST \
+              --headers "Authorization=Bearer ${REFRESH_BEARER_TOKEN}"
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+        run: |
+          rm -rf out
+          npm run build
+
+      - name: Deploy Firebase Hosting
+        run: npx firebase-tools@latest deploy --project "${PROJECT_ID}" --only hosting --non-interactive

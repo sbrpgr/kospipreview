@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 
 from cloudrun import live_data_service
@@ -71,6 +72,34 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         self.assertEqual(second_payload, first_payload)
         self.assertEqual(second_source, first_source)
         self.assertEqual(calls["count"], 1)
+
+    def test_dashboard_endpoint_combines_live_json_files(self):
+        def fake_download(file_name, target_path):
+            target_path.write_bytes(json.dumps({"fileName": file_name}).encode("utf8"))
+            return True
+
+        live_data_service.LIVE_JSON_CACHE_SECONDS = 0
+        live_data_service.download_bucket_file = fake_download
+
+        response = live_data_service.app.test_client().get("/api/live/dashboard.json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["X-Kospi-Live-Source"], "bucket")
+
+        payload = response.get_json()
+        self.assertEqual(payload["prediction"]["fileName"], "prediction.json")
+        self.assertEqual(payload["indicators"]["fileName"], "indicators.json")
+        self.assertEqual(payload["history"]["fileName"], "history.json")
+        self.assertEqual(payload["livePredictionSeries"]["fileName"], "live_prediction_series.json")
+        self.assertEqual(
+            payload["sources"],
+            {
+                "prediction": "bucket",
+                "indicators": "bucket",
+                "history": "bucket",
+                "livePredictionSeries": "bucket",
+            },
+        )
 
     def test_refresh_request_body_size_is_limited(self):
         with live_data_service.app.test_request_context(

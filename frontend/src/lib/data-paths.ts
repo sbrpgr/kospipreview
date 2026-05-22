@@ -19,6 +19,10 @@ export function getClientDataUrl(fileName: DataFileName) {
   return `${basePath}?t=${Date.now()}`;
 }
 
+export function getLiveDashboardClientUrl() {
+  return `/api/live/dashboard.json?t=${Date.now()}`;
+}
+
 export function isLiveDataFile(fileName: DataFileName) {
   return LIVE_DATA_FILES.has(fileName);
 }

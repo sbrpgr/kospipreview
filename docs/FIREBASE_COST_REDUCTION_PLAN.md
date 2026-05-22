@@ -15,6 +15,7 @@ Date: 2026-05-22 KST
 
 1. `save-market-snapshot` now installs `google-cloud-storage>=2.18.0,<4.0` before running `scripts/save_market_snapshot.py`.
 2. Frontend live polling changed from 30 seconds to 60 seconds. This cuts steady-state live API reads from each open dashboard tab by about 50% while matching the production refresh cadence.
+3. Cloud Run now serves `/api/live/dashboard.json`, which bundles prediction, indicators, history, and live prediction series. The frontend tries this single endpoint first and falls back to the previous per-file endpoints if needed, cutting steady-state dashboard live reads from four per poll to one per poll.
 
 ## Billing Verification Checklist
 
@@ -50,7 +51,7 @@ Use the Google Cloud Billing report for billing account `013A72-4608CD-FE4F11`.
 
 ### Phase 2 - Requires Cloud Run / frontend coordination
 
-- Add a single `/api/live/dashboard.json` endpoint that returns prediction, indicators, history, and live series together. This can reduce client live read requests from four per poll to one per poll.
+- Deployed: `/api/live/dashboard.json` returns prediction, indicators, history, and live series together. Keep the legacy per-file endpoints available as a fallback.
 - Increase Cloud Run `LIVE_JSON_CACHE_SECONDS` from 10 seconds toward 55 seconds if Billing shows Cloud Storage read operations or Cloud Run request handling as the main cost driver.
 - Consider separate cache settings for `/api/news/youtube-news.json`; news does not need the same freshness as live market data.
 

@@ -7,7 +7,7 @@ import { IndicatorList } from "@/components/indicator-list";
 import { NoticeContent } from "@/components/notice-content";
 import { PredictionTrendChart } from "@/components/prediction-trend-chart";
 import { SiteHeader } from "@/components/site-header";
-import { getClientDataUrl, getStaticDataUrl } from "@/lib/data-paths";
+import { getClientDataUrl, getLiveDashboardClientUrl, getStaticDataUrl } from "@/lib/data-paths";
 import {
   type HistoryData,
   type IndicatorData,
@@ -28,6 +28,14 @@ type LiveDashboardProps = {
   initialHistory: HistoryData;
   initialLivePredictionSeries: LivePredictionSeriesData;
   initialFreshness: FreshnessData;
+};
+
+type LiveDashboardApiPayload = {
+  prediction: PredictionData;
+  indicators: IndicatorData;
+  history: HistoryData;
+  livePredictionSeries: LivePredictionSeriesData;
+  sources?: Record<string, string>;
 };
 
 const PAPERS_HOME = [
@@ -373,27 +381,12 @@ async function fetchJson<T>(path: string, fallbackPath?: string) {
   return response.json() as Promise<T>;
 }
 
-async function fetchIndicatorsPayload() {
-  const indicators = await fetchJson<IndicatorData>(
-    getClientDataUrl("indicators.json"),
-    getStaticDataUrl("indicators.json"),
-  );
-  return {
-    indicators,
-    indicatorsVersion: getIndicatorsVersion(indicators),
-  };
-}
-
-async function fetchDashboardPayload(indicators: IndicatorData) {
-  const [prediction, history, livePredictionSeries] = await Promise.all([
-    fetchJson<PredictionData>(getClientDataUrl("prediction.json"), getStaticDataUrl("prediction.json")),
-    fetchJson<HistoryData>(getClientDataUrl("history.json"), getStaticDataUrl("history.json")),
-    fetchJson<LivePredictionSeriesData>(
-      getClientDataUrl("live_prediction_series.json"),
-      getStaticDataUrl("live_prediction_series.json"),
-    ),
-  ]);
-
+function buildDashboardPayload(
+  prediction: PredictionData,
+  indicators: IndicatorData,
+  history: HistoryData,
+  livePredictionSeries: LivePredictionSeriesData,
+) {
   const timestamps = [
     prediction.lastCalculatedAt,
     prediction.generatedAt,
@@ -437,6 +430,38 @@ async function fetchDashboardPayload(indicators: IndicatorData) {
   };
 }
 
+async function fetchDashboardPayloadFromBundle() {
+  const payload = await fetchJson<LiveDashboardApiPayload>(getLiveDashboardClientUrl());
+
+  if (!payload.prediction || !payload.indicators || !payload.history || !payload.livePredictionSeries) {
+    throw new Error("Incomplete live dashboard payload");
+  }
+
+  return buildDashboardPayload(payload.prediction, payload.indicators, payload.history, payload.livePredictionSeries);
+}
+
+async function fetchDashboardPayloadFromFiles() {
+  const [prediction, indicators, history, livePredictionSeries] = await Promise.all([
+    fetchJson<PredictionData>(getClientDataUrl("prediction.json"), getStaticDataUrl("prediction.json")),
+    fetchJson<IndicatorData>(getClientDataUrl("indicators.json"), getStaticDataUrl("indicators.json")),
+    fetchJson<HistoryData>(getClientDataUrl("history.json"), getStaticDataUrl("history.json")),
+    fetchJson<LivePredictionSeriesData>(
+      getClientDataUrl("live_prediction_series.json"),
+      getStaticDataUrl("live_prediction_series.json"),
+    ),
+  ]);
+
+  return buildDashboardPayload(prediction, indicators, history, livePredictionSeries);
+}
+
+async function fetchDashboardPayload() {
+  try {
+    return await fetchDashboardPayloadFromBundle();
+  } catch {
+    return fetchDashboardPayloadFromFiles();
+  }
+}
+
 export function LiveDashboard({
   initialPrediction,
   initialIndicators,
@@ -472,12 +497,7 @@ export function LiveDashboard({
       setIsSyncing(true);
 
       try {
-        const indicatorSnapshot = await fetchIndicatorsPayload();
-        if (cancelled) {
-          return;
-        }
-
-        const next = await fetchDashboardPayload(indicatorSnapshot.indicators);
+        const next = await fetchDashboardPayload();
         if (cancelled) {
           return;
         }

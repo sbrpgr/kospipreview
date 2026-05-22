@@ -29,6 +29,12 @@ SERVE_FILE_NAMES = {
     "live_prediction_series.json",
     "backtest_diagnostics.json",
 }
+DASHBOARD_FILE_NAMES = {
+    "prediction": "prediction.json",
+    "indicators": "indicators.json",
+    "history": "history.json",
+    "livePredictionSeries": "live_prediction_series.json",
+}
 SYNC_FILE_NAMES = SERVE_FILE_NAMES | {
     "day_futures_close_cache.json",
     "night_futures_source_cache.json",
@@ -204,6 +210,30 @@ def load_live_json_bytes(file_name: str) -> tuple[bytes, str] | tuple[None, None
 def clear_live_json_cache() -> None:
     with _live_json_cache_lock:
         _live_json_cache.clear()
+
+
+def load_dashboard_json_bytes() -> tuple[bytes, str] | tuple[None, None]:
+    payload = {}
+    sources = {}
+
+    for payload_key, file_name in DASHBOARD_FILE_NAMES.items():
+        content, source = load_live_json_bytes(file_name)
+        if content is None or source is None:
+            return None, None
+
+        try:
+            payload[payload_key] = json.loads(content.decode("utf8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            logging.exception("invalid live json payload", extra={"file_name": file_name})
+            return None, None
+
+        sources[payload_key] = source
+
+    payload["sources"] = sources
+    source_values = set(sources.values())
+    response_source = source_values.pop() if len(source_values) == 1 else "mixed"
+    response_bytes = f"{json.dumps(payload, ensure_ascii=False, separators=(',', ':'))}\n".encode("utf8")
+    return response_bytes, response_source
 
 
 def load_news_index_bytes() -> tuple[bytes, str] | tuple[None, None]:
@@ -540,6 +570,7 @@ def root() -> Response:
                 "indicators": "/api/live/indicators.json",
                 "history": "/api/live/history.json",
                 "livePredictionSeries": "/api/live/live_prediction_series.json",
+                "dashboard": "/api/live/dashboard.json",
                 "newsIndex": "/api/news/youtube-news.json",
             },
         }
@@ -549,6 +580,22 @@ def root() -> Response:
 @app.get("/healthz")
 def healthz() -> Response:
     return jsonify({"ok": True})
+
+
+@app.get("/api/live/dashboard.json")
+def get_live_dashboard_data() -> Response:
+    payload, source = load_dashboard_json_bytes()
+    if payload is None or source is None:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+
+    return Response(
+        payload,
+        mimetype="application/json",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "X-Kospi-Live-Source": source,
+        },
+    )
 
 
 @app.get("/api/live/<path:file_name>")
@@ -598,7 +645,7 @@ def refresh_live_data() -> Response:
         return jsonify({"ok": False, "error": "unauthorized"}), 401
 
     if not _refresh_lock.acquire(blocking=False):
-        return jsonify({"ok": False, "error": "refresh_in_progress"}), 409
+        return jsonify({"ok": True, "status": "already_running"}), 202
 
     try:
         payload = run_refresh_job()
