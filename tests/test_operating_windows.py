@@ -1239,6 +1239,40 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertIsNone(updated["records"][0]["dayFuturesClose"])
         self.assertEqual(updated["records"][0]["nightFuturesClose"], 899.95)
 
+    def test_history_ignores_fallback_prediction_for_different_target_date(self):
+        now_utc = datetime(2026, 5, 22, 13, 0, tzinfo=timezone.utc)  # 22:00 KST
+        history = {
+            "summary": {"mae30d": 21.0},
+            "records": [
+                {
+                    "date": "2026-05-22",
+                    "actualOpen": 7873.12,
+                    "nightFuturesClose": 1229.25,
+                }
+            ],
+        }
+
+        updated = refresh_night_futures.update_history_with_actual_open(
+            history,
+            [],
+            now_utc,
+            {"records": []},
+            fallback_prediction={
+                "predictionDateIso": "2026-05-25",
+                "predictionDate": "2026-05-25",
+                "generatedAt": "2026-05-22T13:00:00+00:00",
+                "pointPrediction": 7857.0,
+                "rangeLow": 7824.0,
+                "rangeHigh": 7890.0,
+                "nightFuturesSimplePoint": 7816.72,
+                "nightFuturesClose": 1225.15,
+            },
+        )
+
+        self.assertEqual(updated["records"][0]["date"], "2026-05-22")
+        self.assertEqual(updated["records"][0]["nightFuturesClose"], 1229.25)
+        self.assertNotIn("modelPrediction", updated["records"][0])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -782,6 +782,8 @@ def resolve_fixed_prediction_entry(
     target_iso = target_date.isoformat()
     archive_entry = prediction_archive_lookup(archive).get(target_iso)
     fallback_entry = normalize_prediction_archive_entry(fallback_prediction) if isinstance(fallback_prediction, dict) else None
+    if fallback_entry is not None and fallback_entry.get("predictionDateIso") != target_iso:
+        fallback_entry = None
     base_entry = archive_entry or fallback_entry
 
     series_row = latest_preopen_series_row(series_payload, target_date)
