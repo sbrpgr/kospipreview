@@ -1,6 +1,6 @@
 # Operations Spec Index
 
-Baseline date: 2026-04-14
+Baseline date: 2026-05-04
 
 ## Read This First
 
@@ -14,6 +14,7 @@ If work resumes later, read these documents in order:
 6. `docs/MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`
 7. `docs/SECURITY_OPERATIONS_RUNBOOK.md`
 8. `docs/CHANGELOG.md`
+9. `docs/HISTORY_DATA_GAP_INCIDENT_2026-05-22.md`
 
 ## Current Production Summary
 
@@ -23,9 +24,10 @@ If work resumes later, read these documents in order:
 - `www` DNS: Cloudflare proxied CNAME to Firebase Hosting
 - Static frontend hosting: Firebase Hosting
 - Live refresh path: Cloud Run + Cloud Scheduler + Cloud Storage
-- Full rebuild path: GitHub Actions `retrain-model`
-- Production deploy workflow: GitHub Actions `deploy-production`
-- Fallback-only refresh workflow: GitHub Actions `refresh-night-futures`
+- Model JSON rebuild path: GitHub Actions `retrain-model`
+- Hosting-only deploy workflow: GitHub Actions `deploy-hosting`
+- Cloud Run deploy workflow: GitHub Actions `cloudrun-deploy`
+- Fallback-only JSON refresh workflow: GitHub Actions `refresh-night-futures`
 - YouTube news source archive: root `news/YYYY-MM-DD/HHMMSS/`
 - YouTube news public sync: `frontend/scripts/sync-news.mjs`
 - YouTube news dynamic API: `/api/news/youtube-news.json`, `/api/news/reports/**`
@@ -34,8 +36,11 @@ If work resumes later, read these documents in order:
 - Current prediction engine: `EWY Synthetic K200 Ridge`
 - Cloud Run service: `kospi-live-data`
 - Cloud Scheduler job: `kospi-live-refresh`
+- Cloud Scheduler cadence: KST weekdays, every minute outside `09:00~16:59`
 - Cloud Storage bucket: `kospipreview-live-data`
 - Live refresh performance control: `YAHOO_FETCH_WORKERS` default `6`
+- Data refresh workflows seed current JSON from `gs://kospipreview-live-data/`
+  before rebuilding so archive/history state is not reset to bundled fallback files.
 
 ## Current Operating Schedule
 
@@ -130,10 +135,19 @@ All times are Asia/Seoul.
   - section-based edited body rendering
   - newer/older post pager.
 - Board exposure uses quality-first dedupe (source/title key + quality score) before recency ordering.
+- Publish-quality YouTube news items must have `summary_provider: "gemini"`.
+- Items with `summary_provider: "transcript_extract"` are fallback transcript summaries and should be removed from root `news/**/digest_db.json` before publishing.
+- After removing fallback items, update each report `count` to match the remaining `items.length`, then run `publish_youtube_news.cmd`.
+- Routine quality cleanup and republish must use `publish_youtube_news.cmd` / `publish-youtube-news` only; do not run Cloud Build, Cloud Run deploy, or Firebase Hosting deploy.
 - Raw daily report cards remain available as archive references and open in a new tab.
 - Dynamic news API fallback files are local deploy artifacts and should not be committed:
   - `frontend/public/data/youtube-news.json`
 - The root `news/` directory is the durable source content and should be preserved.
+- Latest YouTube news quality cleanup verification:
+  - verified on `2026-05-04 KST`;
+  - removed `48` fallback transcript-summary items;
+  - source inventory after cleanup: `59` items, `0` non-Gemini items;
+  - production API: `200`, source `bucket`, `43` latest items, `19` reports, `0` fallback-summary matches.
 - Daily operator helper:
   - `powershell -ExecutionPolicy Bypass -File .\scripts\update_youtube_news_content.ps1 -Date 2026-04-23 -UploadDynamic`
   - optional first-time release or route changes only: add `-Build -Deploy`
@@ -169,16 +183,18 @@ Last verified on 2026-04-23 KST:
 - Cloudflare is in front of the custom domain:
   - response headers include `Server: cloudflare` and `CF-RAY`;
   - production verification must check both `kospipreview.web.app` and `kospipreview.com`.
-- Overwrite risk and guardrail:
-  - `retrain-model` redeploys hosting from `main` every 5 minutes on weekdays.
-  - If local-only UI changes are manually deployed without pushing to `main`, the next scheduled run can remove those changes.
-  - For static UI/content updates, always commit + push first, then deploy or verify the next scheduled deploy.
+- Deploy cost guardrail:
+  - Frontend, calculator, copy, and static page changes use `deploy-hosting` only.
+  - Routine news publish uses `publish_youtube_news.cmd` / `publish-youtube-news` only.
+  - Routine model/data refresh uses JSON upload to Cloud Storage only.
+  - `cloudrun-deploy` is reserved for Cloud Run code, Cloud Run env vars, Firebase rewrite pinning, or Scheduler changes.
+  - Do not run Cloud Build or Cloud Run deploy for routine frontend, calculator, copy, news, or JSON-only changes.
 
 ## Operating Principles
 
 - Keep secrets out of git, chat, and issues.
 - Treat Cloud Run live refresh as the primary freshness path.
-- Treat `retrain-model` as the primary full rebuild and static publish path.
+- Treat `retrain-model` as the primary model JSON rebuild and Cloud Storage publish path.
 - Use fallback workflow only when Cloud Run live refresh is degraded.
 - Never rely on local-only hosting deploys for persistent UI changes; push to `main` before final verification.
 - Keep docs updated whenever time gates, model inputs, settlement rules, IAM, deploy flow, or content archive flow changes.

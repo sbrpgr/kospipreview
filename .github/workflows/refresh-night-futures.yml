@@ -37,50 +37,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Setup Node
-        uses: actions/setup-node@v5
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: kospipreview
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: kospipreview
 
-      - name: Clean stale static export output
-        run: rm -rf frontend/out
-
-      - name: Build frontend
-        working-directory: frontend
-        env:
-          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
-        run: npm run build
+      - name: Seed current JSON from Cloud Storage
+        run: |
+          mkdir -p frontend/public/data
+          gcloud storage cp \
+            gs://kospipreview-live-data/*.json \
+            frontend/public/data/ \
+            --quiet
 
       - name: Refresh night futures payload
         run: python ./scripts/refresh_night_futures.py
 
-      - name: Sync latest data into static export
-        shell: bash
+      - name: Publish refreshed JSON to Cloud Storage
         run: |
-          mkdir -p frontend/out/data
-          cp frontend/public/data/*.json frontend/out/data/
-
-      - name: Prepare Firebase credentials
-        shell: bash
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
-            echo "FIREBASE_SERVICE_ACCOUNT secret is missing." >&2
-            exit 1
-          fi
-
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
-
-      - name: Deploy latest data to Firebase Hosting
-        run: npx firebase-tools@latest deploy --project kospipreview --only hosting --non-interactive
+          gcloud storage cp \
+            frontend/public/data/*.json \
+            gs://kospipreview-live-data/ \
+            --cache-control=no-store \
+            --content-type="application/json; charset=utf-8" \
+            --quiet
 
       - name: Queue next polling run
         if: success() && github.event_name == 'workflow_dispatch' && github.event.inputs.loop == 'on'

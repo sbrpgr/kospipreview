@@ -39,12 +39,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Rebuild model artifacts
-        run: python ./scripts/backtest_and_generate.py
-
-      - name: Refresh night futures and live prediction series
-        run: python ./scripts/refresh_night_futures.py
-
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
@@ -55,6 +49,20 @@ jobs:
         uses: google-github-actions/setup-gcloud@v3
         with:
           project_id: kospipreview
+
+      - name: Seed current JSON from Cloud Storage
+        run: |
+          mkdir -p frontend/public/data
+          gcloud storage cp \
+            gs://kospipreview-live-data/*.json \
+            frontend/public/data/ \
+            --quiet
+
+      - name: Rebuild model artifacts
+        run: python ./scripts/backtest_and_generate.py
+
+      - name: Refresh night futures and live prediction series
+        run: python ./scripts/refresh_night_futures.py
 
       - name: Publish generated JSON to Cloud Storage
         run: |
