@@ -9,13 +9,14 @@ Date: 2026-05-22 KST
 - Firebase Hosting rewrites `/api/**` to Cloud Run. Dynamic backend responses are not cached by Firebase Hosting CDN by default unless cache headers allow it.
 - The dashboard previously polled four live JSON files every 30 seconds per open tab. Cloud Scheduler produces live refreshes at minute cadence, so 30-second client polling created extra read traffic without matching new data.
 - Recent `save-market-snapshot` runs failed before uploading snapshots because `google-cloud-storage` was missing from the workflow install step.
-- Remote GitHub Actions still has `deploy-production` active. Local repo has a newer `cloudrun-deploy.yml` file, but it is not tracked on `main` yet, so the documented deploy split is not fully reflected on the remote default branch.
+- Remote GitHub Actions still has `deploy-production` active. `cloudrun-deploy.yml` is now tracked on `main`, and its Cloud Scheduler update step is opt-in through the `update_scheduler` manual input.
 
 ## Immediate Changes Applied
 
 1. `save-market-snapshot` now installs `google-cloud-storage>=2.18.0,<4.0` before running `scripts/save_market_snapshot.py`.
 2. Frontend live polling changed from 30 seconds to 60 seconds. This cuts steady-state live API reads from each open dashboard tab by about 50% while matching the production refresh cadence.
 3. Cloud Run now serves `/api/live/dashboard.json`, which bundles prediction, indicators, history, and live prediction series. The frontend tries this single endpoint first and falls back to the previous per-file endpoints if needed, cutting steady-state dashboard live reads from four per poll to one per poll.
+4. `cloudrun-deploy` no longer updates Cloud Scheduler by default. Use the `update_scheduler` input only when Scheduler cadence, target URI, or auth header must change.
 
 ## Billing Verification Checklist
 
@@ -58,7 +59,7 @@ Use the Google Cloud Billing report for billing account `013A72-4608CD-FE4F11`.
 ### Phase 3 - Requires workflow policy decision
 
 - Reduce `retrain-model` schedule from `*/5 * * * 1-5` to a smaller set of market-relevant rebuild times, because Cloud Run is already the primary minute-level live refresh path.
-- Commit/push the newer `cloudrun-deploy.yml` workflow and disable or remove the old `deploy-production.yml` workflow to prevent accidental Cloud Build / Cloud Run deploys.
+- Disable or remove the old `deploy-production.yml` workflow to prevent accidental Cloud Build / Cloud Run deploys.
 - Add a monthly cost review runbook section after real Billing SKU data is captured.
 
 ## References

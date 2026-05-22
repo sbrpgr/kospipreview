@@ -13,6 +13,12 @@ env:
 
 on:
   workflow_dispatch:
+    inputs:
+      update_scheduler:
+        description: "Update or create the Cloud Scheduler live refresh job"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: cloudrun-deploy-${{ github.ref }}
@@ -69,6 +75,7 @@ jobs:
             --quiet
 
       - name: Configure Cloud Scheduler live refresh window
+        if: ${{ inputs.update_scheduler == true }}
         env:
           REFRESH_BEARER_TOKEN: ${{ secrets.REFRESH_BEARER_TOKEN }}
         shell: bash
