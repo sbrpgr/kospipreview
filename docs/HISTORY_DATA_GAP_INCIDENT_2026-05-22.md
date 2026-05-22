@@ -40,10 +40,15 @@ bucket-backed `history.json` payload together with the other live JSON files.
 - `save-market-snapshot` now installs `google-cloud-storage`; the manual
   `2026-05-22` run succeeded after this fix.
 - `retrain-model` now authenticates to Google Cloud and downloads the current
-  bucket JSON into `frontend/public/data/` before rebuilding artifacts.
+  bucket JSON into `frontend/public/data/` before rebuilding artifacts. The
+  seed step merges bucket `prediction_archive.json` with the bundled fallback
+  archive so non-null historical fields are not dropped.
 - `refresh-night-futures` now follows the same seed-then-refresh pattern and
   publishes JSON directly to Cloud Storage instead of redeploying Firebase
   Hosting for routine JSON refreshes.
+- `prediction_archive.json` normalization now preserves both
+  `nightFuturesClose` and `nightFuturesSimpleChangePct` across the backtest and
+  live refresh scripts.
 
 These fixes do not change model formulas, frontend rendering, Cloud Run code, or
 Scheduler cadence.

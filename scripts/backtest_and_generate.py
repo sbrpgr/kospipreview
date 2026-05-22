@@ -416,6 +416,7 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
     prev_close = _safe_float("prevClose")
     futures_day_close = _safe_float("futuresDayClose")
     night_change_pct = _safe_float("nightFuturesSimpleChangePct")
+    night_close = _safe_float("nightFuturesClose")
 
     return {
         "predictionDateIso": prediction_date_iso,
@@ -429,6 +430,7 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
         "prevClose": round(prev_close, 2) if prev_close is not None else None,
         "futuresDayClose": round(futures_day_close, 2) if futures_day_close is not None else None,
         "nightFuturesSimpleChangePct": round(night_change_pct, 4) if night_change_pct is not None else None,
+        "nightFuturesClose": round(night_close, 2) if night_close is not None else None,
     }
 
 
@@ -3192,9 +3194,10 @@ def _build_archive_history_row(
     arc_prev_close = _arc_float("prevClose")
     futures_day_close = _arc_float("futuresDayClose")
     night_change_pct = _arc_float("nightFuturesSimpleChangePct")
+    direct_night_futures_close = _arc_float("nightFuturesClose")
 
-    night_futures_close: float | None = None
-    if futures_day_close is not None and night_change_pct is not None:
+    night_futures_close: float | None = direct_night_futures_close
+    if night_futures_close is None and futures_day_close is not None and night_change_pct is not None:
         night_futures_close = round(futures_day_close * (1 + night_change_pct / 100), 2)
 
     night_futures_error: float | None = None
@@ -3417,10 +3420,11 @@ def _apply_archive_market_data(
         prev_close = _arc_float(arc, "prevClose")
         futures_day_close = _arc_float(arc, "futuresDayClose")
         night_change_pct = _arc_float(arc, "nightFuturesSimpleChangePct")
+        direct_night_futures_close = _arc_float(arc, "nightFuturesClose")
         night_simple = _arc_float(arc, "nightFuturesSimplePoint")
 
-        night_futures_close: float | None = None
-        if futures_day_close is not None and night_change_pct is not None:
+        night_futures_close: float | None = direct_night_futures_close
+        if night_futures_close is None and futures_day_close is not None and night_change_pct is not None:
             night_futures_close = round(futures_day_close * (1 + night_change_pct / 100), 2)
 
         actual_open = history_df.at[idx, "actual_open"]

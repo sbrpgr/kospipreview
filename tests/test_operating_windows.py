@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+import tempfile
+from datetime import date, datetime, timezone
+from pathlib import Path
 
 import pandas as pd
 
 from scripts import backtest_and_generate
+from scripts import merge_live_data_seed
 from scripts import refresh_night_futures
 from scripts.backtest_and_generate import KST, is_prediction_operation_window, resolve_prediction_target_timestamp
 
@@ -90,21 +93,99 @@ class OperatingWindowTests(unittest.TestCase):
     def test_backtest_main_skips_rebuild_when_required_market_history_is_missing(self):
         original_fetch_market_data = backtest_and_generate.fetch_market_data
         original_build_dataset = backtest_and_generate.build_dataset
+        original_cache_dir = backtest_and_generate.CACHE_DIR
         called = {"build_dataset": False}
 
         def fail_build_dataset(market):
             called["build_dataset"] = True
             raise AssertionError("build_dataset should not run without required market history")
 
-        try:
-            backtest_and_generate.fetch_market_data = lambda: {}
-            backtest_and_generate.build_dataset = fail_build_dataset
-            backtest_and_generate.main()
-        finally:
-            backtest_and_generate.fetch_market_data = original_fetch_market_data
-            backtest_and_generate.build_dataset = original_build_dataset
+        with tempfile.TemporaryDirectory() as temp_dir:
+            try:
+                backtest_and_generate.CACHE_DIR = Path(temp_dir) / "cache"
+                backtest_and_generate.fetch_market_data = lambda: {}
+                backtest_and_generate.build_dataset = fail_build_dataset
+                backtest_and_generate.main()
+            finally:
+                backtest_and_generate.CACHE_DIR = original_cache_dir
+                backtest_and_generate.fetch_market_data = original_fetch_market_data
+                backtest_and_generate.build_dataset = original_build_dataset
 
         self.assertFalse(called["build_dataset"])
+
+    def test_archive_normalizers_preserve_futures_close_fields(self):
+        payload = {
+            "predictionDateIso": "2026-05-18",
+            "predictionDate": "2026-05-18",
+            "generatedAt": "2026-05-15T23:12:27+00:00",
+            "rangeLow": 7330.63,
+            "rangeHigh": 7394.58,
+            "pointPrediction": 7362.6,
+            "nightFuturesSimplePoint": 7446.54,
+            "ewyFxSimplePoint": 7326.19,
+            "prevClose": 7493.18,
+            "futuresDayClose": 1172.7,
+            "nightFuturesSimpleChangePct": -0.62,
+            "nightFuturesClose": 1165.43,
+        }
+
+        backtest_entry = backtest_and_generate.normalize_prediction_archive_entry(payload)
+        refresh_entry = refresh_night_futures.normalize_prediction_archive_entry(payload)
+
+        self.assertEqual(backtest_entry["nightFuturesSimpleChangePct"], -0.62)
+        self.assertEqual(backtest_entry["nightFuturesClose"], 1165.43)
+        self.assertEqual(refresh_entry["nightFuturesSimpleChangePct"], -0.62)
+        self.assertEqual(refresh_entry["nightFuturesClose"], 1165.43)
+
+    def test_archive_history_row_uses_direct_night_futures_close(self):
+        archive_entry = {
+            "rangeLow": 7330.63,
+            "rangeHigh": 7394.58,
+            "pointPrediction": 7362.6,
+            "nightFuturesSimplePoint": 7446.54,
+            "ewyFxSimplePoint": 7326.19,
+            "prevClose": 7493.18,
+            "futuresDayClose": 1172.7,
+            "nightFuturesClose": 1165.43,
+        }
+
+        row = backtest_and_generate._build_archive_history_row(
+            date(2026, 5, 18),
+            archive_entry,
+            actual_open=7443.29,
+            prev_close=7493.18,
+        )
+
+        self.assertEqual(row["night_futures_close"], 1165.43)
+
+    def test_live_data_seed_merge_fills_missing_archive_fields(self):
+        fallback_payload = {
+            "records": [
+                {
+                    "predictionDateIso": "2026-05-18",
+                    "generatedAt": "2026-05-15T23:12:27+00:00",
+                    "pointPrediction": 7362.6,
+                    "nightFuturesSimpleChangePct": -0.62,
+                    "nightFuturesClose": 1165.43,
+                }
+            ]
+        }
+        bucket_payload = {
+            "records": [
+                {
+                    "predictionDateIso": "2026-05-18",
+                    "generatedAt": "2026-05-18T09:10:00+00:00",
+                    "pointPrediction": 7362.6,
+                }
+            ]
+        }
+
+        records = merge_live_data_seed.merge_archive_records([fallback_payload, bucket_payload])
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["generatedAt"], "2026-05-18T09:10:00+00:00")
+        self.assertEqual(records[0]["nightFuturesSimpleChangePct"], -0.62)
+        self.assertEqual(records[0]["nightFuturesClose"], 1165.43)
 
     def test_ewy_bridge_samples_five_two_minute_slots_from_premarket_open(self):
         model_payload = {}

@@ -40,7 +40,8 @@ If work resumes later, read these documents in order:
 - Cloud Storage bucket: `kospipreview-live-data`
 - Live refresh performance control: `YAHOO_FETCH_WORKERS` default `6`
 - Data refresh workflows seed current JSON from `gs://kospipreview-live-data/`
-  before rebuilding so archive/history state is not reset to bundled fallback files.
+  before rebuilding and merge archive fallback fields so archive/history state is
+  not reset to incomplete bundled or bucket files.
 
 ## Current Operating Schedule
 

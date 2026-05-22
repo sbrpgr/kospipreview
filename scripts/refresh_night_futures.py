@@ -638,6 +638,7 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
     night_simple = to_float(payload.get("nightFuturesSimplePoint"))
     ewy_fx_simple = to_float(payload.get("ewyFxSimplePoint"))
     night_close = to_float(payload.get("nightFuturesClose"))
+    night_change = to_float(payload.get("nightFuturesSimpleChangePct"))
     day_close = to_float(payload.get("futuresDayClose"))
     entry = {
         "predictionDateIso": prediction_date_iso,
@@ -651,6 +652,8 @@ def normalize_prediction_archive_entry(payload: dict) -> dict | None:
     }
     if night_close is not None:
         entry["nightFuturesClose"] = round(night_close, 2)
+    if night_change is not None:
+        entry["nightFuturesSimpleChangePct"] = round(night_change, 4)
     if day_close is not None:
         entry["futuresDayClose"] = round(day_close, 2)
         futures_day_close_date = payload.get("futuresDayCloseDate")

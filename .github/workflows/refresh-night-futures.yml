@@ -50,11 +50,17 @@ jobs:
 
       - name: Seed current JSON from Cloud Storage
         run: |
-          mkdir -p frontend/public/data
+          mkdir -p .live-data-seed/bundled .live-data-seed/bucket frontend/public/data
+          cp frontend/public/data/prediction_archive.json .live-data-seed/bundled/prediction_archive.json || true
           gcloud storage cp \
             gs://kospipreview-live-data/*.json \
-            frontend/public/data/ \
+            .live-data-seed/bucket/ \
             --quiet
+          cp .live-data-seed/bucket/*.json frontend/public/data/
+          python ./scripts/merge_live_data_seed.py \
+            --fallback .live-data-seed/bundled/prediction_archive.json \
+            --bucket .live-data-seed/bucket/prediction_archive.json \
+            --output frontend/public/data/prediction_archive.json
 
       - name: Refresh night futures payload
         run: python ./scripts/refresh_night_futures.py
