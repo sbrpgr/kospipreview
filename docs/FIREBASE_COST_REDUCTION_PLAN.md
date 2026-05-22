@@ -1,0 +1,68 @@
+# Firebase / GCP Cost Reduction Plan
+
+Date: 2026-05-22 KST
+
+## Current Finding
+
+- Billing console could not be read from this workstation because `gcloud` is not installed and the Google Cloud Console URL requires an authenticated browser session.
+- Firebase Hosting billing is driven by Hosting storage and data transfer. Local `frontend/out` is about 5.8 MB, so current Hosting cost risk is much more likely transfer/request volume than storage.
+- Firebase Hosting rewrites `/api/**` to Cloud Run. Dynamic backend responses are not cached by Firebase Hosting CDN by default unless cache headers allow it.
+- The dashboard previously polled four live JSON files every 30 seconds per open tab. Cloud Scheduler produces live refreshes at minute cadence, so 30-second client polling created extra read traffic without matching new data.
+- Recent `save-market-snapshot` runs failed before uploading snapshots because `google-cloud-storage` was missing from the workflow install step.
+- Remote GitHub Actions still has `deploy-production` active. Local repo has a newer `cloudrun-deploy.yml` file, but it is not tracked on `main` yet, so the documented deploy split is not fully reflected on the remote default branch.
+
+## Immediate Changes Applied
+
+1. `save-market-snapshot` now installs `google-cloud-storage>=2.18.0,<4.0` before running `scripts/save_market_snapshot.py`.
+2. Frontend live polling changed from 30 seconds to 60 seconds. This cuts steady-state live API reads from each open dashboard tab by about 50% while matching the production refresh cadence.
+
+## Billing Verification Checklist
+
+Use the Google Cloud Billing report for billing account `013A72-4608CD-FE4F11`.
+
+1. Group by `Service`, then by `SKU`.
+2. Check whether the largest cost is:
+   - `Firebase Hosting` data transfer;
+   - `Cloud Run` request/CPU/memory;
+   - `Cloud Storage` storage, operations, or egress;
+   - `Cloud Build` or Artifact Registry from deploys.
+3. In Firebase Console Hosting usage, check:
+   - Hosting storage GB;
+   - Hosting data transfer GB/month;
+   - retained release count.
+4. In Cloud Run metrics, check:
+   - request count for `GET /api/live/*`;
+   - request count and latency for `POST /api/tasks/refresh`;
+   - minimum instances must remain `0` unless explicitly justified.
+5. In Cloud Scheduler, verify the live refresh cron is still:
+   - `* 0-8,17-23 * * 1-5`
+   - time zone `Asia/Seoul`
+
+## Cost Reduction Roadmap
+
+### Phase 1 - No Cloud Run deploy required
+
+- Deploy the 60-second polling change with `deploy-hosting`.
+- Set Firebase Hosting release retention to a small number such as 5-10 releases.
+- Keep using `publish_youtube_news.cmd` / `publish-youtube-news` for routine news uploads.
+- Keep routine JSON refreshes on Cloud Storage upload paths, not Firebase Hosting redeploys.
+- Do not use `deploy-production` for routine work.
+
+### Phase 2 - Requires Cloud Run / frontend coordination
+
+- Add a single `/api/live/dashboard.json` endpoint that returns prediction, indicators, history, and live series together. This can reduce client live read requests from four per poll to one per poll.
+- Increase Cloud Run `LIVE_JSON_CACHE_SECONDS` from 10 seconds toward 55 seconds if Billing shows Cloud Storage read operations or Cloud Run request handling as the main cost driver.
+- Consider separate cache settings for `/api/news/youtube-news.json`; news does not need the same freshness as live market data.
+
+### Phase 3 - Requires workflow policy decision
+
+- Reduce `retrain-model` schedule from `*/5 * * * 1-5` to a smaller set of market-relevant rebuild times, because Cloud Run is already the primary minute-level live refresh path.
+- Commit/push the newer `cloudrun-deploy.yml` workflow and disable or remove the old `deploy-production.yml` workflow to prevent accidental Cloud Build / Cloud Run deploys.
+- Add a monthly cost review runbook section after real Billing SKU data is captured.
+
+## References
+
+- Firebase Hosting pricing and quotas: https://firebase.google.com/docs/hosting/usage-quotas-pricing
+- Firebase Hosting cache behavior: https://firebase.google.com/docs/hosting/manage-cache
+- Cloud Run pricing: https://cloud.google.com/run/pricing
+- Cloud Billing budgets: https://cloud.google.com/billing/docs/how-to/budgets
