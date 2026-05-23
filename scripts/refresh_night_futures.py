@@ -172,6 +172,68 @@ LIVE_PREDICTION_SERIES_MAX_RECORDS = 1080
 PREDICTION_ARCHIVE_MAX_RECORDS = 200
 HISTORY_RECORDS_MAX = 30
 HISTORY_FUTURES_CLOSE_TRACKING_START_DATE = date(2026, 4, 14)
+INTRADAY_INDICATOR_SERIES_DIR_NAME = "intraday_indicator_series"
+INTRADAY_INDICATOR_SERIES_SCHEMA_VERSION = 1
+INTRADAY_INDICATOR_SERIES_PREDICTION_FIELDS = (
+    "predictionDateIso",
+    "predictionDate",
+    "generatedAt",
+    "lastCalculatedAt",
+    "prevClose",
+    "latestRecordDate",
+    "futuresDayClose",
+    "futuresDayCloseDate",
+    "pointPrediction",
+    "rangeLow",
+    "rangeHigh",
+    "predictedChangePct",
+    "nightFuturesSimplePoint",
+    "nightFuturesSimpleChangePct",
+    "ewyFxSimplePoint",
+    "ewyFxSimpleChangePct",
+    "nightFuturesClose",
+    "nightFuturesCloseUpdatedAt",
+)
+INTRADAY_INDICATOR_SERIES_MODEL_FIELDS = (
+    "engine",
+    "calculationMode",
+    "predictionPhase",
+    "isOperationWindow",
+    "operationHours",
+    "liveRefreshUpdatedAt",
+    "krxBaselineDate",
+    "nightFuturesExcluded",
+    "nightFuturesBridgeApplied",
+    "nightFuturesBridgeStatus",
+    "nightFuturesBridgePct",
+    "nightFuturesBridgeSampleCount",
+    "ewyFxBridgeBaselineAt",
+    "ewyFxBridgeBaselineAtKst",
+    "ewyFxIntercept",
+    "ewyFxEwyCoef",
+    "ewyFxKrwCoef",
+    "ewyFxSampleSize",
+    "ewyFxFitR2",
+    "liveEwyChangePct",
+    "liveKrwChangePct",
+    "coreAfterBridgePct",
+    "coreAnchorPct",
+    "rawModelPct",
+    "rawModelAfterBridgePct",
+    "mappingInterceptPct",
+    "mappingBetaContributionPct",
+    "mappingDirectionFlip",
+    "trendFollowApplied",
+    "trendFollowSignalPct",
+    "trendFollowMinPct",
+    "trendFollowAdjustmentPct",
+    "mlResidualAdjPct",
+    "rawResidualPct",
+    "liveRefreshGuardBandPct",
+    "regimeAdjustmentPct",
+    "anchorSource",
+    "regimeState",
+)
 
 
 def read_json(path: Path) -> dict | None:
@@ -243,6 +305,20 @@ def parse_number_text(value: object) -> float | None:
     if isinstance(value, str):
         value = value.replace(",", "").strip()
     return to_float(value)
+
+
+def parse_display_numeric_value(value: object) -> float | None:
+    if isinstance(value, str):
+        cleaned = re.sub(r"[^0-9.\-]", "", value)
+        if cleaned in {"", "-", ".", "-."}:
+            return None
+        return to_float(cleaned)
+    return to_float(value)
+
+
+def rounded_float(value: object, ndigits: int = 6) -> float | None:
+    number = to_float(value)
+    return round(number, ndigits) if number is not None else None
 
 
 def rollforward_business_day(base: date) -> date:
@@ -409,6 +485,244 @@ def update_live_prediction_series(payload: dict, now_utc: datetime) -> dict:
         "predictionDate": entry.get("predictionDate"),
         "records": next_records,
     }
+
+
+def intraday_indicator_series_root() -> Path:
+    return DATA_DIR / INTRADAY_INDICATOR_SERIES_DIR_NAME
+
+
+def sanitize_intraday_path_part(value: object, fallback: str = "unknown") -> str:
+    if not isinstance(value, str) or not value.strip():
+        return fallback
+    sanitized = re.sub(r"[^0-9A-Za-z_.=-]", "-", value.strip())
+    sanitized = sanitized.strip("-")
+    return sanitized or fallback
+
+
+def intraday_indicator_series_file_path(now_utc: datetime, prediction_date_iso: str) -> Path:
+    observed_at = now_utc.astimezone(timezone.utc).replace(microsecond=0)
+    observed_at_kst = observed_at.astimezone(KST)
+    observed_date_part = sanitize_intraday_path_part(observed_at_kst.date().isoformat())
+    prediction_date_part = sanitize_intraday_path_part(prediction_date_iso)
+    file_name = observed_at.strftime("%Y%m%dT%H%M%SZ.json")
+    return (
+        intraday_indicator_series_root()
+        / f"kst_date={observed_date_part}"
+        / f"prediction_date={prediction_date_part}"
+        / file_name
+    )
+
+
+def build_intraday_indicator_snapshots(
+    indicators_payload: dict,
+    market_snapshot_cache: dict[str, dict | None] | None,
+) -> dict[str, dict]:
+    rows_by_key: dict[str, dict] = {}
+
+    def add_rows(section: str) -> None:
+        rows = indicators_payload.get(section)
+        if not isinstance(rows, list):
+            return
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            key = str(row.get("key") or "").strip()
+            if not key or key in rows_by_key:
+                continue
+            next_row = dict(row)
+            next_row["_section"] = section
+            rows_by_key[key] = next_row
+
+    add_rows("primary")
+    add_rows("secondary")
+
+    market_indicators: dict[str, dict] = {}
+    for key, row in rows_by_key.items():
+        ticker = DISPLAY_TICKER_BY_KEY.get(key)
+        snapshot = None
+        if ticker and isinstance(market_snapshot_cache, dict):
+            cached = market_snapshot_cache.get(ticker)
+            if isinstance(cached, dict):
+                snapshot = cached
+
+        value = rounded_float(snapshot.get("value") if snapshot else None)
+        if value is None:
+            value = rounded_float(parse_display_numeric_value(row.get("value")))
+
+        change_pct = rounded_float(snapshot.get("change_pct") if snapshot else None)
+        if change_pct is None:
+            change_pct = rounded_float(row.get("changePct"))
+
+        updated_at = snapshot.get("updated_at") if snapshot else None
+        if not isinstance(updated_at, str):
+            updated_at = row.get("updatedAt") if isinstance(row.get("updatedAt"), str) else None
+
+        market_session = snapshot.get("market_session") if snapshot else None
+        if not isinstance(market_session, str):
+            market_session = row.get("marketSession") if isinstance(row.get("marketSession"), str) else ""
+
+        market_indicators[key] = {
+            "label": row.get("label"),
+            "ticker": ticker,
+            "section": row.get("_section"),
+            "value": value,
+            "changePct": change_pct,
+            "updatedAt": updated_at,
+            "checkedAt": row.get("checkedAt"),
+            "dataSource": row.get("dataSource"),
+            "marketSession": market_session,
+            "displayValue": row.get("value"),
+            "displayChangePct": row.get("changePct"),
+            "displayTag": row.get("displayTag"),
+            "isPremarket": bool(row.get("isPremarket")),
+            "sourceUrl": row.get("sourceUrl"),
+        }
+
+    return market_indicators
+
+
+def build_intraday_night_futures_snapshot(quote: dict | None) -> dict | None:
+    if not isinstance(quote, dict):
+        return None
+
+    return {
+        "price": rounded_float(quote.get("price")),
+        "previousClose": rounded_float(quote.get("previous_close")),
+        "changePct": rounded_float(quote.get("change_pct")),
+        "updatedAt": quote.get("updated_at"),
+        "dayCloseDate": quote.get("day_close_date"),
+        "isLiveNight": bool(quote.get("is_live_night")),
+        "provider": quote.get("provider"),
+        "source": quote.get("source"),
+        "selection": quote.get("selection"),
+    }
+
+
+def build_intraday_day_futures_snapshot(day_close_quote: dict | None) -> dict | None:
+    if not isinstance(day_close_quote, dict):
+        return None
+
+    return {
+        "close": rounded_float(day_close_quote.get("close")),
+        "updatedAt": day_close_quote.get("updated_at"),
+        "sessionDate": day_close_quote.get("session_date"),
+        "provider": day_close_quote.get("provider"),
+        "source": day_close_quote.get("source"),
+        "selection": day_close_quote.get("selection"),
+    }
+
+
+def select_fields(payload: dict, field_names: tuple[str, ...]) -> dict:
+    return {field_name: payload.get(field_name) for field_name in field_names}
+
+
+def build_intraday_indicator_series_record(
+    indicators_payload: dict,
+    prediction_payload: dict,
+    night_quote: dict | None,
+    day_close_quote: dict | None,
+    market_snapshot_cache: dict[str, dict | None] | None,
+    now_utc: datetime,
+) -> dict | None:
+    prediction_date_iso = parse_prediction_target_date(
+        prediction_payload.get("predictionDateIso") or prediction_payload.get("predictionDate")
+    )
+    if prediction_date_iso is None:
+        return None
+
+    observed_at = now_utc.astimezone(timezone.utc).replace(microsecond=0)
+    observed_at_kst = observed_at.astimezone(KST)
+    observed_minute = observed_at.replace(second=0, microsecond=0)
+    observed_minute_kst = observed_minute.astimezone(KST)
+    market_indicators = build_intraday_indicator_snapshots(indicators_payload, market_snapshot_cache)
+    model_payload = prediction_payload.get("model")
+    if not isinstance(model_payload, dict):
+        model_payload = {}
+
+    key_prediction_fields = (
+        "pointPrediction",
+        "nightFuturesSimplePoint",
+        "ewyFxSimplePoint",
+        "nightFuturesClose",
+        "predictedChangePct",
+    )
+    missing_prediction_fields = [
+        field_name
+        for field_name in key_prediction_fields
+        if prediction_payload.get(field_name) is None
+    ]
+    missing_indicator_keys = [
+        key
+        for key, row in sorted(market_indicators.items())
+        if row.get("value") is None or row.get("changePct") is None
+    ]
+
+    return {
+        "schemaVersion": INTRADAY_INDICATOR_SERIES_SCHEMA_VERSION,
+        "generatedAt": now_utc.isoformat(),
+        "observedAt": observed_at.isoformat(),
+        "observedAtKst": observed_at_kst.isoformat(),
+        "observedMinute": observed_minute.isoformat(),
+        "observedMinuteKst": observed_minute_kst.isoformat(),
+        "predictionDateIso": prediction_date_iso,
+        "predictionDate": prediction_payload.get("predictionDate"),
+        "operation": {
+            "isPredictionOperationWindow": is_prediction_operation_window(now_utc),
+            "isPredictionTrendOperationWindow": is_prediction_trend_operation_window(now_utc),
+            "isNightOperationWindow": is_night_operation_window(now_utc),
+            "isUsPremarketNow": bool(indicators_payload.get("isUsPremarketNow")),
+        },
+        "marketIndicators": market_indicators,
+        "nightFutures": build_intraday_night_futures_snapshot(night_quote),
+        "dayFutures": build_intraday_day_futures_snapshot(day_close_quote),
+        "prediction": select_fields(prediction_payload, INTRADAY_INDICATOR_SERIES_PREDICTION_FIELDS),
+        "model": select_fields(model_payload, INTRADAY_INDICATOR_SERIES_MODEL_FIELDS),
+        "quality": {
+            "marketIndicatorCount": len(market_indicators),
+            "missingIndicatorKeys": missing_indicator_keys,
+            "missingPredictionFields": missing_prediction_fields,
+            "hasPointPrediction": prediction_payload.get("pointPrediction") is not None,
+            "hasNightFuturesSimplePoint": prediction_payload.get("nightFuturesSimplePoint") is not None,
+            "hasEwyFxSimplePoint": prediction_payload.get("ewyFxSimplePoint") is not None,
+        },
+    }
+
+
+def should_write_intraday_indicator_series_snapshot(now_utc: datetime, prediction_payload: dict) -> bool:
+    prediction_date_iso = parse_prediction_target_date(
+        prediction_payload.get("predictionDateIso") or prediction_payload.get("predictionDate")
+    )
+    if prediction_date_iso is None:
+        return False
+    return is_prediction_operation_window(now_utc)
+
+
+def write_intraday_indicator_series_snapshot(
+    indicators_payload: dict,
+    prediction_payload: dict,
+    night_quote: dict | None,
+    day_close_quote: dict | None,
+    market_snapshot_cache: dict[str, dict | None] | None,
+    now_utc: datetime,
+) -> Path | None:
+    if not should_write_intraday_indicator_series_snapshot(now_utc, prediction_payload):
+        return None
+
+    record = build_intraday_indicator_series_record(
+        indicators_payload,
+        prediction_payload,
+        night_quote,
+        day_close_quote,
+        market_snapshot_cache,
+        now_utc,
+    )
+    if record is None:
+        return None
+
+    target_path = intraday_indicator_series_file_path(now_utc, str(record["predictionDateIso"]))
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf8")
+    return target_path
 
 
 def fetch_yahoo_chart_points(symbol: str) -> list[tuple[datetime, float]]:
@@ -3148,6 +3462,14 @@ def main() -> None:
             write_prediction_archive_json(prediction_archive, now_utc)
         next_live_prediction_series_payload = update_live_prediction_series(prediction_payload, now_utc)
         write_output_json("live_prediction_series.json", next_live_prediction_series_payload)
+        write_intraday_indicator_series_snapshot(
+            indicators_payload,
+            prediction_payload,
+            night_quote,
+            day_close_quote,
+            market_snapshot_cache,
+            now_utc,
+        )
 
     status = "live" if night_quote and night_quote.get("is_live_night") else "standby"
     updated_at = night_quote.get("updated_at") if night_quote else "-"

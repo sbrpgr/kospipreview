@@ -15,6 +15,7 @@ If work resumes later, read these documents in order:
 7. `docs/SECURITY_OPERATIONS_RUNBOOK.md`
 8. `docs/CHANGELOG.md`
 9. `docs/HISTORY_DATA_GAP_INCIDENT_2026-05-22.md`
+10. `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
 
 ## Current Production Summary
 
@@ -38,6 +39,7 @@ If work resumes later, read these documents in order:
 - Cloud Scheduler job: `kospi-live-refresh`
 - Cloud Scheduler cadence: KST weekdays, every minute outside `09:00~16:59`
 - Cloud Storage bucket: `kospipreview-live-data`
+- Intraday indicator research archive: `gs://kospipreview-live-data/intraday_indicator_series/`
 - Live refresh performance control: `YAHOO_FETCH_WORKERS` default `6`
 - Data refresh workflows seed current JSON from `gs://kospipreview-live-data/`
   before rebuilding and merge archive fallback fields so archive/history state is
@@ -59,12 +61,15 @@ All times are Asia/Seoul.
 - `15:30`
   - prediction operating window opens;
   - current KOSPI close becomes `prevClose`;
+  - intraday indicator archive snapshots can be written for each refresh;
   - night-futures simple conversion can publish when the target night quote is available;
   - EWY + FX conversion and live model prediction stay blank until the U.S. premarket bridge is ready.
 - `15:45`
   - KOSPI 200 day futures close can be final if the eSignal socket close timestamp is at or after this time.
 - U.S. premarket open through `09:00`
   - live prediction trend chart records minute-level observations;
+  - intraday indicator archive snapshots are persisted under
+    `intraday_indicator_series/` for later research use;
   - starts at `17:00 KST` during U.S. daylight time and `18:00 KST` during U.S. standard time.
   - during U.S. daylight time, the `18:00~18:08 KST` night-futures-open window is also a scheduled bridge sampling window when the `17:00 KST` window was not complete.
 
@@ -116,6 +121,7 @@ All times are Asia/Seoul.
 - `scripts/refresh_night_futures.py`
 - `scripts/backtest_and_generate.py`
 - `cloudrun/live_data_service.py`
+- `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
 - `frontend/scripts/sync-news.mjs`
 - `frontend/src/lib/data.ts`
 - `frontend/src/lib/youtube-news.ts`
@@ -166,6 +172,7 @@ All times are Asia/Seoul.
 - Live refresh: `docs/CLOUD_RUN_LIVE_REFRESH.md`
 - Algorithm: `docs/ALGORITHM.md`
 - Data sources: `docs/DATA_SOURCES.md`
+- Intraday indicator series: `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
 - Model spec: `docs/MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`
 - Security / runbook: `docs/SECURITY_OPERATIONS_RUNBOOK.md`
 - Firebase / Cloudflare / GA4 / AdSense guide: `docs/FIREBASE_CLOUDFLARE_GA4_ADSENSE_2026.md`

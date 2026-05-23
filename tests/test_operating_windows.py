@@ -69,6 +69,119 @@ class OperatingWindowTests(unittest.TestCase):
         finally:
             refresh_night_futures.load_live_prediction_series = original_loader
 
+    def test_intraday_indicator_series_record_captures_market_and_prediction_fields(self):
+        now_utc = datetime(2026, 5, 22, 23, 59, tzinfo=timezone.utc)
+        indicators_payload = {
+            "primary": [
+                {
+                    "key": "ewy",
+                    "label": "EWY (Korea ETF)",
+                    "value": "$177.50",
+                    "changePct": -6.83,
+                    "updatedAt": "2026-05-22T23:58:00+00:00",
+                    "checkedAt": "2026-05-22T23:59:00+00:00",
+                    "dataSource": "Yahoo Finance",
+                }
+            ],
+            "secondary": [
+                {
+                    "key": "krw",
+                    "label": "USD/KRW",
+                    "value": "1,497.76",
+                    "changePct": 0.53,
+                    "updatedAt": "2026-05-22T23:58:00+00:00",
+                    "checkedAt": "2026-05-22T23:59:00+00:00",
+                    "dataSource": "Yahoo Finance",
+                }
+            ],
+            "isUsPremarketNow": False,
+        }
+        prediction_payload = {
+            "predictionDateIso": "2026-05-25",
+            "predictionDate": "2026-05-25",
+            "generatedAt": now_utc.isoformat(),
+            "pointPrediction": 7762.58,
+            "nightFuturesSimplePoint": 7772.63,
+            "ewyFxSimplePoint": 7721.77,
+            "nightFuturesClose": 1216.4,
+            "predictedChangePct": -1.08,
+            "model": {
+                "predictionPhase": "session",
+                "liveEwyChangePct": -1.2,
+                "liveKrwChangePct": 0.3,
+            },
+        }
+        market_snapshot_cache = {
+            "EWY": {
+                "value": 177.55,
+                "change_pct": -6.81,
+                "updated_at": "2026-05-22T23:59:00+00:00",
+                "market_session": "post",
+            },
+            "KRW=X": {
+                "value": 1497.76,
+                "change_pct": 0.53,
+                "updated_at": "2026-05-22T23:58:00+00:00",
+            },
+        }
+
+        record = refresh_night_futures.build_intraday_indicator_series_record(
+            indicators_payload,
+            prediction_payload,
+            {
+                "price": 1216.4,
+                "previous_close": 1228.15,
+                "change_pct": -0.96,
+                "updated_at": "2026-05-22T23:59:00+00:00",
+                "is_live_night": False,
+            },
+            {"close": 1228.15, "updated_at": "2026-05-22T06:45:00+00:00", "session_date": "2026-05-22"},
+            market_snapshot_cache,
+            now_utc,
+        )
+
+        self.assertIsNotNone(record)
+        self.assertEqual(record["predictionDateIso"], "2026-05-25")
+        self.assertEqual(record["marketIndicators"]["ewy"]["value"], 177.55)
+        self.assertEqual(record["marketIndicators"]["ewy"]["changePct"], -6.81)
+        self.assertEqual(record["marketIndicators"]["ewy"]["marketSession"], "post")
+        self.assertEqual(record["marketIndicators"]["krw"]["value"], 1497.76)
+        self.assertEqual(record["prediction"]["pointPrediction"], 7762.58)
+        self.assertEqual(record["nightFutures"]["price"], 1216.4)
+        self.assertEqual(record["dayFutures"]["close"], 1228.15)
+        self.assertEqual(record["model"]["liveEwyChangePct"], -1.2)
+        self.assertTrue(record["operation"]["isPredictionOperationWindow"])
+        self.assertEqual(record["quality"]["missingPredictionFields"], [])
+
+    def test_intraday_indicator_series_snapshot_writes_date_target_path(self):
+        original_data_dir = refresh_night_futures.DATA_DIR
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            try:
+                refresh_night_futures.DATA_DIR = Path(temp_dir)
+                now_utc = datetime(2026, 5, 22, 23, 59, 12, tzinfo=timezone.utc)
+
+                path = refresh_night_futures.write_intraday_indicator_series_snapshot(
+                    {"primary": [], "secondary": []},
+                    {
+                        "predictionDateIso": "2026-05-25",
+                        "predictionDate": "2026-05-25",
+                        "pointPrediction": 7762.58,
+                    },
+                    None,
+                    None,
+                    {},
+                    now_utc,
+                )
+            finally:
+                refresh_night_futures.DATA_DIR = original_data_dir
+
+            self.assertIsNotNone(path)
+            self.assertTrue(path.exists())
+            self.assertIn("kst_date=2026-05-23", path.as_posix())
+            self.assertIn("prediction_date=2026-05-25", path.as_posix())
+            self.assertEqual(path.name, "20260522T235912Z.json")
+
     def test_us_premarket_bridge_start_uses_daylight_saving_time(self):
         daylight_start = refresh_night_futures.resolve_us_premarket_open_kst(
             datetime(2026, 4, 14, tzinfo=KST).date()

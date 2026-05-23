@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, request
+from google.api_core.exceptions import PreconditionFailed
 from google.cloud import storage
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +41,7 @@ SYNC_FILE_NAMES = SERVE_FILE_NAMES | {
     "night_futures_source_cache.json",
     "prediction_archive.json",
 }
+INTRADAY_INDICATOR_SERIES_DIR_NAME = "intraday_indicator_series"
 
 BUCKET_NAME = os.environ.get("LIVE_DATA_BUCKET", "").strip()
 BUCKET_PREFIX = os.environ.get("LIVE_DATA_PREFIX", "").strip().strip("/")
@@ -151,6 +153,57 @@ def upload_bucket_file(file_name: str, source_path: Path) -> bool:
     blob.cache_control = "no-store"
     blob.upload_from_filename(str(source_path), content_type="application/json; charset=utf-8")
     return True
+
+
+def iter_intraday_archive_files(data_dir: Path) -> list[Path]:
+    archive_root = data_dir / INTRADAY_INDICATOR_SERIES_DIR_NAME
+    if not archive_root.exists():
+        return []
+
+    return sorted(path for path in archive_root.rglob("*.json") if path.is_file())
+
+
+def upload_bucket_file_once(file_name: str, source_path: Path) -> str:
+    if not source_path.exists():
+        return "missing"
+
+    bucket = get_storage_bucket(BUCKET_NAME)
+    if bucket is None:
+        return "disabled"
+
+    blob = bucket.blob(live_blob_name(file_name))
+    blob.cache_control = "no-store"
+    try:
+        blob.upload_from_filename(
+            str(source_path),
+            content_type="application/json; charset=utf-8",
+            if_generation_match=0,
+        )
+    except PreconditionFailed:
+        return "skipped_exists"
+    return "uploaded"
+
+
+def upload_intraday_archive_files(data_dir: Path) -> dict[str, list[str]]:
+    uploaded: list[str] = []
+    skipped: list[str] = []
+    missing_or_disabled: list[str] = []
+
+    for source_path in iter_intraday_archive_files(data_dir):
+        relative_name = source_path.relative_to(data_dir).as_posix()
+        result = upload_bucket_file_once(relative_name, source_path)
+        if result == "uploaded":
+            uploaded.append(relative_name)
+        elif result == "skipped_exists":
+            skipped.append(relative_name)
+        else:
+            missing_or_disabled.append(relative_name)
+
+    return {
+        "uploaded": uploaded,
+        "skipped": skipped,
+        "missingOrDisabled": missing_or_disabled,
+    }
 
 
 def news_blob_name(relative_path: str) -> str:
@@ -542,6 +595,7 @@ def run_refresh_job() -> dict:
         for file_name in SYNC_FILE_NAMES:
             if upload_bucket_file(file_name, data_dir / file_name):
                 uploaded_files.append(file_name)
+        uploaded_intraday_archive_files = upload_intraday_archive_files(data_dir)
         if uploaded_files:
             clear_live_json_cache()
 
@@ -552,6 +606,8 @@ def run_refresh_job() -> dict:
             "ok": True,
             "message": process.stdout.strip() or "refresh completed",
             "uploadedFiles": uploaded_files,
+            "uploadedIntradayArchiveFiles": uploaded_intraday_archive_files["uploaded"],
+            "skippedIntradayArchiveFiles": uploaded_intraday_archive_files["skipped"],
             "predictionGeneratedAt": prediction_payload.get("generatedAt"),
             "liveCalculatedAt": prediction_payload.get("lastCalculatedAt"),
             "indicatorGeneratedAt": indicators_payload.get("generatedAt"),

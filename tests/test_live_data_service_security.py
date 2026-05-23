@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from cloudrun import live_data_service
 
@@ -12,6 +14,7 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         self.original_allow_unauthenticated = live_data_service.ALLOW_UNAUTHENTICATED_REFRESH
         self.original_cache_seconds = live_data_service.LIVE_JSON_CACHE_SECONDS
         self.original_download = live_data_service.download_bucket_file
+        self.original_get_storage_bucket = live_data_service.get_storage_bucket
         live_data_service.clear_live_json_cache()
 
     def tearDown(self):
@@ -19,6 +22,7 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         live_data_service.ALLOW_UNAUTHENTICATED_REFRESH = self.original_allow_unauthenticated
         live_data_service.LIVE_JSON_CACHE_SECONDS = self.original_cache_seconds
         live_data_service.download_bucket_file = self.original_download
+        live_data_service.get_storage_bucket = self.original_get_storage_bucket
         live_data_service.clear_live_json_cache()
 
     def test_refresh_auth_fails_closed_when_token_is_missing(self):
@@ -111,6 +115,56 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
 
         self.assertEqual(status, 413)
         self.assertEqual(response.get_json()["error"], "request_too_large")
+
+    def test_intraday_archive_upload_uses_create_only_objects(self):
+        uploads = []
+
+        class FakeBlob:
+            def __init__(self, name):
+                self.name = name
+                self.cache_control = None
+
+            def upload_from_filename(self, filename, content_type=None, if_generation_match=None):
+                uploads.append(
+                    {
+                        "name": self.name,
+                        "filename": Path(filename).name,
+                        "content_type": content_type,
+                        "if_generation_match": if_generation_match,
+                        "cache_control": self.cache_control,
+                    }
+                )
+
+        class FakeBucket:
+            def blob(self, name):
+                return FakeBlob(name)
+
+        live_data_service.get_storage_bucket = lambda bucket_name: FakeBucket()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = Path(temp_dir)
+            archive_file = (
+                data_dir
+                / "intraday_indicator_series"
+                / "kst_date=2026-05-23"
+                / "prediction_date=2026-05-25"
+                / "20260522T235912Z.json"
+            )
+            archive_file.parent.mkdir(parents=True)
+            archive_file.write_text('{"ok":true}', encoding="utf8")
+
+            result = live_data_service.upload_intraday_archive_files(data_dir)
+
+        self.assertEqual(
+            result["uploaded"],
+            [
+                "intraday_indicator_series/kst_date=2026-05-23/"
+                "prediction_date=2026-05-25/20260522T235912Z.json"
+            ],
+        )
+        self.assertEqual(result["skipped"], [])
+        self.assertEqual(uploads[0]["if_generation_match"], 0)
+        self.assertEqual(uploads[0]["content_type"], "application/json; charset=utf-8")
 
 
 if __name__ == "__main__":

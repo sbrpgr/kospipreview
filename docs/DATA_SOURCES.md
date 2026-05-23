@@ -1,6 +1,6 @@
 # Data Sources
 
-Baseline date: 2026-04-13
+Baseline date: 2026-05-23
 
 ## Production Sources
 
@@ -87,6 +87,24 @@ Key files:
 - `prediction_archive.json`
 - `day_futures_close_cache.json`
 - `night_futures_source_cache.json`
+
+## Intraday Research Archive
+
+During the prediction operating window, live refresh writes the observed
+indicator state to:
+
+```text
+gs://kospipreview-live-data/intraday_indicator_series/
+```
+
+These snapshots include Yahoo-derived market indicator values, day/night
+futures snapshots, current prediction/conversion fields, selected model fields,
+and quality flags. They are designed for later research use and are not served
+as public live dashboard JSON.
+
+Schema details:
+
+- `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
 
 ## Public Display Policy
 
