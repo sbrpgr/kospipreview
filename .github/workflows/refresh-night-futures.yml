@@ -65,6 +65,13 @@ jobs:
       - name: Refresh night futures payload
         run: python ./scripts/refresh_night_futures.py
 
+      - name: Preserve existing prediction snapshot
+        run: |
+          python ./scripts/merge_live_data_seed.py \
+            --prediction-fallback .live-data-seed/bucket/prediction.json \
+            --prediction-output frontend/public/data/prediction.json \
+            --prediction-series frontend/public/data/live_prediction_series.json
+
       - name: Preserve existing history verification fields
         run: |
           python ./scripts/merge_live_data_seed.py \

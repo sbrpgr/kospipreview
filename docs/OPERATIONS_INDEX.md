@@ -44,6 +44,10 @@ If work resumes later, read these documents in order:
   not reset to incomplete bundled or bucket files. Before publish, regenerated
   `history.json` rows keep existing non-null bucket verification fields when the
   regenerated value is `null`.
+- Before publish, regenerated `prediction.json` must also keep same-target
+  non-null prediction fields from the bucket seed, and can restore them from the
+  latest pre-open `live_prediction_series.json` row when a non-operating-window
+  rebuild would otherwise publish `null` values.
 
 ## Current Operating Schedule
 

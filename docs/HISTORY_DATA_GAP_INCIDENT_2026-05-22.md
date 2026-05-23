@@ -52,6 +52,12 @@ bucket-backed `history.json` payload together with the other live JSON files.
 - Before publishing rebuilt JSON, existing bucket `history.json` verification
   fields are merged back when the regenerated row would otherwise replace a
   non-null historical field with `null`.
+- Follow-up on `2026-05-23`: before publishing rebuilt JSON, existing
+  same-target `prediction.json` values are also preserved when a regenerated
+  non-operating-window payload would otherwise replace non-null prediction,
+  night-futures conversion, or EWY+FX conversion fields with `null`. If the
+  bucket prediction is already blank, the latest pre-open
+  `live_prediction_series.json` row is used as the recovery source.
 
 These fixes do not change model formulas, frontend rendering, Cloud Run code, or
 Scheduler cadence.

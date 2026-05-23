@@ -220,6 +220,86 @@ class OperatingWindowTests(unittest.TestCase):
         self.assertEqual(merged["records"][0]["nightFuturesClose"], 1229.25)
         self.assertEqual(merged["records"][0]["nightFuturesSimpleOpen"], 7833.01)
 
+    def test_live_data_seed_merge_preserves_prediction_non_null_fields(self):
+        primary_payload = {
+            "generatedAt": "2026-05-23T01:31:12+00:00",
+            "predictionDateIso": "2026-05-25",
+            "predictionDate": "2026-05-25",
+            "pointPrediction": None,
+            "nightFuturesSimplePoint": None,
+            "ewyFxSimplePoint": None,
+            "rangeLow": None,
+            "rangeHigh": None,
+            "lastCalculatedAt": None,
+            "model": {"predictionPhase": "standby"},
+        }
+        fallback_payload = {
+            "generatedAt": "2026-05-22T23:47:00+00:00",
+            "predictionDateIso": "2026-05-25",
+            "predictionDate": "2026-05-25",
+            "pointPrediction": 7775.0,
+            "nightFuturesSimplePoint": 7772.63,
+            "ewyFxSimplePoint": 7740.0,
+            "rangeLow": 7742.42,
+            "rangeHigh": 7807.58,
+            "lastCalculatedAt": "2026-05-22T23:47:00+00:00",
+            "model": {"nightFuturesBridgeApplied": True},
+        }
+
+        merged = merge_live_data_seed.merge_prediction_payload(primary_payload, fallback_payload)
+
+        self.assertEqual(merged["pointPrediction"], 7775.0)
+        self.assertEqual(merged["nightFuturesSimplePoint"], 7772.63)
+        self.assertEqual(merged["ewyFxSimplePoint"], 7740.0)
+        self.assertEqual(merged["rangeLow"], 7742.42)
+        self.assertEqual(merged["lastCalculatedAt"], "2026-05-22T23:47:00+00:00")
+        self.assertTrue(merged["model"]["nightFuturesBridgeApplied"])
+
+    def test_live_data_seed_merge_restores_prediction_from_series(self):
+        primary_payload = {
+            "generatedAt": "2026-05-23T01:31:12+00:00",
+            "predictionDateIso": "2026-05-25",
+            "predictionDate": "2026-05-25",
+            "pointPrediction": None,
+            "nightFuturesSimplePoint": None,
+            "ewyFxSimplePoint": None,
+            "rangeLow": None,
+            "rangeHigh": None,
+            "lastCalculatedAt": None,
+        }
+        series_payload = {
+            "records": [
+                {
+                    "predictionDateIso": "2026-05-25",
+                    "observedAt": "2026-05-22T23:58:00+00:00",
+                    "pointPrediction": 7760.0,
+                    "nightFuturesSimplePoint": 7770.0,
+                    "ewyFxSimplePoint": 7720.0,
+                },
+                {
+                    "predictionDateIso": "2026-05-25",
+                    "observedAt": "2026-05-22T23:59:00+00:00",
+                    "pointPrediction": 7762.58,
+                    "nightFuturesSimplePoint": 7772.63,
+                    "ewyFxSimplePoint": 7721.77,
+                    "nightFuturesClose": 1216.4,
+                    "predictedChangePct": -1.08,
+                    "nightFuturesSimpleChangePct": -0.96,
+                    "ewyFxSimpleChangePct": -1.6,
+                },
+            ]
+        }
+
+        merged = merge_live_data_seed.merge_prediction_payload(primary_payload, None, series_payload)
+
+        self.assertEqual(merged["pointPrediction"], 7762.58)
+        self.assertEqual(merged["nightFuturesSimplePoint"], 7772.63)
+        self.assertEqual(merged["ewyFxSimplePoint"], 7721.77)
+        self.assertEqual(merged["nightFuturesClose"], 1216.4)
+        self.assertEqual(merged["lastCalculatedAt"], "2026-05-22T23:59:00+00:00")
+        self.assertEqual(merged["rangeLow"], 7742.58)
+        self.assertEqual(merged["rangeHigh"], 7782.58)
+
     def test_ewy_bridge_samples_five_two_minute_slots_from_premarket_open(self):
         model_payload = {}
         day_close = 872.0

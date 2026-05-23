@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,108 @@ def read_json(path: Path) -> dict[str, Any] | None:
 
 def is_present(value: Any) -> bool:
     return value is not None and value != ""
+
+
+def is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def prediction_date_iso(payload: dict[str, Any] | None) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+
+    value = payload.get("predictionDateIso")
+    if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return value
+
+    return None
+
+
+def latest_series_row(series_payload: dict[str, Any] | None, target_iso: str | None) -> dict[str, Any] | None:
+    if not isinstance(series_payload, dict) or not isinstance(target_iso, str):
+        return None
+
+    records = series_payload.get("records")
+    if not isinstance(records, list):
+        return None
+
+    candidates = [
+        row
+        for row in records
+        if isinstance(row, dict)
+        and row.get("predictionDateIso") == target_iso
+        and isinstance(row.get("observedAt"), str)
+        and is_number(row.get("pointPrediction"))
+    ]
+    if not candidates:
+        return None
+
+    return sorted(candidates, key=lambda row: str(row.get("observedAt") or ""))[-1]
+
+
+def merge_prediction_payload(
+    primary: dict[str, Any] | None,
+    fallback: dict[str, Any] | None,
+    series_payload: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    if not isinstance(primary, dict):
+        return None
+
+    target_iso = prediction_date_iso(primary)
+    merged = dict(primary)
+
+    if prediction_date_iso(fallback) == target_iso:
+        for key, value in fallback.items():
+            if not is_present(merged.get(key)) and is_present(value):
+                merged[key] = value
+
+        primary_model = merged.get("model")
+        fallback_model = fallback.get("model") if isinstance(fallback, dict) else None
+        if isinstance(primary_model, dict) and isinstance(fallback_model, dict):
+            model = dict(primary_model)
+            for key, value in fallback_model.items():
+                if not is_present(model.get(key)) and is_present(value):
+                    model[key] = value
+            merged["model"] = model
+
+    row = latest_series_row(series_payload, target_iso)
+    if row is not None:
+        series_field_map = {
+            "pointPrediction": "pointPrediction",
+            "nightFuturesSimplePoint": "nightFuturesSimplePoint",
+            "nightFuturesSimpleChangePct": "nightFuturesSimpleChangePct",
+            "ewyFxSimplePoint": "ewyFxSimplePoint",
+            "ewyFxSimpleChangePct": "ewyFxSimpleChangePct",
+            "nightFuturesClose": "nightFuturesClose",
+            "predictedChangePct": "predictedChangePct",
+        }
+        for target_key, source_key in series_field_map.items():
+            value = row.get(source_key)
+            if not is_present(merged.get(target_key)) and is_present(value):
+                merged[target_key] = value
+
+        if not is_present(merged.get("lastCalculatedAt")) and isinstance(row.get("observedAt"), str):
+            merged["lastCalculatedAt"] = row["observedAt"]
+
+        point = row.get("pointPrediction")
+        if (
+            is_number(point)
+            and (not is_present(merged.get("rangeLow")) or not is_present(merged.get("rangeHigh")))
+        ):
+            half_band = 20.0
+            for candidate in (fallback, primary):
+                low = candidate.get("rangeLow") if isinstance(candidate, dict) else None
+                high = candidate.get("rangeHigh") if isinstance(candidate, dict) else None
+                if is_number(low) and is_number(high) and high >= low:
+                    half_band = max(1.0, (float(high) - float(low)) / 2)
+                    break
+
+            if not is_present(merged.get("rangeLow")):
+                merged["rangeLow"] = round(float(point) - half_band, 2)
+            if not is_present(merged.get("rangeHigh")):
+                merged["rangeHigh"] = round(float(point) + half_band, 2)
+
+    return merged
 
 
 def merge_archive_records(payloads: list[dict[str, Any] | None]) -> list[dict[str, Any]]:
@@ -111,6 +214,9 @@ def main() -> None:
     parser.add_argument("--archive-output", type=Path)
     parser.add_argument("--history-fallback", type=Path)
     parser.add_argument("--history-output", type=Path)
+    parser.add_argument("--prediction-fallback", type=Path)
+    parser.add_argument("--prediction-output", type=Path)
+    parser.add_argument("--prediction-series", type=Path)
     args = parser.parse_args()
 
     archive_args = (args.archive_fallback, args.archive_bucket, args.archive_output)
@@ -143,6 +249,22 @@ def main() -> None:
             args.history_output.parent.mkdir(parents=True, exist_ok=True)
             args.history_output.write_text(
                 json.dumps(merged_history, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf8",
+            )
+
+    if args.prediction_fallback or args.prediction_output or args.prediction_series:
+        if not (args.prediction_fallback and args.prediction_output):
+            parser.error("--prediction-fallback and --prediction-output must be provided together")
+
+        merged_prediction = merge_prediction_payload(
+            read_json(args.prediction_output),
+            read_json(args.prediction_fallback),
+            read_json(args.prediction_series) if args.prediction_series else None,
+        )
+        if merged_prediction is not None:
+            args.prediction_output.parent.mkdir(parents=True, exist_ok=True)
+            args.prediction_output.write_text(
+                json.dumps(merged_prediction, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf8",
             )
 
