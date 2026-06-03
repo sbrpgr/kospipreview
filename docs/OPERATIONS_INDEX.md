@@ -29,6 +29,7 @@ If work resumes later, read these documents in order:
 - Hosting-only deploy workflow: GitHub Actions `deploy-hosting`
 - Cloud Run deploy workflow: GitHub Actions `cloudrun-deploy`
 - Fallback-only JSON refresh workflow: GitHub Actions `refresh-night-futures`
+- Header support button: Ko-fi link `https://ko-fi.com/sbgkp` shown as `커피 한 잔 후원하기` to the right of `문의`
 - YouTube news source archive: root `news/YYYY-MM-DD/HHMMSS/`
 - YouTube news public sync: `frontend/scripts/sync-news.mjs`
 - YouTube news dynamic API: `/api/news/youtube-news.json`, `/api/news/reports/**`
@@ -176,6 +177,23 @@ All times are Asia/Seoul.
 - Model spec: `docs/MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`
 - Security / runbook: `docs/SECURITY_OPERATIONS_RUNBOOK.md`
 - Firebase / Cloudflare / GA4 / AdSense guide: `docs/FIREBASE_CLOUDFLARE_GA4_ADSENSE_2026.md`
+
+## Latest Frontend Deployment Verification
+
+Last verified on 2026-06-04 KST:
+
+- Change: global header Ko-fi support button.
+- Header placement: immediately to the right of `문의`.
+- Button label: `커피 한 잔 후원하기`.
+- Button URL: `https://ko-fi.com/sbgkp`.
+- Commit: `84715cbe feat: add ko-fi support button`.
+- Workflow: GitHub Actions `deploy-hosting`.
+- Run: `https://github.com/sbrpgr/kospipreview/actions/runs/26905076868`.
+- Result: success.
+- Production check:
+  - `https://kospipreview.com/?v=ko-fi-support-84715cbe` returned `200 OK`;
+  - rendered HTML included `supportButton`, `https://ko-fi.com/sbgkp`, and `커피 한 잔 후원하기`.
+- Cost guardrail: Cloud Run and Cloud Build were not used.
 
 ## Latest Verified Production State
 

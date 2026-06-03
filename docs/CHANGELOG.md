@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-06-04
+
+- Ko-fi support button added to the global header.
+  - UI: added a yellow `커피 한 잔 후원하기` button immediately to the right of `문의`.
+  - Link: `https://ko-fi.com/sbgkp`, opened in a new tab with `noopener noreferrer`.
+  - Files changed:
+    - `frontend/src/components/site-header.tsx`
+    - `frontend/src/app/globals.css`
+  - Verification:
+    - `npm.cmd run build` passed.
+    - `git diff --check` passed.
+    - Production HTML at `https://kospipreview.com/?v=ko-fi-support-84715cbe` returned `200 OK` and included `supportButton`, `https://ko-fi.com/sbgkp`, and `커피 한 잔 후원하기`.
+  - Deployment:
+    - commit: `84715cbe feat: add ko-fi support button`
+    - workflow: `deploy-hosting`
+    - run: `26905076868`
+    - result: success
+  - Cost guardrail: Cloud Run and Cloud Build were not used; this was a frontend-only Firebase Hosting deployment.
+
 ## 2026-05-19
 
 - history.json 마켓 데이터 5개 필드 복구 및 자동 누적 구조 완성
