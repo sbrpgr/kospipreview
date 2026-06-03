@@ -10,6 +10,9 @@ import { SiteHeader } from "@/components/site-header";
 import { getClientDataUrl, getLiveDashboardClientUrl, getStaticDataUrl } from "@/lib/data-paths";
 import {
   type HistoryData,
+  type HolidayHistoryData,
+  type HolidayPredictionData,
+  type HolidayPredictionSeriesData,
   type IndicatorData,
   type LivePredictionSeriesData,
   type PredictionData,
@@ -462,6 +465,32 @@ async function fetchDashboardPayload() {
   }
 }
 
+async function fetchHolidayPayload(): Promise<{
+  prediction: HolidayPredictionData;
+  series: HolidayPredictionSeriesData;
+  history: HolidayHistoryData;
+} | null> {
+  try {
+    const [prediction, series, history] = await Promise.all([
+      fetchJson<HolidayPredictionData>(
+        getClientDataUrl("holiday_prediction.json"),
+        getStaticDataUrl("holiday_prediction.json"),
+      ),
+      fetchJson<HolidayPredictionSeriesData>(
+        getClientDataUrl("holiday_prediction_series.json"),
+        getStaticDataUrl("holiday_prediction_series.json"),
+      ),
+      fetchJson<HolidayHistoryData>(
+        getClientDataUrl("holiday_history.json"),
+        getStaticDataUrl("holiday_history.json"),
+      ),
+    ]);
+    return { prediction, series, history };
+  } catch {
+    return null;
+  }
+}
+
 export function LiveDashboard({
   initialPrediction,
   initialIndicators,
@@ -474,6 +503,9 @@ export function LiveDashboard({
   const [history, setHistory] = useState(initialHistory);
   const [livePredictionSeries, setLivePredictionSeries] = useState(initialLivePredictionSeries);
   const [freshness, setFreshness] = useState(initialFreshness);
+  const [holidayPrediction, setHolidayPrediction] = useState<HolidayPredictionData | null>(null);
+  const [holidaySeries, setHolidaySeries] = useState<HolidayPredictionSeriesData | null>(null);
+  const [holidayHistory, setHolidayHistory] = useState<HolidayHistoryData | null>(null);
   const [hasSyncedOnce, setHasSyncedOnce] = useState(
     () => initialIndicators.primary.length > 0
   );
@@ -557,6 +589,37 @@ export function LiveDashboard({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    let timer: number | null = null;
+
+    const syncHoliday = async () => {
+      const payload = await fetchHolidayPayload();
+      if (!cancelled && payload) {
+        setHolidayPrediction(payload.prediction);
+        setHolidaySeries(payload.series);
+        setHolidayHistory(payload.history);
+      }
+    };
+
+    const schedule = () => {
+      if (!cancelled) {
+        timer = window.setTimeout(async () => {
+          await syncHoliday();
+          schedule();
+        }, POLL_INTERVAL_MS);
+      }
+    };
+
+    void syncHoliday();
+    schedule();
+
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
     const updateOperationStatus = () => {
       setMarketOperation(getMarketOperationInfo());
     };
@@ -594,6 +657,10 @@ export function LiveDashboard({
     modelChangePct !== null &&
     modelRangeLow !== null &&
     modelRangeHigh !== null;
+
+  const model2Point = isFiniteNumber(holidayPrediction?.pointPrediction) ? holidayPrediction!.pointPrediction! : null;
+  const model2ChangePct = isFiniteNumber(holidayPrediction?.predictedChangePct) ? holidayPrediction!.predictedChangePct! : null;
+  const isModel2Ready = model2Point !== null && model2ChangePct !== null;
 
   return (
     <div className="pageContainer">
@@ -659,6 +726,22 @@ export function LiveDashboard({
                   : "-"}
               </div>
             </div>
+            <div className="heroForecastCard isModel2">
+              <div className="heroForecastLabel">모델2 예측</div>
+              <div className="heroForecastValue">
+                {isModel2Ready ? model2Point!.toLocaleString("ko-KR") : "-"}
+              </div>
+              <div
+                className={`heroForecastChange ${
+                  !isModel2Ready ? "isNeu" : model2ChangePct! >= 0 ? "isPos" : "isNeg"
+                }`}
+              >
+                {isModel2Ready
+                  ? `${model2ChangePct! >= 0 ? "상방" : "하방"} ${Math.abs(model2ChangePct!).toFixed(2)}%`
+                  : "-"}
+              </div>
+              <div className="heroForecastMeta">공휴일 EWY 직접 기준</div>
+            </div>
           </div>
 
           <div className="heroBand">
@@ -677,7 +760,7 @@ export function LiveDashboard({
           <div className="heroFootnote">{statusMessage}</div>
         </section>
 
-        <PredictionTrendChart prediction={prediction} series={livePredictionSeries} />
+        <PredictionTrendChart prediction={prediction} series={livePredictionSeries} holidaySeries={holidaySeries} />
 
         <div className="sectionTitleRow">
           <h2 className="sectionTitle">시장 지표 (야후 파이낸스)</h2>
@@ -728,7 +811,7 @@ export function LiveDashboard({
           최근 실측 기록
         </h2>
         {hasLiveSnapshot ? (
-          <AccuracyTable history={history} prediction={prediction} />
+          <AccuracyTable history={history} prediction={prediction} holidayHistory={holidayHistory} />
         ) : (
           <div className="card sectionLoadingCard">
             <div className="sectionLoadingText">최근 실측 기록을 동기화하는 중입니다.</div>

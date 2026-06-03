@@ -159,6 +159,65 @@ export async function getBacktestDiagnosticsData() {
   }>("backtest_diagnostics.json");
 }
 
+export type HolidayPredictionData = Awaited<ReturnType<typeof getHolidayPredictionData>>;
+export type HolidayPredictionSeriesData = Awaited<ReturnType<typeof getHolidayPredictionSeriesData>>;
+export type HolidayHistoryData = Awaited<ReturnType<typeof getHolidayHistoryData>>;
+
+export async function getHolidayPredictionData() {
+  return fetchJson<{
+    calculationMode?: string;
+    isHolidayMode?: boolean;
+    predictionDateIso?: string;
+    predictionDate?: string;
+    prevClose?: number | null;
+    prevCloseDate?: string;
+    pointPrediction?: number | null;
+    predictedChangePct?: number | null;
+    rangeLow?: number | null;
+    rangeHigh?: number | null;
+    ewyBaselineDate?: string;
+    ewyBaselineClose?: number | null;
+    ewyCurrentPrice?: number | null;
+    ewyLogReturnPct?: number | null;
+    krwBaselineClose?: number | null;
+    krwCurrentRate?: number | null;
+    krwLogReturnPct?: number | null;
+    model?: { engine?: string; fitR2?: number | null };
+    generatedAt?: string;
+  }>("holiday_prediction.json");
+}
+
+export async function getHolidayPredictionSeriesData() {
+  return fetchJson<{
+    generatedAt?: string;
+    predictionDateIso?: string;
+    records: Array<{
+      predictionDateIso: string;
+      observedAt: string;
+      kstTime?: string;
+      pointPrediction?: number | null;
+      predictedChangePct?: number | null;
+      ewyLogReturnPct?: number | null;
+      krwLogReturnPct?: number | null;
+    }>;
+  }>("holiday_prediction_series.json");
+}
+
+export async function getHolidayHistoryData() {
+  return fetchJson<{
+    generatedAt?: string;
+    records: Array<{
+      date: string;
+      model2Prediction?: number | null;
+      rangeLow?: number | null;
+      rangeHigh?: number | null;
+      prevClose?: number | null;
+      actualOpen?: number | null;
+      predictionGeneratedAt?: string;
+    }>;
+  }>("holiday_history.json");
+}
+
 function latestIndicatorTimestamp(indicators: Awaited<ReturnType<typeof getIndicatorData>>) {
   return [...indicators.primary, ...indicators.secondary]
     .map((item) => item.checkedAt || item.updatedAt)

@@ -1,4 +1,12 @@
-const LIVE_DATA_FILES = new Set(["prediction.json", "indicators.json", "history.json", "live_prediction_series.json"]);
+const LIVE_DATA_FILES = new Set([
+  "prediction.json",
+  "indicators.json",
+  "history.json",
+  "live_prediction_series.json",
+  "holiday_prediction.json",
+  "holiday_prediction_series.json",
+  "holiday_history.json",
+]);
 
 export const DATA_FILES = [
   "prediction.json",
@@ -6,6 +14,9 @@ export const DATA_FILES = [
   "history.json",
   "live_prediction_series.json",
   "backtest_diagnostics.json",
+  "holiday_prediction.json",
+  "holiday_prediction_series.json",
+  "holiday_history.json",
 ] as const;
 
 export type DataFileName = (typeof DATA_FILES)[number];

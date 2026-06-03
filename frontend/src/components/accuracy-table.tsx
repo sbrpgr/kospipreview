@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { HistoryData, PredictionData } from "@/lib/data";
+import type { HistoryData, HolidayHistoryData, PredictionData } from "@/lib/data";
 
 const PAGE_SIZE = 10;
 
 type AccuracyTableProps = {
   history: HistoryData;
   prediction?: PredictionData;
+  holidayHistory?: HolidayHistoryData | null;
 };
 
 type DisplayRecord = {
@@ -15,6 +16,7 @@ type DisplayRecord = {
   modelPrediction: number | null;
   nightFuturesSimpleOpen: number | null;
   ewyFxSimpleOpen: number | null;
+  model2Prediction: number | null;
   actualOpen: number | null;
   actualClose: number | null;
   dayFuturesClose: number | null;
@@ -61,8 +63,16 @@ function compareDateDesc(left: string, right: string) {
   return right.localeCompare(left);
 }
 
-function buildDisplayRecords(history: HistoryData, prediction?: PredictionData): DisplayRecord[] {
+function buildDisplayRecords(history: HistoryData, prediction?: PredictionData, holidayHistory?: HolidayHistoryData | null): DisplayRecord[] {
   const predictionDateIso = parsePredictionDateIso(prediction);
+
+  // Build model2 lookup from holiday history
+  const model2ByDate = new Map<string, number>();
+  for (const r of holidayHistory?.records ?? []) {
+    if (isFiniteNumber(r.model2Prediction)) {
+      model2ByDate.set(r.date, r.model2Prediction!);
+    }
+  }
 
   const baseRecords: DisplayRecord[] = history.records.map((record) => {
     const modelPrediction =
@@ -77,6 +87,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       modelPrediction,
       nightFuturesSimpleOpen: isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null,
       ewyFxSimpleOpen: isFiniteNumber(record.ewyFxSimpleOpen) ? record.ewyFxSimpleOpen : null,
+      model2Prediction: model2ByDate.get(record.date) ?? null,
       actualOpen: isFiniteNumber(record.actualOpen) ? record.actualOpen : null,
       actualClose: isFiniteNumber(record.actualClose) ? record.actualClose : null,
       dayFuturesClose: isFiniteNumber(record.dayFuturesClose) ? record.dayFuturesClose : null,
@@ -107,6 +118,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       ewyFxSimpleOpen: isFiniteNumber(prediction.ewyFxSimplePoint)
         ? prediction.ewyFxSimplePoint
         : existing.ewyFxSimpleOpen,
+      model2Prediction: model2ByDate.get(predictionDateIso) ?? existing.model2Prediction,
       dayFuturesClose: existing.dayFuturesClose,
       nightFuturesClose: existing.nightFuturesClose,
       isPredictionTarget: true,
@@ -117,6 +129,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData):
       modelPrediction: isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : null,
       nightFuturesSimpleOpen: isFiniteNumber(prediction.nightFuturesSimplePoint) ? prediction.nightFuturesSimplePoint : null,
       ewyFxSimpleOpen: isFiniteNumber(prediction.ewyFxSimplePoint) ? prediction.ewyFxSimplePoint : null,
+      model2Prediction: model2ByDate.get(predictionDateIso) ?? null,
       actualOpen: null,
       actualClose: null,
       dayFuturesClose: null,
@@ -163,8 +176,8 @@ function getMatchRateColor(matchRatePct: number | null) {
   return "var(--negative)";
 }
 
-export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
-  const records = useMemo(() => buildDisplayRecords(history, prediction), [history, prediction]);
+export function AccuracyTable({ history, prediction, holidayHistory }: AccuracyTableProps) {
+  const records = useMemo(() => buildDisplayRecords(history, prediction, holidayHistory), [history, prediction, holidayHistory]);
   const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
   const [page, setPage] = useState(1);
 
@@ -188,9 +201,11 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             <th>야간선물 환산치</th>
             <th>EWY+환율 환산치</th>
             <th>모델 예측치</th>
+            <th>모델2 예측치</th>
             <th>야간선물 오차</th>
             <th>EWY+환율 오차</th>
             <th>모델 오차</th>
+            <th>모델2 오차</th>
             <th style={{ textAlign: "center" }}>
               모델 일치율(%){" "}
               <span
@@ -210,11 +225,13 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
             const dayFuturesCloseValue = isFiniteNumber(record.dayFuturesClose) ? record.dayFuturesClose : null;
             const nightFuturesCloseValue = isFiniteNumber(record.nightFuturesClose) ? record.nightFuturesClose : null;
             const modelPrediction = isFiniteNumber(record.modelPrediction) ? record.modelPrediction : null;
+            const model2Prediction = isFiniteNumber(record.model2Prediction) ? record.model2Prediction : null;
             const nightSimple = isFiniteNumber(record.nightFuturesSimpleOpen) ? record.nightFuturesSimpleOpen : null;
             const ewyFxSimple = isFiniteNumber(record.ewyFxSimpleOpen) ? record.ewyFxSimpleOpen : null;
             const nightError = actualOpenValue !== null && nightSimple !== null ? actualOpenValue - nightSimple : null;
             const ewyFxError = actualOpenValue !== null && ewyFxSimple !== null ? actualOpenValue - ewyFxSimple : null;
             const modelError = actualOpenValue !== null && modelPrediction !== null ? actualOpenValue - modelPrediction : null;
+            const model2Error = actualOpenValue !== null && model2Prediction !== null ? actualOpenValue - model2Prediction : null;
             const modelMatchRatePct = computeModelMatchRatePct(actualOpenValue, modelPrediction);
 
             return (
@@ -236,6 +253,9 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                 <td>{ewyFxSimple === null ? "-" : ewyFxSimple.toLocaleString("ko-KR")}</td>
                 <td style={{ color: "var(--text)", fontWeight: 700 }}>
                   {modelPrediction === null ? "-" : modelPrediction.toLocaleString("ko-KR")}
+                </td>
+                <td style={{ color: "var(--accent)", fontWeight: 700 }}>
+                  {model2Prediction === null ? "-" : model2Prediction.toLocaleString("ko-KR")}
                 </td>
                 <td
                   style={{
@@ -260,6 +280,14 @@ export function AccuracyTable({ history, prediction }: AccuracyTableProps) {
                   }}
                 >
                   {modelError === null ? "-" : `${modelError >= 0 ? "+" : ""}${modelError.toFixed(1)}`}
+                </td>
+                <td
+                  style={{
+                    color: getErrorColor(model2Error),
+                    fontWeight: 700,
+                  }}
+                >
+                  {model2Error === null ? "-" : `${model2Error >= 0 ? "+" : ""}${model2Error.toFixed(1)}`}
                 </td>
                 <td
                   style={{

@@ -11,11 +11,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { LivePredictionSeriesData, PredictionData } from "@/lib/data";
+import type { HolidayPredictionSeriesData, LivePredictionSeriesData, PredictionData } from "@/lib/data";
 
 type PredictionTrendChartProps = {
   prediction: PredictionData;
   series: LivePredictionSeriesData;
+  holidaySeries?: HolidayPredictionSeriesData | null;
 };
 
 function isFiniteNumber(value: unknown): value is number {
@@ -40,31 +41,69 @@ function formatKstTime(value: string) {
   }).format(parsed);
 }
 
-export function PredictionTrendChart({ prediction, series }: PredictionTrendChartProps) {
+export function PredictionTrendChart({ prediction, series, holidaySeries }: PredictionTrendChartProps) {
   const targetDate = prediction.predictionDateIso;
-  const chartData = useMemo(
-    () =>
-      series.records
-        .filter((record) => !targetDate || record.predictionDateIso === targetDate)
-        .map((record) => ({
-          observedAt: record.observedAt,
-          time: record.kstTime ?? formatKstTime(record.observedAt),
-          modelPrediction: isFiniteNumber(record.pointPrediction) ? record.pointPrediction : null,
-          nightFuturesSimplePoint: isFiniteNumber(record.nightFuturesSimplePoint)
-            ? record.nightFuturesSimplePoint
-            : null,
-          ewyFxSimplePoint: isFiniteNumber(record.ewyFxSimplePoint) ? record.ewyFxSimplePoint : null,
-          modelChangePct: record.predictedChangePct,
-          nightChangePct: record.nightFuturesSimpleChangePct,
-          ewyFxChangePct: record.ewyFxSimpleChangePct,
-        }))
-        .sort((a, b) => new Date(a.observedAt).getTime() - new Date(b.observedAt).getTime()),
-    [series, targetDate],
-  );
+
+  const holidayTargetDate = holidaySeries?.predictionDateIso ?? null;
+
+  const chartData = useMemo(() => {
+    const mainRecords = series.records
+      .filter((record) => !targetDate || record.predictionDateIso === targetDate)
+      .map((record) => ({
+        observedAt: record.observedAt,
+        minuteKey: record.observedAt.slice(0, 16),
+        time: record.kstTime ?? formatKstTime(record.observedAt),
+        modelPrediction: isFiniteNumber(record.pointPrediction) ? record.pointPrediction : null,
+        nightFuturesSimplePoint: isFiniteNumber(record.nightFuturesSimplePoint) ? record.nightFuturesSimplePoint : null,
+        ewyFxSimplePoint: isFiniteNumber(record.ewyFxSimplePoint) ? record.ewyFxSimplePoint : null,
+        model2Prediction: null as number | null,
+        modelChangePct: record.predictedChangePct,
+        nightChangePct: record.nightFuturesSimpleChangePct,
+        ewyFxChangePct: record.ewyFxSimpleChangePct,
+      }));
+
+    // Build model2 lookup by minute key
+    const model2ByMinute = new Map<string, number>();
+    if (holidaySeries && holidayTargetDate === targetDate) {
+      for (const r of holidaySeries.records) {
+        if (isFiniteNumber(r.pointPrediction)) {
+          model2ByMinute.set(r.observedAt.slice(0, 16), r.pointPrediction!);
+        }
+      }
+    }
+
+    // Merge model2 into main records or add standalone holiday rows
+    const merged = new Map<string, (typeof mainRecords)[0]>();
+    for (const row of mainRecords) {
+      merged.set(row.minuteKey, { ...row, model2Prediction: model2ByMinute.get(row.minuteKey) ?? null });
+    }
+    // Add holiday-only rows not in main series
+    if (holidaySeries && holidayTargetDate === targetDate) {
+      for (const r of holidaySeries.records) {
+        const key = r.observedAt.slice(0, 16);
+        if (!merged.has(key) && isFiniteNumber(r.pointPrediction)) {
+          merged.set(key, {
+            observedAt: r.observedAt,
+            minuteKey: key,
+            time: r.kstTime ?? formatKstTime(r.observedAt),
+            modelPrediction: null,
+            nightFuturesSimplePoint: null,
+            ewyFxSimplePoint: null,
+            model2Prediction: r.pointPrediction!,
+            modelChangePct: r.predictedChangePct ?? null,
+            nightChangePct: null,
+            ewyFxChangePct: null,
+          });
+        }
+      }
+    }
+
+    return [...merged.values()].sort((a, b) => new Date(a.observedAt).getTime() - new Date(b.observedAt).getTime());
+  }, [series, holidaySeries, targetDate, holidayTargetDate]);
 
   const domainY = useMemo(() => {
     const values = chartData.flatMap((item) =>
-      [item.modelPrediction, item.nightFuturesSimplePoint, item.ewyFxSimplePoint].filter(isFiniteNumber),
+      [item.modelPrediction, item.nightFuturesSimplePoint, item.ewyFxSimplePoint, item.model2Prediction].filter(isFiniteNumber),
     );
 
     if (!values.length) {
@@ -163,6 +202,17 @@ export function PredictionTrendChart({ prediction, series }: PredictionTrendChar
                 strokeWidth={2.4}
                 dot={false}
                 activeDot={{ r: 5, strokeWidth: 0, fill: "var(--positive)" }}
+                connectNulls
+              />
+              <Line
+                type="monotone"
+                name="모델2 예측"
+                dataKey="model2Prediction"
+                stroke="var(--accent)"
+                strokeWidth={2.4}
+                strokeDasharray="4 3"
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 0, fill: "var(--accent)" }}
                 connectNulls
               />
             </LineChart>

@@ -29,6 +29,9 @@ SERVE_FILE_NAMES = {
     "history.json",
     "live_prediction_series.json",
     "backtest_diagnostics.json",
+    "holiday_prediction.json",
+    "holiday_prediction_series.json",
+    "holiday_history.json",
 }
 DASHBOARD_FILE_NAMES = {
     "prediction": "prediction.json",

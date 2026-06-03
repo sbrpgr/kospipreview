@@ -1,0 +1,11 @@
+{
+  "calculationMode": "holiday_ewy_direct",
+  "isHolidayMode": false,
+  "predictionDateIso": null,
+  "predictionDate": null,
+  "pointPrediction": null,
+  "predictedChangePct": null,
+  "rangeLow": null,
+  "rangeHigh": null,
+  "generatedAt": null
+}

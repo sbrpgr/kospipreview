@@ -1,0 +1,83 @@
+name: refresh-holiday-prediction
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Every 5 minutes on weekdays — script exits early if KRX is open or US market is inactive
+    - cron: "*/5 * * * 1-5"
+
+concurrency:
+  group: refresh-holiday-prediction-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: kospipreview
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: kospipreview
+
+      - name: Seed current JSON from Cloud Storage
+        run: |
+          mkdir -p frontend/public/data
+          gcloud storage cp \
+            gs://kospipreview-live-data/backtest_diagnostics.json \
+            frontend/public/data/backtest_diagnostics.json \
+            --quiet || true
+          gcloud storage cp \
+            gs://kospipreview-live-data/holiday_prediction.json \
+            frontend/public/data/holiday_prediction.json \
+            --quiet || true
+          gcloud storage cp \
+            gs://kospipreview-live-data/holiday_prediction_series.json \
+            frontend/public/data/holiday_prediction_series.json \
+            --quiet || true
+          gcloud storage cp \
+            gs://kospipreview-live-data/holiday_history.json \
+            frontend/public/data/holiday_history.json \
+            --quiet || true
+
+      - name: Run holiday prediction model
+        run: python ./scripts/refresh_holiday_prediction.py
+
+      - name: Publish holiday JSON to Cloud Storage
+        run: |
+          for f in holiday_prediction.json holiday_prediction_series.json holiday_history.json; do
+            if [ -f "frontend/public/data/$f" ]; then
+              gcloud storage cp \
+                "frontend/public/data/$f" \
+                "gs://kospipreview-live-data/$f" \
+                --cache-control=no-store \
+                --content-type="application/json; charset=utf-8" \
+                --quiet
+            fi
+          done
