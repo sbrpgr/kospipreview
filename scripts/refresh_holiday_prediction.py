@@ -63,12 +63,21 @@ def _to_float(value) -> float | None:
 # ---------------------------------------------------------------------------
 
 def is_krx_holiday(now_kst: datetime) -> bool:
-    """True when KRX has no intraday data today (holiday or weekend)."""
+    """True when KRX has no trading today (holiday or weekend)."""
     if now_kst.weekday() >= 5:
         return True
     try:
         hist = yf.Ticker("^KS11").history(period="1d", interval="1m")
-        return hist.empty
+        if hist.empty:
+            return True
+        # Yahoo returns the last available trading day even on holidays.
+        # Verify the most recent candle is actually from today (KST).
+        last_ts = hist.index[-1]
+        if hasattr(last_ts, "tzinfo") and last_ts.tzinfo is not None:
+            last_date_kst = last_ts.astimezone(KST).date()
+        else:
+            last_date_kst = last_ts.date()
+        return last_date_kst != now_kst.date()
     except Exception:
         return False
 
