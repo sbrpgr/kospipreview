@@ -183,6 +183,21 @@ p {
   background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
 }
 
+.siteHeader .headerNav a.supportButton {
+  color: #4a3410;
+  border-color: #f2b705;
+  background: linear-gradient(180deg, #ffe67a 0%, #ffc83d 100%);
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.2);
+  white-space: nowrap;
+}
+
+.siteHeader .headerNav a.supportButton:hover {
+  color: #2f2108;
+  border-color: #d99a00;
+  background: linear-gradient(180deg, #fff08f 0%, #ffbd24 100%);
+  box-shadow: 0 10px 22px rgba(245, 158, 11, 0.28);
+}
+
 .statusLabel {
   display: inline-flex;
   align-items: center;

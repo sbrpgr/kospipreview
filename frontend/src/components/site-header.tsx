@@ -86,6 +86,14 @@ export function SiteHeader({
         <a href="/history">기록</a>
         <a href="/about">모델</a>
         <a href="/contact">문의</a>
+        <a
+          className="supportButton"
+          href="https://ko-fi.com/sbgkp"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          커피 한 잔 후원하기
+        </a>
       </nav>
     </header>
   );
