@@ -4,8 +4,8 @@ Last updated: 2026-05-16
 
 ## 발행 현황
 
-- 총 발행: 15편
-- 최신 번호: No. 15
+- 총 발행: 18편
+- 최신 번호: No. 18
 - 경로: `/papers/<slug>`
 - 양식: KCI 표준 (요약·핵심어·Abstract·Keywords·Ⅰ~Ⅴ절·참고문헌)
 - 분량: 5,000자 내외
@@ -14,6 +14,9 @@ Last updated: 2026-05-16
 
 | No. | slug | 제목 | 발행일 |
 |-----|------|------|--------|
+| 18 | intraday-pattern-impact-on-next-opening | 코스피 당일 장중 패턴이 익일 시초가에 미치는 영향 | 2026-05-16 |
+| 17 | additional-indices-for-kospi-prediction | 코스피 시초가 예측력 향상을 위한 추가 획득 가능 지수와 신호 체계 | 2026-05-16 |
+| 16 | (별도 발행) | — | 2026-05-16 |
 | 15 | dynamic-band-width-mae30d-adjustment | MAE30d 연동 동적 예측 밴드 너비 조정 체계 | 2026-05-16 |
 | 14 | us10y-nonlinear-impact-on-kospi | 미국 10년물 금리가 코스피 시초가에 미치는 영향의 비선형성 | 2026-05-16 |
 | 13 | simultaneous-quote-information-asymmetry | 동시호가 8분이 만드는 정보 비대칭 | 2026-05-16 |

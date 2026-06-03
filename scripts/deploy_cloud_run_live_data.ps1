@@ -4,7 +4,8 @@ param(
   [string]$ServiceName = "kospi-live-data",
   [string]$ServiceAccount = "firebase-adminsdk-fbsvc@kospipreview.iam.gserviceaccount.com",
   [string]$BucketName = "kospipreview-live-data",
-  [string]$Schedule = "* * * * 1-5",
+  [string]$Schedule = "* 0-8,17-23 * * 1-5",
+  [string]$SchedulerTimeZone = "Asia/Seoul",
   [string]$SchedulerJobName = "kospi-live-refresh",
   [string]$RefreshToken = ""
 )
@@ -45,6 +46,7 @@ Write-Host "Using region: $Region"
 Write-Host "Using bucket: gs://$BucketName"
 Write-Host "Using service: $ServiceName"
 Write-Host "Using service account: $ServiceAccount"
+Write-Host "Using scheduler: $Schedule ($SchedulerTimeZone)"
 
 Invoke-Gcloud config set project $ProjectId | Out-Null
 
@@ -97,6 +99,7 @@ if ($jobExists) {
     $SchedulerJobName `
     "--location=$Region" `
     "--schedule=$Schedule" `
+    "--time-zone=$SchedulerTimeZone" `
     "--uri=$serviceUrl/api/tasks/refresh" `
     "--http-method=POST" `
     "--update-headers=Authorization=Bearer $RefreshToken"
@@ -105,6 +108,7 @@ if ($jobExists) {
     $SchedulerJobName `
     "--location=$Region" `
     "--schedule=$Schedule" `
+    "--time-zone=$SchedulerTimeZone" `
     "--uri=$serviceUrl/api/tasks/refresh" `
     "--http-method=POST" `
     "--headers=Authorization=Bearer $RefreshToken"

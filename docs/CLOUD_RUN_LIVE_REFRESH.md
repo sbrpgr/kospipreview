@@ -1,6 +1,6 @@
 # Cloud Run Live Refresh
 
-Baseline date: 2026-04-14
+Baseline date: 2026-05-02
 
 ## Purpose
 
@@ -9,7 +9,7 @@ Cloud Run is the primary minute-level live JSON refresh path.
 Goals:
 
 - keep Firebase Hosting as the static frontend;
-- refresh live data every weekday minute without redeploying Hosting;
+- refresh live data during the active off-hours window without redeploying Hosting;
 - avoid a database for current product scale;
 - keep live JSON recoverable through Cloud Storage objects and bundled fallbacks.
 
@@ -36,13 +36,18 @@ Goals:
 
 ## Refresh Cadence And Performance
 
-Cloud Scheduler attempts one refresh per weekday minute.
+Cloud Scheduler attempts one refresh per weekday minute outside the KST `09:00~16:59` quiet window.
+
+Current Scheduler settings:
+
+- cron: `* 0-8,17-23 * * 1-5`
+- time zone: `Asia/Seoul`
 
 Operational target:
 
 - a normal refresh run should finish well under `60s`;
 - if a refresh run exceeds roughly one minute, the next Scheduler attempt can overlap with the active run;
-- overlapping attempts are protected by the refresh lock and can return `409 refresh_in_progress`;
+- overlapping attempts are protected by the refresh lock and return `202 already_running`;
 - repeated over-one-minute runs make the effective dashboard cadence look closer to two minutes.
 
 Current implementation:
@@ -198,11 +203,13 @@ Responsible for:
 - full model rebuild;
 - diagnostics;
 - static fallback JSON;
-- static site publish.
+- Cloud Storage JSON publish.
+
+It must not deploy Firebase Hosting during routine scheduled runs.
 
 ### `refresh-night-futures`
 
-Manual fallback only.
+Manual fallback JSON refresh only.
 
 Use it only when Cloud Run live refresh is degraded.
 

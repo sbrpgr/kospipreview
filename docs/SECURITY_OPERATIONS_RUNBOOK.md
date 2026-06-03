@@ -1,4 +1,4 @@
-# Security & Operations Runbook (2026-04-14)
+# Security & Operations Runbook (2026-05-02)
 
 ## Scope
 
@@ -48,7 +48,9 @@ This runbook covers:
 - `www` host: Firebase Hosting CNAME proxied through Cloudflare
 - static site: Firebase Hosting
 - live JSON refresh: Cloud Run + Cloud Scheduler + Cloud Storage
-- full retrain and static deploy: GitHub Actions
+- model JSON rebuild and Cloud Storage publish: GitHub Actions
+- static deploy: GitHub Actions `deploy-hosting`
+- Cloud Run deploy: GitHub Actions `cloudrun-deploy`
 
 ## Runtime Abuse Controls
 
@@ -135,24 +137,29 @@ Verification:
 
 ### Main deploy paths
 
-#### Static / full rebuild
+#### Static frontend deploy
 
 - push to `main`
-- allow `retrain-model` to run
-- if needed, run manual Firebase Hosting deploy:
-  - `npx firebase-tools@latest deploy --project kospipreview --only hosting --non-interactive`
+- run GitHub Actions workflow `deploy-hosting`
+- use this for frontend, calculator, copy, CSS, and static page changes
 
-#### Production code deploy
+#### Model/data JSON refresh
+
+- `retrain-model` rebuilds model JSON and uploads generated JSON to Cloud Storage
+- `refresh-night-futures` is manual fallback JSON refresh only
+- neither workflow should deploy Firebase Hosting during routine data updates
+
+#### Cloud Run / Scheduler deploy
 
 - push to `main`
-- run GitHub Actions workflow `deploy-production`
+- run GitHub Actions workflow `cloudrun-deploy`
 - confirm Cloud Run latest ready revision receives 100% traffic
 - confirm Firebase Hosting rewrite pins the latest Cloud Run tag
 - confirm `/api/live/prediction.json` responds from bucket
 
 #### Live refresh path
 
-- Cloud Scheduler should call Cloud Run every minute
+- Cloud Scheduler should call Cloud Run every minute outside `09:00~16:59 KST`
 - a normal refresh should finish under `60s`; latest verified production latency after optimization was `12.1s~14.9s`
 - no full Hosting redeploy required for normal live data updates
 
@@ -191,19 +198,19 @@ Check:
 
 1. Cloud Run request logs for `POST /api/tasks/refresh` latency
 2. Cloud Scheduler last attempts and response codes
-3. repeated `409 refresh_in_progress` responses
+3. repeated `202 already_running` responses
 4. Yahoo/source-market fetch errors or slow responses
 5. `YAHOO_FETCH_WORKERS` configuration
 
 Expected state:
 
-- Scheduler remains enabled on weekday `* * * * 1-5`;
+- Scheduler remains enabled on weekday `* 0-8,17-23 * * 1-5` with time zone `Asia/Seoul`;
 - successful refresh requests normally complete below `60s`;
 - latest verified production latency was `12.1s~14.9s` on revision `kospi-live-data-00026-nf2`.
 
 Notes:
 
-- an occasional `409 refresh_in_progress` is expected if a manual refresh overlaps a scheduled refresh;
+- an occasional `202 already_running` is expected if a manual refresh overlaps a scheduled refresh;
 - repeated scheduled overlaps mean the expensive data collection path has slowed down and should be investigated.
 
 ### A-1. Prediction trend chart is empty or stale

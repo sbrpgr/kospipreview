@@ -1,6 +1,6 @@
 # Architecture
 
-Baseline date: 2026-04-14
+Baseline date: 2026-05-02
 
 ## Current Production Shape
 
@@ -15,7 +15,7 @@ The platform uses a split architecture.
    - Cloud Run service: `kospi-live-data`
    - Cloud Scheduler job: `kospi-live-refresh`
    - Cloud Storage bucket: `kospipreview-live-data`
-   - Scheduler cadence: every minute on weekdays.
+   - Scheduler cadence: every minute on weekdays outside `09:00~16:59 KST`.
 
 3. YouTube news dynamic archive
    - Source reports are stored under the repository root `news/YYYY-MM-DD/HHMMSS/`.
@@ -24,17 +24,17 @@ The platform uses a split architecture.
    - Dynamic news source is Cloud Storage path `gs://kospipreview-live-data/youtube-news/**`.
    - Daily news ingestion uploads reports and index to Storage without requiring Firebase Hosting redeploy.
 
-4. Full model rebuild and static publish
+4. Model rebuild and JSON publish
    - GitHub Actions workflow: `retrain-model`
    - Scheduled every 5 minutes on weekdays.
    - Rebuilds model artifacts and static fallback JSON.
-   - Deploys Firebase Hosting.
-   - This deployment path always reflects `main`; local-only manual deploys can be overwritten by the next scheduled run.
+   - Uploads generated JSON to Cloud Storage.
+   - Does not deploy Firebase Hosting.
 
-5. Production deploy
-   - GitHub Actions workflow: `deploy-production`
-   - Deploys Cloud Run and Firebase Hosting.
-   - Firebase Hosting rewrites are pinned to the latest Cloud Run revision by tag.
+5. Deployment split
+   - GitHub Actions workflow `deploy-hosting` deploys Firebase Hosting only.
+   - GitHub Actions workflow `cloudrun-deploy` deploys Cloud Run, updates Scheduler, then deploys Hosting to pin the latest Cloud Run revision by tag.
+   - Frontend, calculator, copy, and static page changes must not run Cloud Build or Cloud Run deploy.
 
 6. Fallback refresh path
    - GitHub Actions workflow: `refresh-night-futures`
@@ -211,7 +211,8 @@ For each actual trading date, the row should include:
 ## Operationally Important Files
 
 - `firebase.json`
-- `.github/workflows/deploy-production.yml`
+- `.github/workflows/deploy-hosting.yml`
+- `.github/workflows/cloudrun-deploy.yml`
 - `.github/workflows/retrain-model.yml`
 - `.github/workflows/refresh-night-futures.yml`
 - `cloudrun/live_data_service.py`
