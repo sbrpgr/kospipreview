@@ -46,6 +46,7 @@ const ROUTES = [
   { path: "/papers/overnight-kospi-synthetic-index", changeFrequency: "monthly" as const, priority: 0.84 },
   { path: "/papers/prediction-accuracy-extreme-regime-analysis", changeFrequency: "monthly" as const, priority: 0.84 },
   { path: "/papers/kospi-gap-event-taxonomy", changeFrequency: "monthly" as const, priority: 0.84 },
+  { path: "/papers/holiday-ewy-direct-prediction-model", changeFrequency: "monthly" as const, priority: 0.84 },
   { path: "/papers/kospi-predictability-ceiling-information-entropy", changeFrequency: "monthly" as const, priority: 0.84 },
   { path: "/about", changeFrequency: "weekly" as const, priority: 0.8 },
   { path: "/contact", changeFrequency: "monthly" as const, priority: 0.75 },

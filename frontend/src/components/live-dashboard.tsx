@@ -43,6 +43,13 @@ type LiveDashboardApiPayload = {
 
 const PAPERS_HOME = [
   {
+    num: "No. 22",
+    href: "/papers/holiday-ewy-direct-prediction-model",
+    title: "공휴일 시나리오 코스피 시초가 예측 모델의 설계 원리와 성능 경계",
+    abstract: "국내 공휴일 KRX 휴장 + 미국 시장 운영 시나리오에서 야간선물 브릿지 없이 마지막 KRX 거래일 EWY 종가를 기준점으로 삼는 공휴일 전용 예측 모델(모델2)의 설계와 성능 경계를 분석한다.",
+    date: "2026-06-04",
+  },
+  {
     num: "No. 21",
     href: "/papers/kospi-predictability-ceiling-information-entropy",
     title: "코스피 시초가 예측 가능성의 이론적 상한 — Shannon 상호 정보량과 불가예측 엔트로피",

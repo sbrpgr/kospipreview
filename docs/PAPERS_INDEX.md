@@ -1,11 +1,11 @@
 # Working Paper Index
 
-Last updated: 2026-05-16
+Last updated: 2026-06-04
 
 ## 발행 현황
 
-- 총 발행: 18편
-- 최신 번호: No. 18
+- 총 발행: 22편
+- 최신 번호: No. 22
 - 경로: `/papers/<slug>`
 - 양식: KCI 표준 (요약·핵심어·Abstract·Keywords·Ⅰ~Ⅴ절·참고문헌)
 - 분량: 5,000자 내외
@@ -14,6 +14,7 @@ Last updated: 2026-05-16
 
 | No. | slug | 제목 | 발행일 |
 |-----|------|------|--------|
+| 22 | holiday-ewy-direct-prediction-model | 공휴일 시나리오 코스피 시초가 예측 모델의 설계 원리와 성능 경계 | 2026-06-04 |
 | 18 | intraday-pattern-impact-on-next-opening | 코스피 당일 장중 패턴이 익일 시초가에 미치는 영향 | 2026-05-16 |
 | 17 | additional-indices-for-kospi-prediction | 코스피 시초가 예측력 향상을 위한 추가 획득 가능 지수와 신호 체계 | 2026-05-16 |
 | 16 | (별도 발행) | — | 2026-05-16 |
