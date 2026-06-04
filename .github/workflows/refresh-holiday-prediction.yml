@@ -6,7 +6,7 @@ env:
 on:
   workflow_dispatch: {}
   schedule:
-    # Every 5 minutes on weekdays — script exits early if KRX is open or US market is inactive
+    # Every 5 minutes on weekdays; script exits early only when US market data is inactive.
     - cron: "*/5 * * * 1-5"
 
 concurrency:
@@ -57,10 +57,10 @@ jobs:
               --quiet || true
           done
 
-      - name: Run holiday prediction model
+      - name: Run independent model2 prediction
         run: python ./scripts/refresh_holiday_prediction.py
 
-      - name: Publish holiday JSON to Cloud Storage
+      - name: Publish model2 JSON to Cloud Storage
         run: |
           for f in holiday_prediction.json holiday_prediction_series.json holiday_history.json; do
             if [ -f "frontend/public/data/$f" ]; then

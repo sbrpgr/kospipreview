@@ -70,7 +70,7 @@ jobs:
       - name: Refresh night futures and live prediction series
         run: python ./scripts/refresh_night_futures.py
 
-      - name: Refresh model2 (EWY direct anchor)
+      - name: Refresh model2 (independent EWY/FX composite)
         run: python ./scripts/refresh_holiday_prediction.py || true
 
       - name: Preserve existing prediction snapshot
