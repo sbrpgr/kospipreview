@@ -17,6 +17,8 @@ from __future__ import annotations
 import json
 import math
 import sys
+from urllib.error import URLError
+from urllib.request import urlopen
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -27,6 +29,7 @@ import yfinance as yf
 OUTPUT_DIR = Path("frontend/public/data")
 DIAGNOSTICS_PATH = OUTPUT_DIR / "backtest_diagnostics.json"
 PRIMARY_PREDICTION_PATH = OUTPUT_DIR / "prediction.json"
+PRIMARY_PREDICTION_PUBLIC_URL = "https://kospipreview.com/api/live/prediction.json"
 HOLIDAY_PREDICTION_PATH = OUTPUT_DIR / "holiday_prediction.json"
 HOLIDAY_SERIES_PATH = OUTPUT_DIR / "holiday_prediction_series.json"
 HOLIDAY_HISTORY_PATH = OUTPUT_DIR / "holiday_history.json"
@@ -79,6 +82,16 @@ def _load_json(path: Path) -> dict[str, Any]:
         return {}
 
 
+def _fetch_json(url: str, *, timeout: float = 4.0) -> dict[str, Any]:
+    try:
+        with urlopen(url, timeout=timeout) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data if isinstance(data, dict) else {}
+    except (OSError, TimeoutError, URLError, json.JSONDecodeError) as exc:
+        print(f"warning: failed to fetch {url}: {exc}", file=sys.stderr)
+        return {}
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -107,6 +120,15 @@ def _positive_float(value: Any) -> float | None:
     if parsed is None or parsed <= 0:
         return None
     return parsed
+
+
+def _parse_iso_date(value: Any) -> date | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
 
 
 def _clamp(value: float, lower: float, upper: float) -> float:
@@ -239,6 +261,29 @@ def get_primary_kospi_session_snapshot(primary_snapshot: dict[str, Any]) -> dict
     }
 
 
+def load_primary_prediction_snapshot(now_kst: datetime) -> dict[str, Any]:
+    local_snapshot = _load_json(PRIMARY_PREDICTION_PATH)
+    local_session = get_primary_kospi_session_snapshot(local_snapshot)
+    local_date = _parse_iso_date(local_session.get("date")) if local_session else None
+
+    should_fetch_public = local_session is None
+    if local_date is not None and local_date <= now_kst.date() - timedelta(days=2):
+        should_fetch_public = True
+
+    if not should_fetch_public:
+        return local_snapshot
+
+    public_snapshot = _fetch_json(PRIMARY_PREDICTION_PUBLIC_URL)
+    public_session = get_primary_kospi_session_snapshot(public_snapshot)
+    if public_session is None:
+        return local_snapshot
+
+    public_date = _parse_iso_date(public_session.get("date"))
+    if local_date is None or (public_date is not None and public_date >= local_date):
+        return public_snapshot
+    return local_snapshot
+
+
 def resolve_last_krx_session(primary_snapshot: dict[str, Any]) -> dict[str, Any] | None:
     primary_session = get_primary_kospi_session_snapshot(primary_snapshot)
     yahoo_session = get_last_krx_session()
@@ -259,6 +304,41 @@ def resolve_last_krx_session(primary_snapshot: dict[str, Any]) -> dict[str, Any]
 
     yahoo_session["source"] = "yahoo_ks11"
     return yahoo_session
+
+
+def guard_last_session_with_existing_model2(
+    last_session: dict[str, Any],
+    existing_payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Prevent stale Yahoo KOSPI data from rolling Model 2 backward."""
+
+    if existing_payload.get("calculationMode") != MODEL2_MODE:
+        return last_session
+
+    session_date = _parse_iso_date(last_session.get("date"))
+    existing_date_raw = existing_payload.get("prevCloseDate") or existing_payload.get("baselineDate")
+    existing_date = _parse_iso_date(existing_date_raw)
+    existing_close = _positive_float(existing_payload.get("prevClose"))
+
+    if session_date is None or existing_date is None or existing_close is None:
+        return last_session
+
+    source = str(last_session.get("source") or "")
+    existing_source = str(existing_payload.get("prevCloseSource") or "")
+    should_keep_existing = existing_date > session_date or (
+        existing_date == session_date
+        and source == "yahoo_ks11"
+        and existing_source
+        and existing_source != "yahoo_ks11"
+    )
+    if not should_keep_existing:
+        return last_session
+
+    return {
+        "date": existing_date.isoformat(),
+        "close": existing_close,
+        "source": "existing_model2_prev_close_guard",
+    }
 
 
 def _get_prev_session_close(ticker_symbol: str, krx_date_iso: str) -> float | None:
@@ -725,12 +805,13 @@ def run() -> int:
 
     diagnostics = _load_json(DIAGNOSTICS_PATH)
     existing_payload = _load_json(HOLIDAY_PREDICTION_PATH)
-    primary_snapshot = _load_json(PRIMARY_PREDICTION_PATH)
+    primary_snapshot = load_primary_prediction_snapshot(now_kst)
 
     last_session = resolve_last_krx_session(primary_snapshot)
     if not last_session:
         print("error: missing KRX close baseline", file=sys.stderr)
         return 1
+    last_session = guard_last_session_with_existing_model2(last_session, existing_payload)
 
     current_prices = get_current_prices()
     if not _has_required_prices(current_prices):

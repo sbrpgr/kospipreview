@@ -182,6 +182,54 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertEqual(session["close"], 8639.41)
         self.assertEqual(session["source"], "primary_kospi_close_snapshot")
 
+    def test_public_primary_snapshot_repairs_stale_local_prediction_snapshot(self):
+        original_primary_path = model2.PRIMARY_PREDICTION_PATH
+        original_fetch_json = model2._fetch_json
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir) / "prediction.json"
+            temp_path.write_text(
+                json.dumps({"prevCloseDate": "2026-06-02", "prevClose": 8801.49}),
+                encoding="utf-8",
+            )
+            try:
+                model2.PRIMARY_PREDICTION_PATH = temp_path
+                model2._fetch_json = lambda url: {
+                    "prevCloseDate": "2026-06-04",
+                    "latestRecordDate": "2026-06-04",
+                    "prevClose": 8639.41,
+                    "pointPrediction": 1.0,
+                    "nightFuturesSimplePoint": 9999.0,
+                }
+
+                snapshot = model2.load_primary_prediction_snapshot(
+                    datetime(2026, 6, 5, 1, 45, tzinfo=timezone.utc)
+                )
+            finally:
+                model2.PRIMARY_PREDICTION_PATH = original_primary_path
+                model2._fetch_json = original_fetch_json
+
+        self.assertEqual(snapshot["prevCloseDate"], "2026-06-04")
+        self.assertEqual(snapshot["prevClose"], 8639.41)
+
+    def test_existing_model2_prev_close_guards_against_stale_yahoo_session(self):
+        guarded = model2.guard_last_session_with_existing_model2(
+            {"date": "2026-06-02", "close": 8801.49, "source": "yahoo_ks11"},
+            {
+                "calculationMode": model2.MODEL2_MODE,
+                "prevCloseDate": "2026-06-04",
+                "prevClose": 8639.41,
+                "prevCloseSource": "primary_kospi_close_snapshot",
+                "baselineDate": "2026-06-04",
+                "baselinePoint": 8601.26,
+                "baselineSource": model2.BOOTSTRAP_SOURCE,
+            },
+        )
+
+        self.assertEqual(guarded["date"], "2026-06-04")
+        self.assertEqual(guarded["close"], 8639.41)
+        self.assertEqual(guarded["source"], "existing_model2_prev_close_guard")
+
     def test_calculation_uses_composite_residual_features(self):
         diagnostics = {
             "ewyFxCorrection": {
