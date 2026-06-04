@@ -427,6 +427,24 @@ def resolve_model2_baseline(
             "resetReason": "reuse_existing_baseline",
         }
 
+    if (
+        existing_is_model2
+        and existing_payload.get("baselineSource") == BOOTSTRAP_SOURCE
+        and existing_payload.get("prevCloseSource") == "yahoo_ks11"
+        and existing_baseline_point is not None
+        and _has_required_prices(existing_baseline_prices)
+    ):
+        return {
+            "baselinePoint": existing_baseline_point,
+            "baselineDate": session_date,
+            "baselineSource": BOOTSTRAP_SOURCE,
+            "baselinePrices": existing_baseline_prices,
+            "oneTimeNightFuturesBootstrapUsed": True,
+            "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt"),
+            "nightFuturesReadThisRun": False,
+            "resetReason": "migrate_bootstrap_baseline_to_shared_kospi_session",
+        }
+
     if allow_one_time_night_bootstrap and not existing_is_model2 and _has_required_prices(current_prices):
         snapshot = primary_snapshot if isinstance(primary_snapshot, dict) else {}
         bootstrap_point = _positive_float(snapshot.get("nightFuturesSimplePoint"))

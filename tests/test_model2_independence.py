@@ -103,6 +103,33 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertFalse(baseline["nightFuturesReadThisRun"])
         self.assertEqual(baseline["resetReason"], "new_krx_session_close")
 
+    def test_stale_yahoo_bootstrap_date_migrates_without_new_night_read(self):
+        existing_model2_payload = {
+            "calculationMode": model2.MODEL2_MODE,
+            "prevCloseDate": "2026-06-02",
+            "prevCloseSource": "yahoo_ks11",
+            "baselineDate": "2026-06-02",
+            "baselinePoint": 8620.02,
+            "baselineSource": model2.BOOTSTRAP_SOURCE,
+            "baselinePrices": {"ewy": 203.39, "krw": 1531.83},
+            "oneTimeNightFuturesBootstrapUsed": True,
+            "oneTimeNightFuturesBootstrapAt": "2026-06-04T16:31:24+00:00",
+        }
+
+        migrated = model2.resolve_model2_baseline(
+            existing_payload=existing_model2_payload,
+            last_session={"date": "2026-06-04", "close": 8639.41},
+            current_prices=CURRENT_PRICES,
+            primary_snapshot={"nightFuturesSimplePoint": 1.0},
+            now_utc=datetime(2026, 6, 4, 16, 35, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(migrated["baselinePoint"], 8620.02)
+        self.assertEqual(migrated["baselineDate"], "2026-06-04")
+        self.assertEqual(migrated["baselineSource"], model2.BOOTSTRAP_SOURCE)
+        self.assertFalse(migrated["nightFuturesReadThisRun"])
+        self.assertEqual(migrated["resetReason"], "migrate_bootstrap_baseline_to_shared_kospi_session")
+
     def test_primary_kospi_session_snapshot_beats_stale_yahoo_session(self):
         original_get_last_krx_session = model2.get_last_krx_session
 
