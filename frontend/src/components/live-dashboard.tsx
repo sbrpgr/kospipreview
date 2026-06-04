@@ -43,6 +43,13 @@ type LiveDashboardApiPayload = {
 
 const PAPERS_HOME = [
   {
+    num: "No. 23",
+    href: "/papers/ewy-signal-reversal-error-pattern",
+    title: "예측 오차의 연속 방향 역전 패턴과 EWY 신호 진동 메커니즘",
+    abstract: "4/23~24 이틀 연속 방향 역전(−155pt → +178pt) 사례를 중심으로 EWY 신호가 이틀 연속 반대 방향으로 크게 벗어나는 구조적 메커니즘을 규명하고, 5/11~12 연속 정밀 적중과의 대비를 통해 사전 탐지 가능성을 제시한다.",
+    date: "2026-06-04",
+  },
+  {
     num: "No. 22",
     href: "/papers/holiday-ewy-direct-prediction-model",
     title: "공휴일 시나리오 코스피 시초가 예측 모델의 설계 원리와 성능 경계",
