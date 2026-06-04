@@ -375,74 +375,105 @@ def run() -> int:
 
     print(f"[model2] Running. KST={now_kst.strftime('%Y-%m-%d %H:%M')}")
 
-    last_session = get_last_krx_session()
-    if not last_session:
-        print("[model2] ERROR: could not get last KRX session.")
-        return 1
+    # ── Step 1: Get model1 prediction state (for anchor and prediction target) ──
+    model1 = _load_json(OUTPUT_DIR / "prediction.json")
+    prev_close = _to_float(model1.get("prevClose"))
+    prev_close_date = model1.get("prevCloseDate") or model1.get("latestRecordDate")
+    prediction_date_iso = model1.get("predictionDateIso")
+    night_simple_point = _to_float(model1.get("nightFuturesSimplePoint"))
 
-    krx_date = last_session["date"]
-    prev_close = last_session["close"]
-    print(f"[model2] Last KRX: {krx_date}, prevClose={prev_close}")
+    if not prediction_date_iso or prev_close is None:
+        print("[model2] model1 prediction.json not ready — skipping.")
+        return 0
 
-    ewy_baseline = _get_prev_session_close("EWY", krx_date)
-    krw_baseline = _get_prev_session_close("KRW=X", krx_date)
+    prediction_target = date.fromisoformat(prediction_date_iso)
+    print(f"[model2] Target={prediction_target}, prevClose={prev_close} ({prev_close_date})")
 
-    if not ewy_baseline or not krw_baseline:
-        print(f"[model2] ERROR: prev-session baseline fetch failed. EWY={ewy_baseline}, KRW={krw_baseline}")
-        return 1
+    # ── Step 2: Load existing model2 state ──
+    existing = _load_json(HOLIDAY_PREDICTION_PATH)
+    anchor = _to_float(existing.get("anchor"))
+    anchor_ewy = _to_float(existing.get("anchorEwy"))
+    anchor_krw = _to_float(existing.get("anchorKrw"))
+    existing_prev_close_date = existing.get("prevCloseDate")
 
-    print(f"[model2] EWY baseline (prev close)={ewy_baseline['close']}, KRW={krw_baseline['close']}")
+    # ── Step 3: Set anchor ONCE per prediction cycle ──
+    # Anchor resets when prevCloseDate changes (new KRX session rolled over)
+    need_anchor = (
+        anchor is None
+        or anchor_ewy is None
+        or anchor_krw is None
+        or existing_prev_close_date != prev_close_date
+    )
 
+    if need_anchor:
+        current_ewy_for_anchor = get_current_price("EWY")
+        current_krw_for_anchor = get_current_price("KRW=X")
+        if current_ewy_for_anchor is None or current_krw_for_anchor is None:
+            print(f"[model2] Cannot set anchor: EWY={current_ewy_for_anchor}, KRW={current_krw_for_anchor}")
+            return 1
+
+        # Use nightFuturesSimplePoint as anchor if available, else prevClose
+        if night_simple_point is not None and night_simple_point > 0:
+            anchor = night_simple_point
+            print(f"[model2] NEW anchor from nightFuturesSimplePoint: {anchor}")
+        else:
+            anchor = prev_close
+            print(f"[model2] NEW anchor from prevClose (night futures unavailable): {anchor}")
+
+        anchor_ewy = current_ewy_for_anchor
+        anchor_krw = current_krw_for_anchor
+        print(f"[model2] anchor_ewy={anchor_ewy}, anchor_krw={anchor_krw}")
+    else:
+        print(f"[model2] Reusing anchor={anchor}, anchor_ewy={anchor_ewy}, anchor_krw={anchor_krw}")
+
+    # ── Step 4: Get current prices ──
     current_ewy = get_current_price("EWY")
     current_krw = get_current_price("KRW=X")
 
     if current_ewy is None or current_krw is None:
-        print(f"[model2] ERROR: current price fetch failed. EWY={current_ewy}, KRW={current_krw}")
+        print(f"[model2] ERROR: price fetch failed. EWY={current_ewy}, KRW={current_krw}")
         return 1
 
-    print(f"[model2] Current EWY={current_ewy}, KRW={current_krw}")
+    # ── Step 5: Calculate — anchor + EWY/KRW change ──
+    # EWY up = KOSPI up | KRW weaker (up) = KOSPI down
+    ewy_log = math.log(current_ewy / anchor_ewy) * 100
+    krw_log = math.log(anchor_krw / current_krw) * 100  # inverted: weaker won = negative
+    net_log = ewy_log + krw_log
+    point = anchor * math.exp(net_log / 100)
+    change_from_prev = (point / prev_close - 1) * 100
 
-    ewy_log_return = math.log(current_ewy / ewy_baseline["close"]) * 100
-    krw_log_return = math.log(current_krw / krw_baseline["close"]) * 100
-    print(f"[model2] EWY log ret={ewy_log_return:.4f}%, KRW log ret={krw_log_return:.4f}%")
+    print(f"[model2] EWY: {anchor_ewy} → {current_ewy} ({ewy_log:+.4f}%)")
+    print(f"[model2] KRW: {anchor_krw} → {current_krw} (adj {krw_log:+.4f}%)")
+    print(f"[model2] Target={prediction_target}, prediction={round(point,2)} ({change_from_prev:+.4f}% from prevClose)")
 
-    diagnostics = _load_json(DIAGNOSTICS_PATH)
-    if not diagnostics:
-        print("[model2] ERROR: backtest_diagnostics.json not found.")
-        return 1
-
-    result = calculate_model2(ewy_log_return, krw_log_return, diagnostics, prev_close)
-    if not result:
-        print("[model2] ERROR: model calculation failed — missing coefficients.")
-        return 1
-
-    prediction_target = resolve_prediction_target(now_kst, krx_date)
-    print(f"[model2] Target={prediction_target}, prediction={result['pointPrediction']} ({result['predictedChangePct']:+.4f}%)")
-
+    # Band (±1% of anchor as simple reference range)
+    half_band = anchor * 0.01
+    result = {
+        "pointPrediction": round(point, 2),
+        "predictedChangePct": round(change_from_prev, 4),
+        "rangeLow": round(point - half_band, 2),
+        "rangeHigh": round(point + half_band, 2),
+    }
     payload = {
-        "calculationMode": "holiday_ewy_direct",
-        "isHolidayMode": True,
+        "calculationMode": "ewy_direct_anchor",
         "predictionDateIso": prediction_target.isoformat(),
         "predictionDate": format_date_label(prediction_target),
         "prevClose": prev_close,
-        "prevCloseDate": krx_date,
+        "prevCloseDate": prev_close_date,
         "pointPrediction": result["pointPrediction"],
         "predictedChangePct": result["predictedChangePct"],
         "rangeLow": result["rangeLow"],
         "rangeHigh": result["rangeHigh"],
-        "ewyBaselineDate": ewy_baseline.get("date", ""),
-        "ewyBaselineClose": ewy_baseline["close"],
+        # Anchor — set once per prediction cycle
+        "anchor": round(anchor, 2),
+        "anchorEwy": anchor_ewy,
+        "anchorKrw": anchor_krw,
+        # Current prices
         "ewyCurrentPrice": current_ewy,
-        "ewyLogReturnPct": round(ewy_log_return, 4),
-        "krwBaselineClose": krw_baseline["close"],
         "krwCurrentRate": current_krw,
-        "krwLogReturnPct": round(krw_log_return, 4),
-        "model": {
-            "engine": "HolidayEWYDirect",
-            "fitR2": result.get("fitR2"),
-            "corePct": result.get("corePct"),
-            "kospiMappedPct": result.get("kospiMappedPct"),
-        },
+        "ewyLogPct": round(ewy_log, 4),
+        "krwLogPct": round(krw_log, 4),
+        "model": {"engine": "AnchorEWYKRW"},
         "generatedAt": now_utc.isoformat(),
     }
 
