@@ -336,8 +336,6 @@ def run() -> int:
 
     if not is_krx_holiday(now_kst):
         print("KRX is open today — holiday prediction not needed.")
-        # Clear stale holiday prediction so the frontend shows '-'
-        _clear_holiday_prediction(now_utc)
         return 0
 
     if not is_us_market_active(now_utc):
