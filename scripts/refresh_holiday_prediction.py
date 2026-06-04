@@ -136,6 +136,16 @@ def _get_close_on_or_before(ticker_symbol: str, target_date_iso: str, period: st
 
 
 def get_current_price(ticker_symbol: str) -> float | None:
+    """Get the most recent price including premarket/after-hours via 1m intraday."""
+    try:
+        hist = yf.Ticker(ticker_symbol).history(period="1d", interval="1m")
+        if not hist.empty:
+            f = float(hist["Close"].iloc[-1])
+            if math.isfinite(f) and f > 0:
+                return round(f, 6)
+    except Exception:
+        pass
+    # Fallback to fast_info
     try:
         price = yf.Ticker(ticker_symbol).fast_info.last_price
         f = float(price)
