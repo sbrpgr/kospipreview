@@ -401,7 +401,7 @@ def run() -> int:
     anchor_too_far = (
         anchor is not None
         and model1_point_now is not None
-        and abs(anchor - model1_point_now) > 100
+        and abs(anchor - model1_point_now) > 50
     )
     need_anchor = (
         anchor is None
