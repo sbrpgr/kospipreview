@@ -34,6 +34,12 @@ Goals:
 6. Refreshed JSON is uploaded back to Cloud Storage.
 7. Public reads use `/api/live/*.json`.
 
+Independent Model 2 files are a separate JSON ownership lane. Cloud Run may
+serve and seed `holiday_prediction.json`, `holiday_prediction_series.json`, and
+`holiday_history.json`, but the Scheduler refresh must not upload those files.
+They are produced by the `refresh-holiday-prediction` workflow so minute-level
+night-futures refreshes cannot overwrite the independent EWY/FX model output.
+
 ## Refresh Cadence And Performance
 
 Cloud Scheduler attempts one refresh per weekday minute outside the KST `09:00~16:59` quiet window.
@@ -70,6 +76,9 @@ Latest verified production state after the refresh performance fix:
 - `/api/live/history.json`
 - `/api/live/live_prediction_series.json`
 - `/api/live/backtest_diagnostics.json`
+- `/api/live/holiday_prediction.json`
+- `/api/live/holiday_prediction_series.json`
+- `/api/live/holiday_history.json`
 
 All should respond with:
 
@@ -96,6 +105,15 @@ The refresh worker also syncs internal state files:
 - `night_futures_source_cache.json`
 
 These files are needed for rollover, settlement, fallback, and actual-record continuity.
+
+Cloud Run refresh upload excludes the independent Model 2 files:
+
+- `holiday_prediction.json`
+- `holiday_prediction_series.json`
+- `holiday_history.json`
+
+Those files are seeded for continuity and served through `/api/live/**`, but
+only `refresh-holiday-prediction` should publish them.
 
 ## Operating Rules
 

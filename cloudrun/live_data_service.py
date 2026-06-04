@@ -33,13 +33,23 @@ SERVE_FILE_NAMES = {
     "holiday_prediction_series.json",
     "holiday_history.json",
 }
+MODEL2_FILE_NAMES = {
+    "holiday_prediction.json",
+    "holiday_prediction_series.json",
+    "holiday_history.json",
+}
 DASHBOARD_FILE_NAMES = {
     "prediction": "prediction.json",
     "indicators": "indicators.json",
     "history": "history.json",
     "livePredictionSeries": "live_prediction_series.json",
 }
-SYNC_FILE_NAMES = SERVE_FILE_NAMES | {
+SEED_FILE_NAMES = SERVE_FILE_NAMES | {
+    "day_futures_close_cache.json",
+    "night_futures_source_cache.json",
+    "prediction_archive.json",
+}
+REFRESH_UPLOAD_FILE_NAMES = (SERVE_FILE_NAMES - MODEL2_FILE_NAMES) | {
     "day_futures_close_cache.json",
     "night_futures_source_cache.json",
     "prediction_archive.json",
@@ -136,7 +146,7 @@ def download_bucket_file(file_name: str, target_path: Path) -> bool:
 def seed_work_dir(target_dir: Path) -> None:
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    for file_name in SYNC_FILE_NAMES:
+    for file_name in SEED_FILE_NAMES:
         source_path = bundled_file_path(file_name)
         target_path = target_dir / file_name
         if source_path.exists():
@@ -595,7 +605,7 @@ def run_refresh_job() -> dict:
             )
 
         uploaded_files = []
-        for file_name in SYNC_FILE_NAMES:
+        for file_name in REFRESH_UPLOAD_FILE_NAMES:
             if upload_bucket_file(file_name, data_dir / file_name):
                 uploaded_files.append(file_name)
         uploaded_intraday_archive_files = upload_intraday_archive_files(data_dir)

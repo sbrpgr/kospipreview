@@ -47,6 +47,12 @@ If work resumes later, read these documents in order:
   not reset to incomplete bundled or bucket files. Before publish, regenerated
   `history.json` rows keep existing non-null bucket verification fields when the
   regenerated value is `null`.
+- Independent Model 2 JSON ownership:
+  Cloud Run serves and seeds `holiday_prediction.json`,
+  `holiday_prediction_series.json`, and `holiday_history.json`, but Cloud Run
+  Scheduler refresh must not upload them. They are published only by
+  `refresh-holiday-prediction` so the EWY/FX independent model cannot be
+  overwritten by minute-level night-futures refresh.
 - Before publish, regenerated `prediction.json` must also keep same-target
   non-null prediction fields from the bucket seed, and can restore them from the
   latest pre-open `live_prediction_series.json` row when a non-operating-window

@@ -105,6 +105,11 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
             },
         )
 
+    def test_refresh_upload_excludes_independent_model2_files(self):
+        self.assertTrue(live_data_service.MODEL2_FILE_NAMES <= live_data_service.SEED_FILE_NAMES)
+        self.assertTrue(live_data_service.MODEL2_FILE_NAMES <= live_data_service.SERVE_FILE_NAMES)
+        self.assertTrue(live_data_service.MODEL2_FILE_NAMES.isdisjoint(live_data_service.REFRESH_UPLOAD_FILE_NAMES))
+
     def test_refresh_request_body_size_is_limited(self):
         with live_data_service.app.test_request_context(
             "/api/tasks/refresh",
