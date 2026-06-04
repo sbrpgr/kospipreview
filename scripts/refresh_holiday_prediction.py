@@ -66,7 +66,7 @@ RESIDUAL_FEATURE_KEYS = (
     "gold_z",
     "us10y_z",
 )
-COMPOSITE_ADJUSTMENT_CAP_PCT = 0.20
+COMPOSITE_ADJUSTMENT_CAP_PCT = 0.10
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -409,12 +409,28 @@ def resolve_model2_baseline(
     existing_baseline_date = str(existing_payload.get("baselineDate") or "")
     existing_baseline_point = _positive_float(existing_payload.get("baselinePoint"))
     existing_baseline_prices = _normalize_price_map(existing_payload.get("baselinePrices"))
+    now_kst = (now_utc or datetime.now(timezone.utc)).astimezone(timezone(timedelta(hours=9)))
+    try:
+        session_date_obj = date.fromisoformat(session_date)
+    except ValueError:
+        session_date_obj = None
+    is_target_preopen = (
+        session_date_obj is not None
+        and now_kst.time() < KRX_OPEN_TIME
+        and now_kst.date() == next_weekday(session_date_obj)
+    )
 
     if (
         existing_is_model2
         and existing_baseline_date == session_date
         and existing_baseline_point is not None
         and _has_required_prices(existing_baseline_prices)
+        and not (
+            is_target_preopen
+            and bool(existing_payload.get("oneTimeNightFuturesBootstrapUsed"))
+            and existing_payload.get("baselineSource") == KOSPI_CLOSE_SOURCE
+            and _positive_float((primary_snapshot or {}).get("nightFuturesSimplePoint")) is not None
+        )
     ):
         return {
             "baselinePoint": existing_baseline_point,
@@ -444,6 +460,28 @@ def resolve_model2_baseline(
             "nightFuturesReadThisRun": False,
             "resetReason": "migrate_bootstrap_baseline_to_shared_kospi_session",
         }
+
+    if (
+        existing_is_model2
+        and is_target_preopen
+        and bool(existing_payload.get("oneTimeNightFuturesBootstrapUsed"))
+        and existing_payload.get("baselineSource") == KOSPI_CLOSE_SOURCE
+        and _has_required_prices(current_prices)
+    ):
+        snapshot = primary_snapshot if isinstance(primary_snapshot, dict) else {}
+        repair_point = _positive_float(snapshot.get("nightFuturesSimplePoint"))
+        if repair_point is not None:
+            return {
+                "baselinePoint": repair_point,
+                "baselineDate": session_date,
+                "baselineSource": BOOTSTRAP_SOURCE,
+                "baselinePrices": dict(current_prices),
+                "oneTimeNightFuturesBootstrapUsed": True,
+                "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt")
+                or (now_utc or datetime.now(timezone.utc)).isoformat(),
+                "nightFuturesReadThisRun": True,
+                "resetReason": "repair_preopen_bootstrap_after_kospi_reset",
+            }
 
     if allow_one_time_night_bootstrap and not existing_is_model2 and _has_required_prices(current_prices):
         snapshot = primary_snapshot if isinstance(primary_snapshot, dict) else {}

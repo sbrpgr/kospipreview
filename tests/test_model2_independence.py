@@ -130,6 +130,33 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertFalse(migrated["nightFuturesReadThisRun"])
         self.assertEqual(migrated["resetReason"], "migrate_bootstrap_baseline_to_shared_kospi_session")
 
+    def test_preopen_kospi_reset_can_be_repaired_to_bootstrap_baseline(self):
+        existing_model2_payload = {
+            "calculationMode": model2.MODEL2_MODE,
+            "prevCloseDate": "2026-06-04",
+            "prevCloseSource": "primary_kospi_close_snapshot",
+            "baselineDate": "2026-06-04",
+            "baselinePoint": 8639.41,
+            "baselineSource": model2.KOSPI_CLOSE_SOURCE,
+            "baselinePrices": {"ewy": 203.18, "krw": 1531.69},
+            "oneTimeNightFuturesBootstrapUsed": True,
+            "oneTimeNightFuturesBootstrapAt": "2026-06-04T16:31:24+00:00",
+        }
+
+        repaired = model2.resolve_model2_baseline(
+            existing_payload=existing_model2_payload,
+            last_session={"date": "2026-06-04", "close": 8639.41},
+            current_prices=CURRENT_PRICES,
+            primary_snapshot={"nightFuturesSimplePoint": 8595.01},
+            now_utc=datetime(2026, 6, 4, 16, 38, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(repaired["baselinePoint"], 8595.01)
+        self.assertEqual(repaired["baselineDate"], "2026-06-04")
+        self.assertEqual(repaired["baselineSource"], model2.BOOTSTRAP_SOURCE)
+        self.assertTrue(repaired["nightFuturesReadThisRun"])
+        self.assertEqual(repaired["resetReason"], "repair_preopen_bootstrap_after_kospi_reset")
+
     def test_primary_kospi_session_snapshot_beats_stale_yahoo_session(self):
         original_get_last_krx_session = model2.get_last_krx_session
 
