@@ -117,6 +117,25 @@ def get_last_krx_session() -> dict | None:
         return None
 
 
+def _get_prev_session_close(ticker_symbol: str, krx_date_iso: str) -> dict | None:
+    """Return the daily close on or before krx_date — used as the EWY/KRW baseline."""
+    try:
+        hist = yf.Ticker(ticker_symbol).history(period="10d").dropna(subset=["Close"])
+        if hist.empty:
+            return None
+        target = date.fromisoformat(krx_date_iso)
+        for row in reversed(list(hist.itertuples())):
+            row_date = row.Index.date() if hasattr(row.Index, "date") else None
+            if row_date is None:
+                continue
+            if row_date <= target:
+                return {"date": row_date.isoformat(), "close": round(float(row.Close), 6)}
+        return None
+    except Exception as e:
+        print(f"[model2] Prev session close error ({ticker_symbol}): {e}")
+        return None
+
+
 def get_us_premarket_open_price(ticker_symbol: str, now_utc: datetime) -> dict | None:
     """Return the first 1m candle at/after 09:00 UTC (18:00 KST, US premarket open).
 
@@ -365,14 +384,14 @@ def run() -> int:
     prev_close = last_session["close"]
     print(f"[model2] Last KRX: {krx_date}, prevClose={prev_close}")
 
-    ewy_baseline = get_us_premarket_open_price("EWY", now_utc)
-    krw_baseline = get_us_premarket_open_price("KRW=X", now_utc)
+    ewy_baseline = _get_prev_session_close("EWY", krx_date)
+    krw_baseline = _get_prev_session_close("KRW=X", krx_date)
 
     if not ewy_baseline or not krw_baseline:
-        print(f"[model2] ERROR: premarket baseline not available yet. EWY={ewy_baseline}, KRW={krw_baseline}")
+        print(f"[model2] ERROR: prev-session baseline fetch failed. EWY={ewy_baseline}, KRW={krw_baseline}")
         return 1
 
-    print(f"[model2] EWY baseline @09UTC={ewy_baseline['close']}, KRW={krw_baseline['close']}")
+    print(f"[model2] EWY baseline (prev close)={ewy_baseline['close']}, KRW={krw_baseline['close']}")
 
     current_ewy = get_current_price("EWY")
     current_krw = get_current_price("KRW=X")
@@ -411,7 +430,7 @@ def run() -> int:
         "predictedChangePct": result["predictedChangePct"],
         "rangeLow": result["rangeLow"],
         "rangeHigh": result["rangeHigh"],
-        "ewyBaselineTimestamp": ewy_baseline["timestamp"],
+        "ewyBaselineDate": ewy_baseline.get("date", ""),
         "ewyBaselineClose": ewy_baseline["close"],
         "ewyCurrentPrice": current_ewy,
         "ewyLogReturnPct": round(ewy_log_return, 4),
