@@ -741,7 +741,7 @@ export function LiveDashboard({
               </div>
             </div>
             <div className="heroForecastCard isModel2">
-              <div className="heroForecastLabel">모델2 예측</div>
+              <div className="heroForecastLabel">모델2 예측(test)</div>
               <div className="heroForecastValue">
                 {isModel2Ready ? model2Point!.toLocaleString("ko-KR") : "-"}
               </div>
@@ -754,7 +754,7 @@ export function LiveDashboard({
                   ? `${model2ChangePct! >= 0 ? "상방" : "하방"} ${Math.abs(model2ChangePct!).toFixed(2)}%`
                   : "-"}
               </div>
-              <div className="heroForecastMeta">공휴일 EWY 직접 기준</div>
+              <div className="heroForecastMeta">야간선물 미사용 EWY 직접</div>
             </div>
           </div>
 

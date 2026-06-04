@@ -331,18 +331,14 @@ def run() -> int:
     now_kst = now_utc.astimezone(KST)
 
     if now_kst.weekday() >= 5:
-        print("Weekend — holiday prediction skipped.")
-        return 0
-
-    if not is_krx_holiday(now_kst):
-        print("KRX is open today — holiday prediction not needed.")
+        print("Weekend — skipping.")
         return 0
 
     if not is_us_market_active(now_utc):
         print("US market not active — skipping update.")
         return 0
 
-    print(f"[model2] Holiday mode active. KST={now_kst.strftime('%Y-%m-%d %H:%M')}")
+    print(f"[model2] Running. KST={now_kst.strftime('%Y-%m-%d %H:%M')}")
 
     last_session = get_last_krx_session()
     if not last_session:
