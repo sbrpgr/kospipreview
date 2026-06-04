@@ -397,13 +397,21 @@ def run() -> int:
     existing_prev_close_date = existing.get("prevCloseDate")
 
     # ── Step 3: Set anchor ONCE per prediction cycle ──
-    # Anchor resets when prevCloseDate changes (new KRX session rolled over)
+    model1_point_now = _to_float(model1.get("pointPrediction"))
+    anchor_too_far = (
+        anchor is not None
+        and model1_point_now is not None
+        and abs(anchor - model1_point_now) > 100
+    )
     need_anchor = (
         anchor is None
         or anchor_ewy is None
         or anchor_krw is None
         or existing_prev_close_date != prev_close_date
+        or anchor_too_far
     )
+    if anchor_too_far:
+        print(f"[model2] Anchor {anchor} far from model1 {model1_point_now} — re-syncing.")
 
     if need_anchor:
         current_ewy_for_anchor = get_current_price("EWY")
@@ -412,13 +420,17 @@ def run() -> int:
             print(f"[model2] Cannot set anchor: EWY={current_ewy_for_anchor}, KRW={current_krw_for_anchor}")
             return 1
 
-        # Use nightFuturesSimplePoint as anchor if available, else prevClose
-        if night_simple_point is not None and night_simple_point > 0:
+        # Anchor = model1's current pointPrediction — ensures model2 starts in sync
+        model1_point = _to_float(model1.get("pointPrediction"))
+        if model1_point is not None and model1_point > 0:
+            anchor = model1_point
+            print(f"[model2] NEW anchor from model1 pointPrediction: {anchor}")
+        elif night_simple_point is not None and night_simple_point > 0:
             anchor = night_simple_point
             print(f"[model2] NEW anchor from nightFuturesSimplePoint: {anchor}")
         else:
             anchor = prev_close
-            print(f"[model2] NEW anchor from prevClose (night futures unavailable): {anchor}")
+            print(f"[model2] NEW anchor from prevClose: {anchor}")
 
         anchor_ewy = current_ewy_for_anchor
         anchor_krw = current_krw_for_anchor
