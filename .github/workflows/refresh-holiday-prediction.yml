@@ -49,22 +49,13 @@ jobs:
       - name: Seed current JSON from Cloud Storage
         run: |
           mkdir -p frontend/public/data
-          gcloud storage cp \
-            gs://kospipreview-live-data/backtest_diagnostics.json \
-            frontend/public/data/backtest_diagnostics.json \
-            --quiet || true
-          gcloud storage cp \
-            gs://kospipreview-live-data/holiday_prediction.json \
-            frontend/public/data/holiday_prediction.json \
-            --quiet || true
-          gcloud storage cp \
-            gs://kospipreview-live-data/holiday_prediction_series.json \
-            frontend/public/data/holiday_prediction_series.json \
-            --quiet || true
-          gcloud storage cp \
-            gs://kospipreview-live-data/holiday_history.json \
-            frontend/public/data/holiday_history.json \
-            --quiet || true
+          for f in prediction.json backtest_diagnostics.json \
+                   holiday_prediction.json holiday_prediction_series.json holiday_history.json; do
+            gcloud storage cp \
+              "gs://kospipreview-live-data/$f" \
+              "frontend/public/data/$f" \
+              --quiet || true
+          done
 
       - name: Run holiday prediction model
         run: python ./scripts/refresh_holiday_prediction.py

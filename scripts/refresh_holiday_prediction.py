@@ -271,8 +271,8 @@ def update_series(payload: dict, now_utc: datetime, prediction_target: date) -> 
         "kstTime": now_kst.strftime("%H:%M"),
         "pointPrediction": payload["pointPrediction"],
         "predictedChangePct": payload["predictedChangePct"],
-        "ewyLogReturnPct": payload["ewyLogReturnPct"],
-        "krwLogReturnPct": payload["krwLogReturnPct"],
+        "ewyLogPct": payload.get("ewyLogPct"),
+        "krwLogPct": payload.get("krwLogPct"),
     })
 
     records = sorted(records, key=lambda r: str(r.get("observedAt", "")))[-SERIES_MAX_ROWS:]
