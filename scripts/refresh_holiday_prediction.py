@@ -125,7 +125,8 @@ def get_us_premarket_open_price(ticker_symbol: str, now_utc: datetime) -> dict |
     """
     premarket_utc = now_utc.replace(hour=9, minute=0, second=0, microsecond=0)
     try:
-        hist = yf.Ticker(ticker_symbol).history(period="1d", interval="1m")
+        # prepost=True includes pre/after-market candles for US equities
+        hist = yf.Ticker(ticker_symbol).history(period="1d", interval="1m", prepost=True)
         if hist.empty:
             return None
         for ts in hist.index:
@@ -143,7 +144,7 @@ def get_us_premarket_open_price(ticker_symbol: str, now_utc: datetime) -> dict |
 def get_current_price(ticker_symbol: str) -> float | None:
     """Get the most recent price including premarket/after-hours via 1m intraday."""
     try:
-        hist = yf.Ticker(ticker_symbol).history(period="1d", interval="1m")
+        hist = yf.Ticker(ticker_symbol).history(period="1d", interval="1m", prepost=True)
         if not hist.empty:
             f = float(hist["Close"].iloc[-1])
             if math.isfinite(f) and f > 0:
