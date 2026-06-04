@@ -213,6 +213,54 @@ def get_last_krx_session() -> dict[str, Any] | None:
     return {"date": last_idx.date().isoformat(), "close": last_close}
 
 
+def get_primary_kospi_session_snapshot(primary_snapshot: dict[str, Any]) -> dict[str, Any] | None:
+    """Extract only shared KOSPI close fields from prediction.json.
+
+    This deliberately ignores model predictions and night-futures fields.
+    """
+
+    session_date = primary_snapshot.get("prevCloseDate") or primary_snapshot.get("latestRecordDate")
+    if not isinstance(session_date, str):
+        return None
+
+    try:
+        date.fromisoformat(session_date)
+    except ValueError:
+        return None
+
+    session_close = _positive_float(primary_snapshot.get("prevClose"))
+    if session_close is None:
+        return None
+
+    return {
+        "date": session_date,
+        "close": session_close,
+        "source": "primary_kospi_close_snapshot",
+    }
+
+
+def resolve_last_krx_session(primary_snapshot: dict[str, Any]) -> dict[str, Any] | None:
+    primary_session = get_primary_kospi_session_snapshot(primary_snapshot)
+    yahoo_session = get_last_krx_session()
+
+    if primary_session is None:
+        return yahoo_session
+    if yahoo_session is None:
+        return primary_session
+
+    try:
+        primary_date = date.fromisoformat(str(primary_session["date"]))
+        yahoo_date = date.fromisoformat(str(yahoo_session["date"]))
+    except ValueError:
+        return primary_session
+
+    if primary_date >= yahoo_date:
+        return primary_session
+
+    yahoo_session["source"] = "yahoo_ks11"
+    return yahoo_session
+
+
 def _get_prev_session_close(ticker_symbol: str, krx_date_iso: str) -> float | None:
     try:
         krx_date = date.fromisoformat(krx_date_iso)
@@ -619,7 +667,11 @@ def run() -> int:
         print("skip: outside US live/pre-market window")
         return 0
 
-    last_session = get_last_krx_session()
+    diagnostics = _load_json(DIAGNOSTICS_PATH)
+    existing_payload = _load_json(HOLIDAY_PREDICTION_PATH)
+    primary_snapshot = _load_json(PRIMARY_PREDICTION_PATH)
+
+    last_session = resolve_last_krx_session(primary_snapshot)
     if not last_session:
         print("error: missing KRX close baseline", file=sys.stderr)
         return 1
@@ -628,12 +680,6 @@ def run() -> int:
     if not _has_required_prices(current_prices):
         print("error: missing live EWY/KRW prices", file=sys.stderr)
         return 1
-
-    diagnostics = _load_json(DIAGNOSTICS_PATH)
-    existing_payload = _load_json(HOLIDAY_PREDICTION_PATH)
-    primary_snapshot: dict[str, Any] = {}
-    if existing_payload.get("calculationMode") != MODEL2_MODE:
-        primary_snapshot = _load_json(PRIMARY_PREDICTION_PATH)
 
     try:
         baseline = resolve_model2_baseline(
@@ -678,6 +724,7 @@ def run() -> int:
         "predictionDateIso": target_iso,
         "prevClose": round(prev_close, 4),
         "prevCloseDate": last_session.get("date"),
+        "prevCloseSource": last_session.get("source") or "yahoo_ks11",
         "baselinePoint": round(baseline["baselinePoint"], 4),
         "baselineDate": baseline["baselineDate"],
         "baselineSource": baseline["baselineSource"],

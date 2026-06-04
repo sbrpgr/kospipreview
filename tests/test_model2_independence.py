@@ -103,6 +103,31 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertFalse(baseline["nightFuturesReadThisRun"])
         self.assertEqual(baseline["resetReason"], "new_krx_session_close")
 
+    def test_primary_kospi_session_snapshot_beats_stale_yahoo_session(self):
+        original_get_last_krx_session = model2.get_last_krx_session
+
+        try:
+            model2.get_last_krx_session = lambda: {
+                "date": "2026-06-02",
+                "close": 8801.49,
+                "source": "yahoo_ks11",
+            }
+            session = model2.resolve_last_krx_session(
+                {
+                    "prevCloseDate": "2026-06-04",
+                    "latestRecordDate": "2026-06-04",
+                    "prevClose": 8639.41,
+                    "pointPrediction": 1.0,
+                    "nightFuturesSimplePoint": 9999.0,
+                }
+            )
+        finally:
+            model2.get_last_krx_session = original_get_last_krx_session
+
+        self.assertEqual(session["date"], "2026-06-04")
+        self.assertEqual(session["close"], 8639.41)
+        self.assertEqual(session["source"], "primary_kospi_close_snapshot")
+
     def test_calculation_uses_composite_residual_features(self):
         diagnostics = {
             "ewyFxCorrection": {
