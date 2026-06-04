@@ -66,20 +66,24 @@ def is_krx_holiday(now_kst: datetime) -> bool:
     """True when KRX has no trading today (holiday or weekend)."""
     if now_kst.weekday() >= 5:
         return True
+    today = now_kst.date()
+    # Primary check: daily candles — more stable than 1m data across timezone boundaries.
     try:
-        hist = yf.Ticker("^KS11").history(period="1d", interval="1m")
+        hist = yf.Ticker("^KS11").history(period="5d", interval="1d")
         if hist.empty:
+            print(f"[model2] ^KS11 daily history empty — assuming holiday.")
             return True
-        # Yahoo returns the last available trading day even on holidays.
-        # Verify the most recent candle is actually from today (KST).
         last_ts = hist.index[-1]
         if hasattr(last_ts, "tzinfo") and last_ts.tzinfo is not None:
             last_date_kst = last_ts.astimezone(KST).date()
         else:
             last_date_kst = last_ts.date()
-        return last_date_kst != now_kst.date()
-    except Exception:
-        return False
+        is_holiday = last_date_kst != today
+        print(f"[model2] KRX last session date (daily): {last_date_kst}, today KST: {today}, holiday={is_holiday}")
+        return is_holiday
+    except Exception as e:
+        print(f"[model2] ^KS11 daily check failed ({e}) — conservative: assume holiday.")
+        return True
 
 
 def is_us_market_active(now_utc: datetime) -> bool:
