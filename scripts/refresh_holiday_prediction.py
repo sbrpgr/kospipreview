@@ -63,26 +63,32 @@ def _to_float(value) -> float | None:
 # ---------------------------------------------------------------------------
 
 def is_krx_holiday(now_kst: datetime) -> bool:
-    """True when KRX has no trading today (holiday or weekend)."""
+    """True when KRX has no trading session today.
+
+    Checks whether any 1-minute candle falls within today's regular
+    KRX session window (09:00–15:30 KST). This is more reliable than
+    a simple date comparison because Yahoo Finance sometimes labels the
+    previous day's daily bar with today's calendar date.
+    """
     if now_kst.weekday() >= 5:
         return True
     today = now_kst.date()
-    # Primary check: daily candles — more stable than 1m data across timezone boundaries.
+    session_open_kst = datetime.combine(today, time(9, 0), tzinfo=KST)
+    session_close_kst = datetime.combine(today, time(15, 30), tzinfo=KST)
     try:
-        hist = yf.Ticker("^KS11").history(period="5d", interval="1d")
+        hist = yf.Ticker("^KS11").history(period="2d", interval="1m")
         if hist.empty:
-            print(f"[model2] ^KS11 daily history empty — assuming holiday.")
+            print("[model2] ^KS11 1m history empty — assuming holiday.")
             return True
-        last_ts = hist.index[-1]
-        if hasattr(last_ts, "tzinfo") and last_ts.tzinfo is not None:
-            last_date_kst = last_ts.astimezone(KST).date()
-        else:
-            last_date_kst = last_ts.date()
-        is_holiday = last_date_kst != today
-        print(f"[model2] KRX last session date (daily): {last_date_kst}, today KST: {today}, holiday={is_holiday}")
-        return is_holiday
+        for ts in hist.index:
+            ts_kst = ts.astimezone(KST) if getattr(ts, "tzinfo", None) else ts.replace(tzinfo=KST)
+            if session_open_kst <= ts_kst <= session_close_kst:
+                print(f"[model2] KRX session candle found at {ts_kst.strftime('%H:%M')} KST — not a holiday.")
+                return False
+        print(f"[model2] No candles in today's KRX session window — holiday confirmed.")
+        return True
     except Exception as e:
-        print(f"[model2] ^KS11 daily check failed ({e}) — conservative: assume holiday.")
+        print(f"[model2] ^KS11 check failed ({e}) — conservative: assume holiday.")
         return True
 
 
@@ -293,6 +299,30 @@ def update_history(payload: dict, now_utc: datetime, prediction_target: date) ->
 
 
 # ---------------------------------------------------------------------------
+# Clear stale prediction on normal trading days
+# ---------------------------------------------------------------------------
+
+def _clear_holiday_prediction(now_utc: datetime) -> None:
+    """Reset holiday_prediction.json to a null state when KRX is open."""
+    existing = _load_json(HOLIDAY_PREDICTION_PATH)
+    # Only clear if there's a non-null prediction — avoid unnecessary writes.
+    if existing.get("pointPrediction") is None:
+        return
+    print("[model2] Clearing stale holiday prediction (KRX is open).")
+    _write_json(HOLIDAY_PREDICTION_PATH, {
+        "calculationMode": "holiday_ewy_direct",
+        "isHolidayMode": False,
+        "predictionDateIso": None,
+        "predictionDate": None,
+        "pointPrediction": None,
+        "predictedChangePct": None,
+        "rangeLow": None,
+        "rangeHigh": None,
+        "generatedAt": now_utc.isoformat(),
+    })
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -306,6 +336,8 @@ def run() -> int:
 
     if not is_krx_holiday(now_kst):
         print("KRX is open today — holiday prediction not needed.")
+        # Clear stale holiday prediction so the frontend shows '-'
+        _clear_holiday_prediction(now_utc)
         return 0
 
     if not is_us_market_active(now_utc):
