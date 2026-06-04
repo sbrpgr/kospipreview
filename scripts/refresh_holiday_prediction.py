@@ -117,21 +117,26 @@ def get_last_krx_session() -> dict | None:
         return None
 
 
-def _get_close_on_or_before(ticker_symbol: str, target_date_iso: str, period: str = "10d") -> dict | None:
-    """Return {'date': ISO, 'close': float} for the latest row on or before target_date."""
+def get_us_premarket_open_price(ticker_symbol: str, now_utc: datetime) -> dict | None:
+    """Return the first 1m candle at/after 09:00 UTC (18:00 KST, US premarket open).
+
+    This aligns model2's EWY baseline with model1's night-futures bridge timing,
+    ensuring both models measure EWY movement from the same reference point.
+    """
+    premarket_utc = now_utc.replace(hour=9, minute=0, second=0, microsecond=0)
     try:
-        hist = yf.Ticker(ticker_symbol).history(period=period).dropna(subset=["Close"])
+        hist = yf.Ticker(ticker_symbol).history(period="1d", interval="1m")
         if hist.empty:
             return None
-        target = date.fromisoformat(target_date_iso)
-        for row in reversed(list(hist.itertuples())):
-            row_date = row.Index.date() if hasattr(row.Index, "date") else None
-            if row_date is None:
-                continue
-            if row_date <= target:
-                return {"date": row_date.isoformat(), "close": round(float(row.Close), 6)}
+        for ts in hist.index:
+            ts_utc = ts.astimezone(timezone.utc) if getattr(ts, "tzinfo", None) else ts.replace(tzinfo=timezone.utc)
+            if ts_utc >= premarket_utc:
+                close = float(hist.loc[ts, "Close"])
+                if math.isfinite(close) and close > 0:
+                    return {"timestamp": ts_utc.isoformat(), "close": round(close, 6)}
         return None
-    except Exception:
+    except Exception as e:
+        print(f"[model2] Premarket baseline error ({ticker_symbol}): {e}")
         return None
 
 
@@ -359,14 +364,14 @@ def run() -> int:
     prev_close = last_session["close"]
     print(f"[model2] Last KRX: {krx_date}, prevClose={prev_close}")
 
-    ewy_baseline = _get_close_on_or_before("EWY", krx_date)
-    krw_baseline = _get_close_on_or_before("KRW=X", krx_date)
+    ewy_baseline = get_us_premarket_open_price("EWY", now_utc)
+    krw_baseline = get_us_premarket_open_price("KRW=X", now_utc)
 
     if not ewy_baseline or not krw_baseline:
-        print(f"[model2] ERROR: baseline fetch failed. EWY={ewy_baseline}, KRW={krw_baseline}")
+        print(f"[model2] ERROR: premarket baseline not available yet. EWY={ewy_baseline}, KRW={krw_baseline}")
         return 1
 
-    print(f"[model2] EWY baseline {ewy_baseline['date']}={ewy_baseline['close']}, KRW={krw_baseline['close']}")
+    print(f"[model2] EWY baseline @09UTC={ewy_baseline['close']}, KRW={krw_baseline['close']}")
 
     current_ewy = get_current_price("EWY")
     current_krw = get_current_price("KRW=X")
@@ -405,7 +410,7 @@ def run() -> int:
         "predictedChangePct": result["predictedChangePct"],
         "rangeLow": result["rangeLow"],
         "rangeHigh": result["rangeHigh"],
-        "ewyBaselineDate": ewy_baseline["date"],
+        "ewyBaselineTimestamp": ewy_baseline["timestamp"],
         "ewyBaselineClose": ewy_baseline["close"],
         "ewyCurrentPrice": current_ewy,
         "ewyLogReturnPct": round(ewy_log_return, 4),
