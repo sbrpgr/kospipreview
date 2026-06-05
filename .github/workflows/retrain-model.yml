@@ -65,7 +65,12 @@ jobs:
           if [ ${#bucket_json[@]} -gt 0 ]; then
             cp "${bucket_json[@]}" frontend/public/data/
           else
-            echo "::warning::No Cloud Storage JSON seed files were copied; using bundled data only."
+            echo "::error::No Cloud Storage JSON seed files were copied; refusing to publish bundled live data."
+            exit 1
+          fi
+          if [ ! -f .live-data-seed/bucket/live_prediction_series.json ]; then
+            echo "::error::Missing live_prediction_series.json seed; refusing to overwrite prediction trend history."
+            exit 1
           fi
           python ./scripts/merge_live_data_seed.py \
             --archive-fallback .live-data-seed/bundled/prediction_archive.json \
