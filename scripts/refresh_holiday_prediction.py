@@ -1133,6 +1133,7 @@ def run() -> int:
             current_prices,
             primary_snapshot,
             now_utc=now_utc,
+            allow_one_time_night_bootstrap=not force_refresh,
         )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
