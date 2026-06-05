@@ -46,7 +46,10 @@ If work resumes later, read these documents in order:
   before rebuilding and merge archive fallback fields so archive/history state is
   not reset to incomplete bundled or bucket files. Before publish, regenerated
   `history.json` rows keep existing non-null bucket verification fields when the
-  regenerated value is `null`.
+  regenerated value is `null`. If a wildcard Cloud Storage seed copy is
+  partially interrupted by live object churn, the workflow should warn, keep any
+  copied JSON files, and continue with bundled fallbacks rather than failing
+  before the rebuild step.
 - Independent Model 2 JSON ownership:
   Cloud Run serves and seeds `holiday_prediction.json`,
   `holiday_prediction_series.json`, and `holiday_history.json`, but Cloud Run

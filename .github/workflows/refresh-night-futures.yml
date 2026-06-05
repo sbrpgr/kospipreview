@@ -50,13 +50,21 @@ jobs:
 
       - name: Seed current JSON from Cloud Storage
         run: |
+          shopt -s nullglob
           mkdir -p .live-data-seed/bundled .live-data-seed/bucket frontend/public/data
           cp frontend/public/data/prediction_archive.json .live-data-seed/bundled/prediction_archive.json || true
-          gcloud storage cp \
+          if ! gcloud storage cp \
             gs://kospipreview-live-data/*.json \
             .live-data-seed/bucket/ \
-            --quiet
-          cp .live-data-seed/bucket/*.json frontend/public/data/
+            --quiet; then
+            echo "::warning::Cloud Storage seed copy was incomplete; continuing with files copied plus bundled fallbacks."
+          fi
+          bucket_json=(.live-data-seed/bucket/*.json)
+          if [ ${#bucket_json[@]} -gt 0 ]; then
+            cp "${bucket_json[@]}" frontend/public/data/
+          else
+            echo "::warning::No Cloud Storage JSON seed files were copied; using bundled data only."
+          fi
           python ./scripts/merge_live_data_seed.py \
             --archive-fallback .live-data-seed/bundled/prediction_archive.json \
             --archive-bucket .live-data-seed/bucket/prediction_archive.json \
