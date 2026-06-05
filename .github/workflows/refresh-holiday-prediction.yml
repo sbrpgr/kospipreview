@@ -4,7 +4,12 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Force Model2 refresh outside the U.S. live/pre-market window"
+        required: false
+        default: "off"
   schedule:
     # Every 5 minutes on weekdays; script exits early only when US market data is inactive.
     - cron: "*/5 * * * 1-5"
@@ -65,7 +70,30 @@ jobs:
           done
 
       - name: Run independent model2 prediction
+        env:
+          FORCE_MODEL2_REFRESH: ${{ github.event.inputs.force || 'off' }}
         run: python ./scripts/refresh_holiday_prediction.py
+
+      - name: Drop invalid skipped model2 placeholders
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data_dir = Path("frontend/public/data")
+          prediction_path = data_dir / "holiday_prediction.json"
+          try:
+              payload = json.loads(prediction_path.read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              payload = {}
+
+          if payload.get("pointPrediction") is None and not payload.get("generatedAt"):
+              for name in ("holiday_prediction.json", "holiday_prediction_series.json", "holiday_history.json"):
+                  target = data_dir / name
+                  if target.exists():
+                      target.unlink()
+              print("removed invalid skipped Model2 placeholder files before publish")
+          PY
 
       - name: Publish model2 JSON to Cloud Storage
         run: |

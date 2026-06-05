@@ -49,7 +49,10 @@ If work resumes later, read these documents in order:
   regenerated value is `null`. If a wildcard Cloud Storage seed copy is
   partially interrupted by live object churn, the workflow should warn, keep any
   copied JSON files, and continue with bundled fallbacks rather than failing
-  before the rebuild step.
+  before the rebuild step. Before publishing, JSON refresh workflows must remove
+  empty bundled Model2 placeholders when the independent model skipped outside
+  the U.S. live/pre-market window so `holiday_prediction*.json` is not
+  overwritten with null values.
 - Independent Model 2 JSON ownership:
   Cloud Run serves and seeds `holiday_prediction.json`,
   `holiday_prediction_series.json`, and `holiday_history.json`, but Cloud Run
@@ -64,6 +67,11 @@ If work resumes later, read these documents in order:
   A valid artifact must include EWY/FX correction coefficients and the learned
   `direct_blend_weight`; Model2 should report `directBlendSource:
   diagnostics` after a normal retrain.
+- Model2 manual repair:
+  the `refresh-holiday-prediction` workflow has a `force=on` dispatch input for
+  repairing or reissuing Model2 JSON outside the U.S. live/pre-market window.
+  It still uses only EWY, USD/KRW, KRX sync baselines, and diagnostics; it does
+  not enable night-futures input.
 - Model2 calculation rule:
   the independent engine must use a hybrid EWY/FX core: the raw EWY+KRW
   fair-value axis remains the main night-futures replacement signal, while

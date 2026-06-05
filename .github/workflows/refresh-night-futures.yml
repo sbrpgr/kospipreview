@@ -54,7 +54,7 @@ jobs:
           mkdir -p .live-data-seed/bundled .live-data-seed/bucket frontend/public/data
           cp frontend/public/data/prediction_archive.json .live-data-seed/bundled/prediction_archive.json || true
           if ! gcloud storage cp \
-            gs://kospipreview-live-data/*.json \
+            "gs://kospipreview-live-data/*.json" \
             .live-data-seed/bucket/ \
             --quiet; then
             echo "::warning::Cloud Storage seed copy was incomplete; continuing with files copied plus bundled fallbacks."
@@ -85,6 +85,27 @@ jobs:
           python ./scripts/merge_live_data_seed.py \
             --history-fallback .live-data-seed/bucket/history.json \
             --history-output frontend/public/data/history.json
+
+      - name: Drop invalid skipped model2 placeholders
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data_dir = Path("frontend/public/data")
+          prediction_path = data_dir / "holiday_prediction.json"
+          try:
+              payload = json.loads(prediction_path.read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              payload = {}
+
+          if payload.get("pointPrediction") is None and not payload.get("generatedAt"):
+              for name in ("holiday_prediction.json", "holiday_prediction_series.json", "holiday_history.json"):
+                  target = data_dir / name
+                  if target.exists():
+                      target.unlink()
+              print("removed invalid skipped Model2 placeholder files before publish")
+          PY
 
       - name: Publish refreshed JSON to Cloud Storage
         run: |

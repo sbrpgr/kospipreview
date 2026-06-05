@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 import urllib.parse
 from urllib.error import URLError
@@ -1096,7 +1097,13 @@ def run() -> int:
     now_utc = datetime.now(timezone.utc)
     now_kst = now_utc.astimezone(timezone(timedelta(hours=9)))
 
-    if not is_us_market_active(now_utc):
+    force_refresh = str(os.environ.get("FORCE_MODEL2_REFRESH", "")).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if not force_refresh and not is_us_market_active(now_utc):
         print("skip: outside US live/pre-market window")
         return 0
 
@@ -1156,6 +1163,7 @@ def run() -> int:
         "usesOtherModelPrediction": False,
         "nightFuturesUsed": False,
         "nightFuturesReadThisRun": bool(baseline.get("nightFuturesReadThisRun")),
+        "forcedRefresh": force_refresh,
         "oneTimeNightFuturesBootstrapUsed": bool(baseline.get("oneTimeNightFuturesBootstrapUsed")),
         "oneTimeNightFuturesBootstrapAt": baseline.get("oneTimeNightFuturesBootstrapAt"),
         "predictionDate": target_label,
