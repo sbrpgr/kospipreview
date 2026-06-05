@@ -358,7 +358,7 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertNotEqual(base["pointPrediction"], moved["pointPrediction"])
         self.assertGreater(moved["residualPct"], base["residualPct"])
         self.assertEqual(moved["k200MappedPct"], None)
-        self.assertEqual(moved["coreCoefficients"]["source"], "ewy_fx_correction")
+        self.assertEqual(moved["coreCoefficients"]["source"], "ewy_fx_direct_learned_hybrid")
         self.assertTrue(moved["coreCoefficients"]["used"])
 
     def test_confidence_band_ignores_top_level_point_mae_as_pct(self):
@@ -389,7 +389,7 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertAlmostEqual(result["bandHalfWidth"], 8160.59 * 0.012 * model2.BAND_MAE_MULTIPLIER)
 
-    def test_model2_uses_learned_ewy_fx_core(self):
+    def test_model2_uses_hybrid_ewy_fx_core(self):
         diagnostics = {
             "ewyFxCorrection": {
                 "intercept": 0.2,
@@ -422,16 +422,23 @@ class Model2IndependenceTests(unittest.TestCase):
         result = model2.calculate_model2(returns, diagnostics, baseline)
 
         self.assertIsNotNone(result)
+        direct_pct = returns["ewy"] + returns["krw"]
         learned_pct = 0.2 + 0.4 * returns["ewy"] + 0.2 * returns["krw"]
-        direct_point = baseline * math.exp((returns["ewy"] + returns["krw"]) / 100.0)
-        core_point = baseline * math.exp(learned_pct / 100.0)
+        core_pct = (
+            model2.DIRECT_AXIS_BLEND_WEIGHT * direct_pct
+            + (1.0 - model2.DIRECT_AXIS_BLEND_WEIGHT) * learned_pct
+        )
+        direct_point = baseline * math.exp(direct_pct / 100.0)
+        learned_point = baseline * math.exp(learned_pct / 100.0)
+        core_point = baseline * math.exp(core_pct / 100.0)
         max_gap = baseline * (
             math.exp(model2.COMPOSITE_ADJUSTMENT_CAP_PCT / 100.0) - 1.0
         ) + 1e-9
 
         self.assertAlmostEqual(result["ewyFxDirectPoint"], direct_point)
+        self.assertAlmostEqual(result["ewyFxLearnedPoint"], learned_point)
         self.assertAlmostEqual(result["ewyFxCorePoint"], core_point)
-        self.assertAlmostEqual(result["corePct"], learned_pct)
+        self.assertAlmostEqual(result["corePct"], core_pct)
         self.assertLessEqual(abs(result["pointPrediction"] - core_point), max_gap)
 
     def test_residual_features_are_clamped_before_composite_cap(self):

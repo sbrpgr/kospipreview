@@ -45,8 +45,8 @@ HOLIDAY_SERIES_PATH = OUTPUT_DIR / "holiday_prediction_series.json"
 HOLIDAY_HISTORY_PATH = OUTPUT_DIR / "holiday_history.json"
 
 MODEL2_MODE = "model2_no_night_futures_composite"
-MODEL2_ENGINE = "EWYFXLearnedCompositeNoNightFutures"
-MODEL2_VERSION = "model2-independent-ewyfx-learned-composite-v3"
+MODEL2_ENGINE = "EWYFXHybridCompositeNoNightFutures"
+MODEL2_VERSION = "model2-independent-ewyfx-hybrid-composite-v4"
 BOOTSTRAP_SOURCE = "one_time_night_futures_simple_point"
 KOSPI_CLOSE_SOURCE = "kospi_close"
 
@@ -85,6 +85,7 @@ RESIDUAL_FEATURE_KEYS = (
 )
 COMPOSITE_ADJUSTMENT_CAP_PCT = 0.10
 RESIDUAL_FEATURE_CLAMP = 6.0
+DIRECT_AXIS_BLEND_WEIGHT = 0.55
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -777,12 +778,19 @@ def _core_params(diagnostics: dict[str, Any]) -> dict[str, float]:
     if not isinstance(correction, dict):
         correction = {}
 
+    direct_weight = _to_float(correction.get("directBlendWeight"))
+    if direct_weight is None:
+        direct_weight = _to_float(correction.get("direct_blend_weight"))
+    if direct_weight is None:
+        direct_weight = DIRECT_AXIS_BLEND_WEIGHT
+
     return {
         "intercept": _to_float(correction.get("intercept")) or 0.0,
         "ewyCoef": _to_float(correction.get("ewyCoef")) or _to_float(correction.get("ewy_coef")) or 0.35,
         "krwCoef": _to_float(correction.get("krwCoef")) or _to_float(correction.get("krw_coef")) or 0.20,
         "r2": _to_float(correction.get("r2")) or 0.0,
         "sampleSize": _to_float(correction.get("sampleSize")) or _to_float(correction.get("sample_size")) or 0.0,
+        "directBlendWeight": _clamp(direct_weight, 0.0, 1.0),
     }
 
 
@@ -814,7 +822,12 @@ def calculate_model2(
 
     core = _core_params(diagnostics)
     ewy_fx_direct_pct = ewy_return + krw_return
-    ewy_fx_core_pct = core["intercept"] + core["ewyCoef"] * ewy_return + core["krwCoef"] * krw_return
+    ewy_fx_learned_pct = core["intercept"] + core["ewyCoef"] * ewy_return + core["krwCoef"] * krw_return
+    learned_weight = 1.0 - core["directBlendWeight"]
+    ewy_fx_core_pct = (
+        core["directBlendWeight"] * ewy_fx_direct_pct
+        + learned_weight * ewy_fx_learned_pct
+    )
 
     residual_artifact = diagnostics.get("residualModel")
     if not isinstance(residual_artifact, dict):
@@ -839,6 +852,7 @@ def calculate_model2(
     mapping = _mapping_params(diagnostics)
     model2_return_pct = ewy_fx_core_pct + composite_adjustment_pct
     ewy_fx_direct_point = baseline_point * math.exp(ewy_fx_direct_pct / 100.0)
+    ewy_fx_learned_point = baseline_point * math.exp(ewy_fx_learned_pct / 100.0)
     ewy_fx_core_point = baseline_point * math.exp(ewy_fx_core_pct / 100.0)
     point_prediction = baseline_point * math.exp(model2_return_pct / 100.0)
 
@@ -855,6 +869,8 @@ def calculate_model2(
         "pointPrediction": point_prediction,
         "ewyFxDirectPoint": ewy_fx_direct_point,
         "ewyFxDirectPct": ewy_fx_direct_pct,
+        "ewyFxLearnedPoint": ewy_fx_learned_point,
+        "ewyFxLearnedPct": ewy_fx_learned_pct,
         "ewyFxCorePoint": ewy_fx_core_point,
         "ewyFxCorePct": ewy_fx_core_pct,
         "baseReturnPct": model2_return_pct,
@@ -876,7 +892,9 @@ def calculate_model2(
             "intercept": core["intercept"],
             "ewyCoef": core["ewyCoef"],
             "krwCoef": core["krwCoef"],
-            "source": "ewy_fx_correction",
+            "directBlendWeight": core["directBlendWeight"],
+            "learnedBlendWeight": learned_weight,
+            "source": "ewy_fx_direct_learned_hybrid",
             "used": True,
         },
         "mapping": {
@@ -1056,6 +1074,8 @@ def run() -> int:
         "compositeAdjustmentPct": round(result["compositeAdjustmentPct"], 6),
         "ewyFxDirectPoint": round(result["ewyFxDirectPoint"], 4),
         "ewyFxDirectPct": round(result["ewyFxDirectPct"], 6),
+        "ewyFxLearnedPoint": round(result["ewyFxLearnedPoint"], 4),
+        "ewyFxLearnedPct": round(result["ewyFxLearnedPct"], 6),
         "ewyFxCorePoint": round(result["ewyFxCorePoint"], 4),
         "ewyFxCorePct": round(result["ewyFxCorePct"], 6),
         "k200MappedPct": _round_or_none(result["k200MappedPct"], 6),
@@ -1072,9 +1092,9 @@ def run() -> int:
         },
         "model": {
             "engine": MODEL2_ENGINE,
-            "inputPolicy": "Learned EWY/KRW core plus bounded composite adjustment; no night-futures signal after one-time bootstrap",
-            "coreAxis": "intercept + ewy_coef * ewy_log_return_pct + krw_coef * krw_adjusted_log_return_pct",
-            "rawDirectAxis": "ewy_log_return_pct + krw_adjusted_log_return_pct",
+            "inputPolicy": "Hybrid EWY/KRW fair-value core plus bounded composite adjustment; no night-futures signal after one-time bootstrap",
+            "coreAxis": "direct_blend * raw_ewy_krw_axis + learned_blend * rolling_ewy_fx_correction",
+            "rawEwyKrwAxis": "ewy_log_return_pct + krw_adjusted_log_return_pct",
             "compositeAdjustmentCapPct": COMPOSITE_ADJUSTMENT_CAP_PCT,
             "residualFeatureClamp": RESIDUAL_FEATURE_CLAMP,
             "coreCoefficients": result["coreCoefficients"],
