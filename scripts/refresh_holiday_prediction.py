@@ -17,8 +17,9 @@ from __future__ import annotations
 import json
 import math
 import sys
+import urllib.parse
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,14 @@ OUTPUT_DIR = Path("frontend/public/data")
 DIAGNOSTICS_PATH = OUTPUT_DIR / "backtest_diagnostics.json"
 PRIMARY_PREDICTION_PATH = OUTPUT_DIR / "prediction.json"
 PRIMARY_PREDICTION_PUBLIC_URL = "https://kospipreview.com/api/live/prediction.json"
+YAHOO_CHART_URL_TEMPLATE = (
+    "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+    "?interval=1m&range=2d&includePrePost=true"
+)
+YAHOO_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+)
 HOLIDAY_PREDICTION_PATH = OUTPUT_DIR / "holiday_prediction.json"
 HOLIDAY_SERIES_PATH = OUTPUT_DIR / "holiday_prediction_series.json"
 HOLIDAY_HISTORY_PATH = OUTPUT_DIR / "holiday_history.json"
@@ -45,6 +54,9 @@ HISTORY_MAX_ROWS = 60
 US_ACTIVE_START_UTC = 9 * 60
 US_ACTIVE_END_UTC = 22 * 60
 KRX_OPEN_TIME = time(9, 0)
+KRX_SYNC_BASELINE_TIME = time(15, 30)
+KRX_SYNC_MAX_LOOKBACK_HOURS = 36
+KRX_SYNC_MAX_FORWARD_HOURS = 12
 
 MODEL2_SYMBOLS = {
     "ewy": "EWY",
@@ -89,6 +101,24 @@ def _fetch_json(url: str, *, timeout: float = 4.0) -> dict[str, Any]:
             return data if isinstance(data, dict) else {}
     except (OSError, TimeoutError, URLError, json.JSONDecodeError) as exc:
         print(f"warning: failed to fetch {url}: {exc}", file=sys.stderr)
+        return {}
+
+
+def _fetch_yahoo_json(url: str, *, timeout: float = 10.0) -> dict[str, Any]:
+    request = Request(
+        url,
+        headers={
+            "User-Agent": YAHOO_USER_AGENT,
+            "Accept": "application/json,text/javascript,*/*;q=0.1",
+            "Cache-Control": "no-cache",
+        },
+        method="GET",
+    )
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data if isinstance(data, dict) else {}
+    except (OSError, TimeoutError, URLError, json.JSONDecodeError):
         return {}
 
 
@@ -374,7 +404,91 @@ def _get_prev_session_close(ticker_symbol: str, krx_date_iso: str) -> float | No
     return _positive_float(eligible.iloc[-1])
 
 
+def fetch_yahoo_chart_points(ticker_symbol: str) -> list[tuple[datetime, float]]:
+    encoded_symbol = urllib.parse.quote(ticker_symbol, safe="")
+    payload = _fetch_yahoo_json(YAHOO_CHART_URL_TEMPLATE.format(symbol=encoded_symbol))
+    chart = payload.get("chart") if isinstance(payload, dict) else None
+    if not isinstance(chart, dict):
+        return []
+
+    results = chart.get("result")
+    if not isinstance(results, list) or not results or not isinstance(results[0], dict):
+        return []
+
+    first = results[0]
+    timestamps = first.get("timestamp")
+    indicators = first.get("indicators")
+    if not isinstance(timestamps, list) or not isinstance(indicators, dict):
+        return []
+
+    quotes = indicators.get("quote")
+    if not isinstance(quotes, list) or not quotes or not isinstance(quotes[0], dict):
+        return []
+
+    closes = quotes[0].get("close")
+    if not isinstance(closes, list):
+        return []
+
+    points: list[tuple[datetime, float]] = []
+    for raw_ts, raw_close in zip(timestamps, closes):
+        try:
+            ts_utc = datetime.fromtimestamp(int(raw_ts), tz=timezone.utc)
+        except (TypeError, ValueError, OSError):
+            continue
+
+        close = _positive_float(raw_close)
+        if close is not None:
+            points.append((ts_utc, close))
+    return points
+
+
+def select_krx_sync_baseline_point(
+    points: list[tuple[datetime, float]],
+    session_date_iso: str,
+) -> tuple[datetime, float] | None:
+    session_date = _parse_iso_date(session_date_iso)
+    if session_date is None:
+        return None
+
+    kst = timezone(timedelta(hours=9))
+    baseline_kst = datetime.combine(session_date, KRX_SYNC_BASELINE_TIME, tzinfo=kst)
+    points_kst = [(ts_utc.astimezone(kst), ts_utc, close) for ts_utc, close in points]
+    same_day_points = [row for row in points_kst if row[0].date() == session_date]
+
+    if same_day_points:
+        forward_points = [row for row in same_day_points if row[0] >= baseline_kst]
+        if forward_points:
+            ts_kst, ts_utc, close = forward_points[0]
+            delay_hours = (ts_kst - baseline_kst).total_seconds() / 3600
+            if delay_hours <= KRX_SYNC_MAX_FORWARD_HOURS:
+                return ts_utc, close
+
+    backward_points = [row for row in points_kst if row[0] <= baseline_kst]
+    if backward_points:
+        ts_kst, ts_utc, close = backward_points[-1]
+        lookback_hours = (baseline_kst - ts_kst).total_seconds() / 3600
+        if lookback_hours <= KRX_SYNC_MAX_LOOKBACK_HOURS:
+            return ts_utc, close
+
+    return None
+
+
+def get_krx_sync_price_pair(ticker_symbol: str, session_date_iso: str) -> tuple[float | None, float | None]:
+    points = fetch_yahoo_chart_points(ticker_symbol)
+    if not points:
+        return None, None
+
+    baseline_point = select_krx_sync_baseline_point(points, session_date_iso)
+    baseline_price = _positive_float(baseline_point[1]) if baseline_point is not None else None
+    current_price = _positive_float(points[-1][1])
+    return baseline_price, current_price
+
+
 def get_current_price(ticker_symbol: str) -> float | None:
+    _, yahoo_current = get_krx_sync_price_pair(ticker_symbol, date.today().isoformat())
+    if yahoo_current is not None:
+        return yahoo_current
+
     ticker = yf.Ticker(ticker_symbol)
     try:
         intraday = ticker.history(period="1d", interval="1m", prepost=True)
@@ -408,10 +522,34 @@ def get_current_prices() -> dict[str, float]:
 def get_session_close_prices(session_date_iso: str) -> dict[str, float]:
     prices: dict[str, float] = {}
     for key, symbol in MODEL2_SYMBOLS.items():
-        price = _get_prev_session_close(symbol, session_date_iso)
+        sync_price, _ = get_krx_sync_price_pair(symbol, session_date_iso)
+        price = sync_price if sync_price is not None else _get_prev_session_close(symbol, session_date_iso)
         if price is not None:
             prices[key] = price
     return prices
+
+
+def repair_kospi_close_baseline_prices(
+    session_date_iso: str,
+    baseline_prices: dict[str, float],
+    current_prices: dict[str, float],
+) -> tuple[dict[str, float], bool]:
+    sync_prices = get_session_close_prices(session_date_iso)
+    if not _has_required_prices(sync_prices):
+        return baseline_prices, False
+
+    repaired = dict(baseline_prices)
+    changed = False
+    for key, price in sync_prices.items():
+        previous = _positive_float(repaired.get(key))
+        if previous is None or abs(previous - price) > max(1e-6, abs(price) * 1e-6):
+            repaired[key] = price
+            changed = True
+
+    for key, price in current_prices.items():
+        repaired.setdefault(key, price)
+
+    return repaired, changed
 
 
 def build_returns(baseline_prices: dict[str, float], current_prices: dict[str, float]) -> dict[str, float]:
@@ -512,15 +650,26 @@ def resolve_model2_baseline(
             and _positive_float((primary_snapshot or {}).get("nightFuturesSimplePoint")) is not None
         )
     ):
+        baseline_prices = existing_baseline_prices
+        reset_reason = "reuse_existing_baseline"
+        if existing_payload.get("baselineSource") == KOSPI_CLOSE_SOURCE:
+            baseline_prices, repaired = repair_kospi_close_baseline_prices(
+                existing_baseline_date,
+                existing_baseline_prices,
+                current_prices,
+            )
+            if repaired:
+                reset_reason = "repair_krx_sync_baseline_prices"
+
         return {
             "baselinePoint": existing_baseline_point,
             "baselineDate": existing_baseline_date,
             "baselineSource": str(existing_payload.get("baselineSource") or KOSPI_CLOSE_SOURCE),
-            "baselinePrices": existing_baseline_prices,
+            "baselinePrices": baseline_prices,
             "oneTimeNightFuturesBootstrapUsed": bool(existing_payload.get("oneTimeNightFuturesBootstrapUsed")),
             "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt"),
             "nightFuturesReadThisRun": False,
-            "resetReason": "reuse_existing_baseline",
+            "resetReason": reset_reason,
         }
 
     if (

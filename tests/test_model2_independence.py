@@ -230,6 +230,52 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertEqual(guarded["close"], 8639.41)
         self.assertEqual(guarded["source"], "existing_model2_prev_close_guard")
 
+    def test_session_baseline_prefers_krx_sync_intraday_price(self):
+        original_fetch_points = model2.fetch_yahoo_chart_points
+        original_prev_close = model2._get_prev_session_close
+
+        try:
+            model2.fetch_yahoo_chart_points = lambda symbol: [
+                (datetime(2026, 6, 5, 8, 0, tzinfo=timezone.utc), 192.49),
+                (datetime(2026, 6, 5, 12, 8, tzinfo=timezone.utc), 193.79),
+            ] if symbol == "EWY" else []
+            model2._get_prev_session_close = lambda symbol, session_date: 203.97 if symbol == "EWY" else None
+
+            prices = model2.get_session_close_prices("2026-06-05")
+        finally:
+            model2.fetch_yahoo_chart_points = original_fetch_points
+            model2._get_prev_session_close = original_prev_close
+
+        self.assertEqual(prices["ewy"], 192.49)
+
+    def test_reused_kospi_baseline_repairs_bad_daily_ewy_price(self):
+        original_get_session_close_prices = model2.get_session_close_prices
+
+        try:
+            model2.get_session_close_prices = lambda session_date: {
+                "ewy": 192.49,
+                "krw": 1540.0,
+            }
+            baseline = model2.resolve_model2_baseline(
+                existing_payload={
+                    "calculationMode": model2.MODEL2_MODE,
+                    "baselineDate": "2026-06-05",
+                    "baselinePoint": 8160.59,
+                    "baselineSource": model2.KOSPI_CLOSE_SOURCE,
+                    "baselinePrices": {"ewy": 203.97, "krw": 1540.98},
+                    "oneTimeNightFuturesBootstrapUsed": True,
+                },
+                last_session={"date": "2026-06-05", "close": 8160.59},
+                current_prices={"ewy": 193.79, "krw": 1541.0},
+                primary_snapshot={"nightFuturesSimplePoint": 1.0},
+                now_utc=datetime(2026, 6, 5, 12, 10, tzinfo=timezone.utc),
+            )
+        finally:
+            model2.get_session_close_prices = original_get_session_close_prices
+
+        self.assertEqual(baseline["baselinePrices"]["ewy"], 192.49)
+        self.assertEqual(baseline["resetReason"], "repair_krx_sync_baseline_prices")
+
     def test_calculation_uses_composite_residual_features(self):
         diagnostics = {
             "ewyFxCorrection": {

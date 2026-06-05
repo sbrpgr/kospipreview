@@ -754,7 +754,6 @@ export function LiveDashboard({
                   ? `${model2ChangePct! >= 0 ? "상방" : "하방"} ${Math.abs(model2ChangePct!).toFixed(2)}%`
                   : "-"}
               </div>
-              <div className="heroForecastMeta">야간선물 미사용 EWY 직접</div>
             </div>
           </div>
 
