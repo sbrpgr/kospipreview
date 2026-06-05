@@ -45,7 +45,8 @@ HOLIDAY_SERIES_PATH = OUTPUT_DIR / "holiday_prediction_series.json"
 HOLIDAY_HISTORY_PATH = OUTPUT_DIR / "holiday_history.json"
 
 MODEL2_MODE = "model2_no_night_futures_composite"
-MODEL2_ENGINE = "EWYFXDirectCompositeNoNightFutures"
+MODEL2_ENGINE = "EWYFXLearnedCompositeNoNightFutures"
+MODEL2_VERSION = "model2-independent-ewyfx-learned-composite-v3"
 BOOTSTRAP_SOURCE = "one_time_night_futures_simple_point"
 KOSPI_CLOSE_SOURCE = "kospi_close"
 
@@ -83,6 +84,7 @@ RESIDUAL_FEATURE_KEYS = (
     "us10y_z",
 )
 COMPOSITE_ADJUSTMENT_CAP_PCT = 0.10
+RESIDUAL_FEATURE_CLAMP = 6.0
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -599,7 +601,7 @@ def _z_score(signal_values: dict[str, float], artifact: dict[str, Any], key: str
     std = _to_float(stds.get(key)) or 1.0
     if abs(std) < 1e-9:
         std = 1.0
-    return (value - mean) / std
+    return _clamp((value - mean) / std, -RESIDUAL_FEATURE_CLAMP, RESIDUAL_FEATURE_CLAMP)
 
 
 def transform_signal_to_residual_features(
@@ -812,6 +814,7 @@ def calculate_model2(
 
     core = _core_params(diagnostics)
     ewy_fx_direct_pct = ewy_return + krw_return
+    ewy_fx_core_pct = core["intercept"] + core["ewyCoef"] * ewy_return + core["krwCoef"] * krw_return
 
     residual_artifact = diagnostics.get("residualModel")
     if not isinstance(residual_artifact, dict):
@@ -834,8 +837,9 @@ def calculate_model2(
     )
 
     mapping = _mapping_params(diagnostics)
-    model2_return_pct = ewy_fx_direct_pct + composite_adjustment_pct
+    model2_return_pct = ewy_fx_core_pct + composite_adjustment_pct
     ewy_fx_direct_point = baseline_point * math.exp(ewy_fx_direct_pct / 100.0)
+    ewy_fx_core_point = baseline_point * math.exp(ewy_fx_core_pct / 100.0)
     point_prediction = baseline_point * math.exp(model2_return_pct / 100.0)
 
     mae_pct = (
@@ -851,8 +855,10 @@ def calculate_model2(
         "pointPrediction": point_prediction,
         "ewyFxDirectPoint": ewy_fx_direct_point,
         "ewyFxDirectPct": ewy_fx_direct_pct,
+        "ewyFxCorePoint": ewy_fx_core_point,
+        "ewyFxCorePct": ewy_fx_core_pct,
         "baseReturnPct": model2_return_pct,
-        "corePct": ewy_fx_direct_pct,
+        "corePct": ewy_fx_core_pct,
         "rawResidualPct": raw_residual_pct,
         "residualPct": composite_adjustment_pct,
         "compositeAdjustmentPct": composite_adjustment_pct,
@@ -867,16 +873,11 @@ def calculate_model2(
         "residualWeight": residual_weight,
         "residualFeatureValues": residual_features,
         "coreCoefficients": {
-            "intercept": 0.0,
-            "ewyCoef": 1.0,
-            "krwCoef": 1.0,
-            "source": "direct_ewy_fx_axis",
-        },
-        "learnedCoreReference": {
             "intercept": core["intercept"],
             "ewyCoef": core["ewyCoef"],
             "krwCoef": core["krwCoef"],
-            "used": False,
+            "source": "ewy_fx_correction",
+            "used": True,
         },
         "mapping": {
             "intercept": mapping["intercept"],
@@ -1026,7 +1027,7 @@ def run() -> int:
         "generatedAt": now_utc.isoformat(),
         "generatedAtKst": now_kst.isoformat(),
         "schemaVersion": 3,
-        "modelVersion": "model2-independent-ewyfx-direct-composite-v2",
+        "modelVersion": MODEL2_VERSION,
         "modelName": "모델2 예측(test)",
         "calculationMode": MODEL2_MODE,
         "independentModel": True,
@@ -1055,6 +1056,8 @@ def run() -> int:
         "compositeAdjustmentPct": round(result["compositeAdjustmentPct"], 6),
         "ewyFxDirectPoint": round(result["ewyFxDirectPoint"], 4),
         "ewyFxDirectPct": round(result["ewyFxDirectPct"], 6),
+        "ewyFxCorePoint": round(result["ewyFxCorePoint"], 4),
+        "ewyFxCorePct": round(result["ewyFxCorePct"], 6),
         "k200MappedPct": _round_or_none(result["k200MappedPct"], 6),
         "kospiMappedPct": round(result["kospiMappedPct"], 6),
         "baseReturnPct": round(result["baseReturnPct"], 6),
@@ -1069,9 +1072,11 @@ def run() -> int:
         },
         "model": {
             "engine": MODEL2_ENGINE,
-            "inputPolicy": "EWY/KRW direct axis plus bounded composite adjustment; no night-futures signal after one-time bootstrap",
-            "directAxis": "ewy_log_return_pct + krw_adjusted_log_return_pct",
+            "inputPolicy": "Learned EWY/KRW core plus bounded composite adjustment; no night-futures signal after one-time bootstrap",
+            "coreAxis": "intercept + ewy_coef * ewy_log_return_pct + krw_coef * krw_adjusted_log_return_pct",
+            "rawDirectAxis": "ewy_log_return_pct + krw_adjusted_log_return_pct",
             "compositeAdjustmentCapPct": COMPOSITE_ADJUSTMENT_CAP_PCT,
+            "residualFeatureClamp": RESIDUAL_FEATURE_CLAMP,
             "coreCoefficients": result["coreCoefficients"],
             "mapping": result["mapping"],
             "residualWeight": result["residualWeight"],

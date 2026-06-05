@@ -358,7 +358,8 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertNotEqual(base["pointPrediction"], moved["pointPrediction"])
         self.assertGreater(moved["residualPct"], base["residualPct"])
         self.assertEqual(moved["k200MappedPct"], None)
-        self.assertEqual(moved["coreCoefficients"]["source"], "direct_ewy_fx_axis")
+        self.assertEqual(moved["coreCoefficients"]["source"], "ewy_fx_correction")
+        self.assertTrue(moved["coreCoefficients"]["used"])
 
     def test_confidence_band_ignores_top_level_point_mae_as_pct(self):
         diagnostics = {
@@ -388,8 +389,15 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertAlmostEqual(result["bandHalfWidth"], 8160.59 * 0.012 * model2.BAND_MAE_MULTIPLIER)
 
-    def test_model2_stays_near_ewy_fx_direct_axis(self):
+    def test_model2_uses_learned_ewy_fx_core(self):
         diagnostics = {
+            "ewyFxCorrection": {
+                "intercept": 0.2,
+                "ewyCoef": 0.4,
+                "krwCoef": 0.2,
+                "r2": 0.25,
+                "sampleSize": 180,
+            },
             "residualModel": {
                 "intercept": 3.0,
                 "weight": 1.0,
@@ -414,13 +422,36 @@ class Model2IndependenceTests(unittest.TestCase):
         result = model2.calculate_model2(returns, diagnostics, baseline)
 
         self.assertIsNotNone(result)
+        learned_pct = 0.2 + 0.4 * returns["ewy"] + 0.2 * returns["krw"]
         direct_point = baseline * math.exp((returns["ewy"] + returns["krw"]) / 100.0)
+        core_point = baseline * math.exp(learned_pct / 100.0)
         max_gap = baseline * (
             math.exp(model2.COMPOSITE_ADJUSTMENT_CAP_PCT / 100.0) - 1.0
         ) + 1e-9
 
         self.assertAlmostEqual(result["ewyFxDirectPoint"], direct_point)
-        self.assertLessEqual(abs(result["pointPrediction"] - direct_point), max_gap)
+        self.assertAlmostEqual(result["ewyFxCorePoint"], core_point)
+        self.assertAlmostEqual(result["corePct"], learned_pct)
+        self.assertLessEqual(abs(result["pointPrediction"] - core_point), max_gap)
+
+    def test_residual_features_are_clamped_before_composite_cap(self):
+        features = model2.transform_signal_to_residual_features(
+            {
+                "sp500": 0.0,
+                "nasdaq": 0.0,
+                "dow": 0.0,
+                "sox": 0.0,
+                "wti": 0.0,
+                "gold": 0.0,
+                "us10y": 10.0,
+            },
+            {
+                "means": {"us10y": 0.0},
+                "stds": {"us10y": 0.001},
+            },
+        )
+
+        self.assertEqual(features["us10y_z"], model2.RESIDUAL_FEATURE_CLAMP)
 
     def test_series_and_history_keep_frontend_records_contract(self):
         original_series_path = model2.HOLIDAY_SERIES_PATH

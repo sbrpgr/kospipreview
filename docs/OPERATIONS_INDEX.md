@@ -58,6 +58,11 @@ If work resumes later, read these documents in order:
   artifact before publishing. If the Cloud Storage copy is missing, the workflow
   falls back to `/api/live/backtest_diagnostics.json`; if that is invalid too,
   the Model2 refresh must fail instead of publishing a degenerate forecast.
+- Model2 calculation rule:
+  the independent engine must use the learned EWY/FX correction coefficients
+  from `backtest_diagnostics.json` as its core return, then apply only a bounded
+  composite residual adjustment. The raw EWY+KRW direct return can be published
+  for diagnostics, but must not be the Model2 prediction core.
 - Before publish, regenerated `prediction.json` must also keep same-target
   non-null prediction fields from the bucket seed, and can restore them from the
   latest pre-open `live_prediction_series.json` row when a non-operating-window
