@@ -212,6 +212,33 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertEqual(snapshot["prevCloseDate"], "2026-06-04")
         self.assertEqual(snapshot["prevClose"], 8639.41)
 
+    def test_diagnostics_loader_falls_back_to_public_artifact(self):
+        original_diagnostics_path = model2.DIAGNOSTICS_PATH
+        original_fetch_json = model2._fetch_json
+
+        public_artifact = {
+            "residualModel": {
+                "coefficients": {"broad_factor": -0.2},
+                "mae": 1.25,
+            },
+            "k200Mapping": {"beta": 0.35},
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir) / "backtest_diagnostics.json"
+            temp_path.write_text("{}", encoding="utf-8")
+            try:
+                model2.DIAGNOSTICS_PATH = temp_path
+                model2._fetch_json = lambda url: public_artifact
+
+                diagnostics = model2.load_diagnostics_artifact()
+            finally:
+                model2.DIAGNOSTICS_PATH = original_diagnostics_path
+                model2._fetch_json = original_fetch_json
+
+        self.assertEqual(diagnostics, public_artifact)
+        self.assertTrue(model2.is_valid_diagnostics(diagnostics))
+
     def test_existing_model2_prev_close_guards_against_stale_yahoo_session(self):
         guarded = model2.guard_last_session_with_existing_model2(
             {"date": "2026-06-02", "close": 8801.49, "source": "yahoo_ks11"},
@@ -332,6 +359,34 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertGreater(moved["residualPct"], base["residualPct"])
         self.assertEqual(moved["k200MappedPct"], None)
         self.assertEqual(moved["coreCoefficients"]["source"], "direct_ewy_fx_axis")
+
+    def test_confidence_band_ignores_top_level_point_mae_as_pct(self):
+        diagnostics = {
+            "mae": 33.0,
+            "residualModel": {
+                "mae": 1.2,
+                "weight": 0.0,
+                "coefficients": {},
+            },
+        }
+        result = model2.calculate_model2(
+            {
+                "ewy": 0.0,
+                "krw": 0.0,
+                "sp500": 0.0,
+                "nasdaq": 0.0,
+                "dow": 0.0,
+                "sox": 0.0,
+                "wti": 0.0,
+                "gold": 0.0,
+                "us10y": 0.0,
+            },
+            diagnostics,
+            8160.59,
+        )
+
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["bandHalfWidth"], 8160.59 * 0.012 * model2.BAND_MAE_MULTIPLIER)
 
     def test_model2_stays_near_ewy_fx_direct_axis(self):
         diagnostics = {

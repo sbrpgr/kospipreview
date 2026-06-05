@@ -29,6 +29,7 @@ import yfinance as yf
 
 OUTPUT_DIR = Path("frontend/public/data")
 DIAGNOSTICS_PATH = OUTPUT_DIR / "backtest_diagnostics.json"
+DIAGNOSTICS_PUBLIC_URL = "https://kospipreview.com/api/live/backtest_diagnostics.json"
 PRIMARY_PREDICTION_PATH = OUTPUT_DIR / "prediction.json"
 PRIMARY_PREDICTION_PUBLIC_URL = "https://kospipreview.com/api/live/prediction.json"
 YAHOO_CHART_URL_TEMPLATE = (
@@ -312,6 +313,29 @@ def load_primary_prediction_snapshot(now_kst: datetime) -> dict[str, Any]:
     if local_date is None or (public_date is not None and public_date >= local_date):
         return public_snapshot
     return local_snapshot
+
+
+def is_valid_diagnostics(diagnostics: dict[str, Any]) -> bool:
+    if not isinstance(diagnostics, dict):
+        return False
+    residual = diagnostics.get("residualModel")
+    mapping = diagnostics.get("k200Mapping")
+    if not isinstance(residual, dict) or not isinstance(mapping, dict):
+        return False
+    coefficients = residual.get("coefficients")
+    return isinstance(coefficients, dict) and any(_to_float(coefficients.get(key)) is not None for key in RESIDUAL_FEATURE_KEYS)
+
+
+def load_diagnostics_artifact() -> dict[str, Any]:
+    local_diagnostics = _load_json(DIAGNOSTICS_PATH)
+    if is_valid_diagnostics(local_diagnostics):
+        return local_diagnostics
+
+    public_diagnostics = _fetch_json(DIAGNOSTICS_PUBLIC_URL)
+    if is_valid_diagnostics(public_diagnostics):
+        return public_diagnostics
+
+    return {}
 
 
 def resolve_last_krx_session(primary_snapshot: dict[str, Any]) -> dict[str, Any] | None:
@@ -816,8 +840,9 @@ def calculate_model2(
 
     mae_pct = (
         _to_float(diagnostics.get("maePct"))
-        or _to_float(diagnostics.get("mae"))
         or _to_float(residual_artifact.get("mae"))
+        or _to_float(residual_artifact.get("full_mae"))
+        or _to_float(residual_artifact.get("fullMae"))
         or 0.8
     )
     half_band = abs(baseline_point * (mae_pct / 100.0) * BAND_MAE_MULTIPLIER)
@@ -952,7 +977,11 @@ def run() -> int:
         print("skip: outside US live/pre-market window")
         return 0
 
-    diagnostics = _load_json(DIAGNOSTICS_PATH)
+    diagnostics = load_diagnostics_artifact()
+    if not is_valid_diagnostics(diagnostics):
+        print("error: missing Model 2 diagnostics artifact", file=sys.stderr)
+        return 1
+
     existing_payload = _load_json(HOLIDAY_PREDICTION_PATH)
     primary_snapshot = load_primary_prediction_snapshot(now_kst)
 

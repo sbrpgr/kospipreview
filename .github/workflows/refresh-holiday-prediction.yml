@@ -51,10 +51,17 @@ jobs:
           mkdir -p frontend/public/data
           for f in prediction.json backtest_diagnostics.json \
                    holiday_prediction.json holiday_prediction_series.json holiday_history.json; do
-            gcloud storage cp \
+            if ! gcloud storage cp \
               "gs://kospipreview-live-data/$f" \
               "frontend/public/data/$f" \
-              --quiet || true
+              --quiet; then
+              if [ "$f" = "backtest_diagnostics.json" ]; then
+                curl -fsSL \
+                  "https://kospipreview.com/api/live/backtest_diagnostics.json" \
+                  -o "frontend/public/data/$f"
+                python -m json.tool "frontend/public/data/$f" >/dev/null
+              fi
+            fi
           done
 
       - name: Run independent model2 prediction

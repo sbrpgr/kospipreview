@@ -53,6 +53,11 @@ If work resumes later, read these documents in order:
   Scheduler refresh must not upload them. They are published only by
   `refresh-holiday-prediction` so the EWY/FX independent model cannot be
   overwritten by minute-level night-futures refresh.
+- Model2 diagnostics guard:
+  `refresh-holiday-prediction` must load a valid `backtest_diagnostics.json`
+  artifact before publishing. If the Cloud Storage copy is missing, the workflow
+  falls back to `/api/live/backtest_diagnostics.json`; if that is invalid too,
+  the Model2 refresh must fail instead of publishing a degenerate forecast.
 - Before publish, regenerated `prediction.json` must also keep same-target
   non-null prediction fields from the bucket seed, and can restore them from the
   latest pre-open `live_prediction_series.json` row when a non-operating-window
