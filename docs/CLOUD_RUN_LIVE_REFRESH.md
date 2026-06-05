@@ -115,6 +115,12 @@ Cloud Run refresh upload excludes the independent Model 2 files:
 Those files are seeded for continuity and served through `/api/live/**`, but
 only `refresh-holiday-prediction` should publish them.
 
+Cloud Run refresh must also protect `live_prediction_series.json` continuity.
+Before upload, it compares the regenerated file with the current Cloud Storage
+object. If both files target the same `predictionDateIso` and the regenerated
+series has fewer valid records, the upload is skipped so a transient no-seed
+or shortened local run cannot overwrite the longer public trend.
+
 ## Operating Rules
 
 All times are Asia/Seoul.
@@ -163,6 +169,10 @@ Expected behavior:
 - one row per minute-level `observedAt`;
 - records keep only the active `predictionDateIso`;
 - chart compares `pointPrediction`, `nightFuturesSimplePoint`, and `ewyFxSimplePoint`.
+- a shorter same-target `live_prediction_series.json` must never replace a
+  longer Cloud Storage copy; repair shortened trends with
+  `recover-live-prediction-series` and then verify the next Scheduler refresh
+  keeps the recovered record count.
 
 ### Night futures session close carry-forward
 

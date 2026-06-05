@@ -110,6 +110,70 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         self.assertTrue(live_data_service.MODEL2_FILE_NAMES <= live_data_service.SERVE_FILE_NAMES)
         self.assertTrue(live_data_service.MODEL2_FILE_NAMES.isdisjoint(live_data_service.REFRESH_UPLOAD_FILE_NAMES))
 
+    def test_live_prediction_series_upload_skips_shorter_same_target_series(self):
+        def series_payload(count):
+            return {
+                "predictionDateIso": "2026-06-08",
+                "records": [
+                    {
+                        "predictionDateIso": "2026-06-08",
+                        "observedAt": f"2026-06-05T15:{minute:02d}:00+00:00",
+                    }
+                    for minute in range(count)
+                ],
+            }
+
+        def fake_download(file_name, target_path):
+            self.assertEqual(file_name, "live_prediction_series.json")
+            target_path.write_text(json.dumps(series_payload(3)), encoding="utf8")
+            return True
+
+        live_data_service.download_bucket_file = fake_download
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            local_series_path = temp_path / "live_prediction_series.json"
+            local_series_path.write_text(json.dumps(series_payload(1)), encoding="utf8")
+
+            self.assertFalse(
+                live_data_service.should_upload_live_prediction_series(
+                    local_series_path,
+                    temp_path,
+                )
+            )
+
+    def test_live_prediction_series_upload_allows_longer_same_target_series(self):
+        def series_payload(count):
+            return {
+                "predictionDateIso": "2026-06-08",
+                "records": [
+                    {
+                        "predictionDateIso": "2026-06-08",
+                        "observedAt": f"2026-06-05T15:{minute:02d}:00+00:00",
+                    }
+                    for minute in range(count)
+                ],
+            }
+
+        def fake_download(file_name, target_path):
+            self.assertEqual(file_name, "live_prediction_series.json")
+            target_path.write_text(json.dumps(series_payload(1)), encoding="utf8")
+            return True
+
+        live_data_service.download_bucket_file = fake_download
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            local_series_path = temp_path / "live_prediction_series.json"
+            local_series_path.write_text(json.dumps(series_payload(3)), encoding="utf8")
+
+            self.assertTrue(
+                live_data_service.should_upload_live_prediction_series(
+                    local_series_path,
+                    temp_path,
+                )
+            )
+
     def test_refresh_request_body_size_is_limited(self):
         with live_data_service.app.test_request_context(
             "/api/tasks/refresh",

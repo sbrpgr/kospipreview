@@ -168,6 +168,52 @@ def upload_bucket_file(file_name: str, source_path: Path) -> bool:
     return True
 
 
+def live_series_record_count(path: Path) -> tuple[str | None, int]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf8"))
+    except (OSError, json.JSONDecodeError):
+        return None, 0
+
+    if not isinstance(payload, dict):
+        return None, 0
+
+    prediction_date = payload.get("predictionDateIso")
+    records = payload.get("records")
+    if not isinstance(prediction_date, str) or not isinstance(records, list):
+        return None, 0
+
+    count = sum(
+        1
+        for row in records
+        if isinstance(row, dict)
+        and row.get("predictionDateIso") == prediction_date
+        and isinstance(row.get("observedAt"), str)
+    )
+    return prediction_date, count
+
+
+def should_upload_live_prediction_series(source_path: Path, compare_dir: Path) -> bool:
+    if not source_path.exists():
+        return False
+
+    bucket_path = compare_dir / "bucket-live_prediction_series.json"
+    if not download_bucket_file("live_prediction_series.json", bucket_path):
+        return True
+
+    local_date, local_count = live_series_record_count(source_path)
+    bucket_date, bucket_count = live_series_record_count(bucket_path)
+    if local_date and bucket_date and local_date == bucket_date and local_count < bucket_count:
+        logging.warning(
+            "skip live_prediction_series upload because local series is shorter than bucket: "
+            "date=%s local=%s bucket=%s",
+            local_date,
+            local_count,
+            bucket_count,
+        )
+        return False
+    return True
+
+
 def iter_intraday_archive_files(data_dir: Path) -> list[Path]:
     archive_root = data_dir / INTRADAY_INDICATOR_SERIES_DIR_NAME
     if not archive_root.exists():
@@ -606,6 +652,11 @@ def run_refresh_job() -> dict:
 
         uploaded_files = []
         for file_name in REFRESH_UPLOAD_FILE_NAMES:
+            if file_name == "live_prediction_series.json" and not should_upload_live_prediction_series(
+                data_dir / file_name,
+                temp_root,
+            ):
+                continue
             if upload_bucket_file(file_name, data_dir / file_name):
                 uploaded_files.append(file_name)
         uploaded_intraday_archive_files = upload_intraday_archive_files(data_dir)

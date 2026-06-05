@@ -80,7 +80,10 @@ If work resumes later, read these documents in order:
   `prediction_date`. It rebuilds the trend from
   `intraday_indicator_series/kst_date=.../prediction_date=.../*.json` and
   refuses to publish if the recovered series is shorter than the current series
-  or requested minimum.
+  or requested minimum. Cloud Run refresh must skip uploading
+  `live_prediction_series.json` when the regenerated same-target series is
+  shorter than the current Cloud Storage object, otherwise Scheduler can
+  immediately overwrite a recovered trend with a shortened file.
 - Model2 calculation rule:
   the independent engine must use a hybrid EWY/FX core: the raw EWY+KRW
   fair-value axis remains the main night-futures replacement signal, while
