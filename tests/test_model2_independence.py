@@ -128,6 +128,25 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertFalse(baseline["nightFuturesReadThisRun"])
         self.assertEqual(baseline["resetReason"], "fresh_kospi_close")
 
+    def test_forced_run_ignores_existing_bootstrap_payload(self):
+        existing_model2_payload = {
+            "calculationMode": model2.MODEL2_MODE,
+            "baselineDate": "2026-06-05",
+            "baselinePoint": 7506.87,
+            "baselineSource": model2.BOOTSTRAP_SOURCE,
+            "baselinePrices": {"ewy": 193.79, "krw": 1541.0},
+            "oneTimeNightFuturesBootstrapUsed": True,
+        }
+
+        self.assertEqual(
+            model2._baseline_payload_for_run(existing_model2_payload, force_refresh=True),
+            {},
+        )
+        self.assertIs(
+            model2._baseline_payload_for_run(existing_model2_payload, force_refresh=False),
+            existing_model2_payload,
+        )
+
     def test_stale_yahoo_bootstrap_date_migrates_without_new_night_read(self):
         existing_model2_payload = {
             "calculationMode": model2.MODEL2_MODE,

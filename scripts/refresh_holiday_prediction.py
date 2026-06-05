@@ -1093,6 +1093,12 @@ def update_history(payload: dict[str, Any], prediction_target: str) -> None:
     )
 
 
+def _baseline_payload_for_run(existing_payload: dict[str, Any], *, force_refresh: bool) -> dict[str, Any]:
+    if force_refresh:
+        return {}
+    return existing_payload
+
+
 def run() -> int:
     now_utc = datetime.now(timezone.utc)
     now_kst = now_utc.astimezone(timezone(timedelta(hours=9)))
@@ -1127,8 +1133,9 @@ def run() -> int:
         return 1
 
     try:
+        baseline_existing_payload = _baseline_payload_for_run(existing_payload, force_refresh=force_refresh)
         baseline = resolve_model2_baseline(
-            existing_payload,
+            baseline_existing_payload,
             last_session,
             current_prices,
             primary_snapshot,
