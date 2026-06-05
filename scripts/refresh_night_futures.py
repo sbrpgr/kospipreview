@@ -214,6 +214,10 @@ INTRADAY_INDICATOR_SERIES_MODEL_FIELDS = (
     "ewyFxKrwCoef",
     "ewyFxSampleSize",
     "ewyFxFitR2",
+    "ewyFxDirectBlendWeight",
+    "ewyFxDirectBlendHighMoveWeight",
+    "ewyFxDirectBlendHighMoveTriggerPct",
+    "ewyFxDirectBlendLowConfidenceR2",
     "liveEwyChangePct",
     "liveKrwChangePct",
     "coreAfterBridgePct",
@@ -1661,6 +1665,11 @@ def resolve_ewy_fx_correction_params(model_payload: dict | None) -> dict[str, fl
             "krw_coef": EWY_FX_CORE_KRW_WEIGHT,
             "sample_size": 0.0,
             "r2": 0.0,
+            "direct_blend_weight": EWY_FX_STRUCTURAL_BLEND,
+            "direct_blend_high_move_weight": EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE,
+            "direct_blend_high_move_trigger_pct": EWY_FX_HIGH_MOVE_TRIGGER_PCT,
+            "direct_blend_low_confidence_r2": EWY_FX_LOW_CONFIDENCE_R2,
+            "direct_blend_min_samples": 40.0,
         }
 
     intercept = to_float(model_payload.get("ewyFxIntercept"))
@@ -1668,6 +1677,10 @@ def resolve_ewy_fx_correction_params(model_payload: dict | None) -> dict[str, fl
     krw_coef = to_float(model_payload.get("ewyFxKrwCoef"))
     sample_size = to_float(model_payload.get("ewyFxSampleSize"))
     fit_r2 = to_float(model_payload.get("ewyFxFitR2"))
+    direct_blend_weight = to_float(model_payload.get("ewyFxDirectBlendWeight"))
+    high_move_weight = to_float(model_payload.get("ewyFxDirectBlendHighMoveWeight"))
+    high_move_trigger = to_float(model_payload.get("ewyFxDirectBlendHighMoveTriggerPct"))
+    low_confidence_r2 = to_float(model_payload.get("ewyFxDirectBlendLowConfidenceR2"))
 
     if intercept is None:
         intercept = 0.0
@@ -1675,6 +1688,14 @@ def resolve_ewy_fx_correction_params(model_payload: dict | None) -> dict[str, fl
         ewy_coef = EWY_FX_CORE_EWY_WEIGHT
     if krw_coef is None:
         krw_coef = EWY_FX_CORE_KRW_WEIGHT
+    if direct_blend_weight is None:
+        direct_blend_weight = EWY_FX_STRUCTURAL_BLEND
+    if high_move_weight is None:
+        high_move_weight = EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE
+    if high_move_trigger is None:
+        high_move_trigger = EWY_FX_HIGH_MOVE_TRIGGER_PCT
+    if low_confidence_r2 is None:
+        low_confidence_r2 = EWY_FX_LOW_CONFIDENCE_R2
 
     return {
         "intercept": clamp(intercept, EWY_FX_CORRECTION_INTERCEPT_MIN, EWY_FX_CORRECTION_INTERCEPT_MAX),
@@ -1682,6 +1703,11 @@ def resolve_ewy_fx_correction_params(model_payload: dict | None) -> dict[str, fl
         "krw_coef": clamp(krw_coef, EWY_FX_CORRECTION_KRW_COEF_MIN, EWY_FX_CORRECTION_KRW_COEF_MAX),
         "sample_size": sample_size if sample_size is not None else 0.0,
         "r2": fit_r2 if fit_r2 is not None else 0.0,
+        "direct_blend_weight": clamp(direct_blend_weight, 0.0, 1.0),
+        "direct_blend_high_move_weight": clamp(high_move_weight, 0.0, 1.0),
+        "direct_blend_high_move_trigger_pct": max(high_move_trigger, 0.0),
+        "direct_blend_low_confidence_r2": low_confidence_r2,
+        "direct_blend_min_samples": 40.0,
     }
 
 
@@ -1761,11 +1787,22 @@ def compute_ewy_fx_core_change(
         return None
 
     learned_core = intercept + learned_sum
-    blend = EWY_FX_STRUCTURAL_BLEND
-    if abs(structural_sum) >= EWY_FX_HIGH_MOVE_TRIGGER_PCT:
-        blend = max(blend, EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
-    if fit_r2 < EWY_FX_LOW_CONFIDENCE_R2 or sample_size < 40:
-        blend = max(blend, EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
+    blend = clamp(float(params.get("direct_blend_weight", EWY_FX_STRUCTURAL_BLEND)), 0.0, 1.0)
+    high_move_blend = clamp(
+        float(params.get("direct_blend_high_move_weight", EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)),
+        0.0,
+        1.0,
+    )
+    high_move_trigger = max(
+        float(params.get("direct_blend_high_move_trigger_pct", EWY_FX_HIGH_MOVE_TRIGGER_PCT)),
+        0.0,
+    )
+    low_confidence_r2 = float(params.get("direct_blend_low_confidence_r2", EWY_FX_LOW_CONFIDENCE_R2))
+    min_samples = int(float(params.get("direct_blend_min_samples", 40.0)))
+    if abs(structural_sum) >= high_move_trigger:
+        blend = max(blend, high_move_blend)
+    if fit_r2 < low_confidence_r2 or sample_size < min_samples:
+        blend = max(blend, high_move_blend)
 
     return learned_core * (1 - blend) + structural_sum * blend
 
@@ -3399,6 +3436,22 @@ def update_prediction_night_fields(
             model_payload["ewyFxKrwCoef"] = round(float(correction_params["krw_coef"]), 4)
             model_payload["ewyFxSampleSize"] = int(float(correction_params.get("sample_size", 0.0)))
             model_payload["ewyFxFitR2"] = round(float(correction_params.get("r2", 0.0)), 4)
+            model_payload["ewyFxDirectBlendWeight"] = round(
+                float(correction_params.get("direct_blend_weight", EWY_FX_STRUCTURAL_BLEND)),
+                4,
+            )
+            model_payload["ewyFxDirectBlendHighMoveWeight"] = round(
+                float(correction_params.get("direct_blend_high_move_weight", EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)),
+                4,
+            )
+            model_payload["ewyFxDirectBlendHighMoveTriggerPct"] = round(
+                float(correction_params.get("direct_blend_high_move_trigger_pct", EWY_FX_HIGH_MOVE_TRIGGER_PCT)),
+                4,
+            )
+            model_payload["ewyFxDirectBlendLowConfidenceR2"] = round(
+                float(correction_params.get("direct_blend_low_confidence_r2", EWY_FX_LOW_CONFIDENCE_R2)),
+                4,
+            )
             if baseline_session_date:
                 model_payload["krxBaselineDate"] = baseline_session_date
             model_payload["liveRefreshUpdatedAt"] = now_utc.isoformat()

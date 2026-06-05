@@ -85,7 +85,11 @@ RESIDUAL_FEATURE_KEYS = (
 )
 COMPOSITE_ADJUSTMENT_CAP_PCT = 0.10
 RESIDUAL_FEATURE_CLAMP = 6.0
-DIRECT_AXIS_BLEND_WEIGHT = 0.63
+LEGACY_DIRECT_AXIS_BLEND_FALLBACK = 0.65
+LEGACY_DIRECT_AXIS_BLEND_HIGH_MOVE_FALLBACK = 0.78
+DIRECT_AXIS_BLEND_HIGH_MOVE_TRIGGER_PCT_FALLBACK = 2.0
+DIRECT_AXIS_BLEND_LOW_CONFIDENCE_R2_FALLBACK = 0.20
+DIRECT_AXIS_BLEND_MIN_SAMPLES_FALLBACK = 40.0
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -321,9 +325,17 @@ def load_primary_prediction_snapshot(now_kst: datetime) -> dict[str, Any]:
 def is_valid_diagnostics(diagnostics: dict[str, Any]) -> bool:
     if not isinstance(diagnostics, dict):
         return False
+    correction = diagnostics.get("ewyFxCorrection")
     residual = diagnostics.get("residualModel")
     mapping = diagnostics.get("k200Mapping")
-    if not isinstance(residual, dict) or not isinstance(mapping, dict):
+    if not isinstance(correction, dict) or not isinstance(residual, dict) or not isinstance(mapping, dict):
+        return False
+    has_correction_core = (
+        _get_correction_float(correction, "ewyCoef", "ewy_coef") is not None
+        and _get_correction_float(correction, "krwCoef", "krw_coef") is not None
+        and _get_correction_float(correction, "directBlendWeight", "direct_blend_weight") is not None
+    )
+    if not has_correction_core:
         return False
     coefficients = residual.get("coefficients")
     return isinstance(coefficients, dict) and any(_to_float(coefficients.get(key)) is not None for key in RESIDUAL_FEATURE_KEYS)
@@ -773,16 +785,55 @@ def resolve_model2_baseline(
     }
 
 
-def _core_params(diagnostics: dict[str, Any]) -> dict[str, float]:
+def _get_correction_float(correction: dict[str, Any], camel_key: str, snake_key: str) -> float | None:
+    value = _to_float(correction.get(camel_key))
+    if value is None:
+        value = _to_float(correction.get(snake_key))
+    return value
+
+
+def _core_params(diagnostics: dict[str, Any]) -> dict[str, Any]:
     correction = diagnostics.get("ewyFxCorrection")
     if not isinstance(correction, dict):
         correction = {}
 
-    direct_weight = _to_float(correction.get("directBlendWeight"))
+    direct_weight = _get_correction_float(correction, "directBlendWeight", "direct_blend_weight")
+    direct_blend_source = "diagnostics"
     if direct_weight is None:
-        direct_weight = _to_float(correction.get("direct_blend_weight"))
-    if direct_weight is None:
-        direct_weight = DIRECT_AXIS_BLEND_WEIGHT
+        direct_weight = LEGACY_DIRECT_AXIS_BLEND_FALLBACK
+        direct_blend_source = "legacy_diagnostics_fallback"
+
+    high_move_weight = _get_correction_float(
+        correction,
+        "directBlendHighMoveWeight",
+        "direct_blend_high_move_weight",
+    )
+    if high_move_weight is None:
+        high_move_weight = LEGACY_DIRECT_AXIS_BLEND_HIGH_MOVE_FALLBACK
+
+    high_move_trigger = _get_correction_float(
+        correction,
+        "directBlendHighMoveTriggerPct",
+        "direct_blend_high_move_trigger_pct",
+    )
+    if high_move_trigger is None:
+        high_move_trigger = DIRECT_AXIS_BLEND_HIGH_MOVE_TRIGGER_PCT_FALLBACK
+
+    low_confidence_r2 = _get_correction_float(
+        correction,
+        "directBlendLowConfidenceR2",
+        "direct_blend_low_confidence_r2",
+    )
+    if low_confidence_r2 is None:
+        low_confidence_r2 = DIRECT_AXIS_BLEND_LOW_CONFIDENCE_R2_FALLBACK
+
+    min_samples = _get_correction_float(
+        correction,
+        "directBlendMinSamples",
+        "direct_blend_min_samples",
+    )
+    if min_samples is None:
+        min_samples = DIRECT_AXIS_BLEND_MIN_SAMPLES_FALLBACK
 
     return {
         "intercept": _to_float(correction.get("intercept")) or 0.0,
@@ -791,7 +842,51 @@ def _core_params(diagnostics: dict[str, Any]) -> dict[str, float]:
         "r2": _to_float(correction.get("r2")) or 0.0,
         "sampleSize": _to_float(correction.get("sampleSize")) or _to_float(correction.get("sample_size")) or 0.0,
         "directBlendWeight": _clamp(direct_weight, 0.0, 1.0),
+        "directBlendHighMoveWeight": _clamp(high_move_weight, 0.0, 1.0),
+        "directBlendHighMoveTriggerPct": max(high_move_trigger, 0.0),
+        "directBlendLowConfidenceR2": low_confidence_r2,
+        "directBlendMinSamples": max(min_samples, 0.0),
+        "directBlendSource": direct_blend_source,
+        "directBlendMethod": correction.get("directBlendMethod")
+        or correction.get("direct_blend_method")
+        or direct_blend_source,
     }
+
+
+def _effective_direct_blend_weight(core: dict[str, Any], direct_pct: float) -> tuple[float, str]:
+    blend = _clamp(_to_float(core.get("directBlendWeight")) or LEGACY_DIRECT_AXIS_BLEND_FALLBACK, 0.0, 1.0)
+    high_move_blend = _clamp(
+        _to_float(core.get("directBlendHighMoveWeight")) or LEGACY_DIRECT_AXIS_BLEND_HIGH_MOVE_FALLBACK,
+        0.0,
+        1.0,
+    )
+    high_move_trigger = max(
+        _to_float(core.get("directBlendHighMoveTriggerPct"))
+        or DIRECT_AXIS_BLEND_HIGH_MOVE_TRIGGER_PCT_FALLBACK,
+        0.0,
+    )
+    low_confidence_r2 = (
+        _to_float(core.get("directBlendLowConfidenceR2"))
+        if _to_float(core.get("directBlendLowConfidenceR2")) is not None
+        else DIRECT_AXIS_BLEND_LOW_CONFIDENCE_R2_FALLBACK
+    )
+    min_samples = (
+        _to_float(core.get("directBlendMinSamples"))
+        if _to_float(core.get("directBlendMinSamples")) is not None
+        else DIRECT_AXIS_BLEND_MIN_SAMPLES_FALLBACK
+    )
+
+    reasons: list[str] = []
+    if abs(direct_pct) >= high_move_trigger:
+        blend = max(blend, high_move_blend)
+        reasons.append("high_move")
+    if (_to_float(core.get("r2")) or 0.0) < low_confidence_r2 or (_to_float(core.get("sampleSize")) or 0.0) < min_samples:
+        blend = max(blend, high_move_blend)
+        reasons.append("low_confidence")
+
+    if not reasons:
+        reasons.append("diagnostic_base")
+    return _clamp(blend, 0.0, 1.0), "+".join(reasons)
 
 
 def _mapping_params(diagnostics: dict[str, Any]) -> dict[str, float]:
@@ -823,9 +918,10 @@ def calculate_model2(
     core = _core_params(diagnostics)
     ewy_fx_direct_pct = ewy_return + krw_return
     ewy_fx_learned_pct = core["intercept"] + core["ewyCoef"] * ewy_return + core["krwCoef"] * krw_return
-    learned_weight = 1.0 - core["directBlendWeight"]
+    effective_direct_weight, direct_blend_mode = _effective_direct_blend_weight(core, ewy_fx_direct_pct)
+    learned_weight = 1.0 - effective_direct_weight
     ewy_fx_core_pct = (
-        core["directBlendWeight"] * ewy_fx_direct_pct
+        effective_direct_weight * ewy_fx_direct_pct
         + learned_weight * ewy_fx_learned_pct
     )
 
@@ -892,7 +988,15 @@ def calculate_model2(
             "intercept": core["intercept"],
             "ewyCoef": core["ewyCoef"],
             "krwCoef": core["krwCoef"],
-            "directBlendWeight": core["directBlendWeight"],
+            "directBlendWeight": effective_direct_weight,
+            "baseDirectBlendWeight": core["directBlendWeight"],
+            "directBlendHighMoveWeight": core["directBlendHighMoveWeight"],
+            "directBlendHighMoveTriggerPct": core["directBlendHighMoveTriggerPct"],
+            "directBlendLowConfidenceR2": core["directBlendLowConfidenceR2"],
+            "directBlendMinSamples": core["directBlendMinSamples"],
+            "directBlendSource": core["directBlendSource"],
+            "directBlendMethod": core["directBlendMethod"],
+            "directBlendMode": direct_blend_mode,
             "learnedBlendWeight": learned_weight,
             "source": "ewy_fx_direct_learned_hybrid",
             "used": True,

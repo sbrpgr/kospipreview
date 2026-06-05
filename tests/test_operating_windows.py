@@ -6,6 +6,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from scripts import backtest_and_generate
 from scripts import merge_live_data_seed
@@ -1102,6 +1103,18 @@ class OperatingWindowTests(unittest.TestCase):
             components["predicted_kospi_simple_pct_pre_guard"],
             components["predicted_kospi_simple_pct"],
         )
+
+    def test_ewy_fx_direct_blend_weight_is_estimated_from_fit_errors(self):
+        weight, raw_weight, method = backtest_and_generate.estimate_ewy_fx_direct_blend_weight(
+            target=np.array([1.0, -1.0, 2.0, -2.0], dtype=float),
+            learned=np.array([0.35, -0.35, 0.7, -0.7], dtype=float),
+            structural=np.array([1.0, -1.0, 2.0, -2.0], dtype=float),
+            weights=np.ones(4, dtype=float),
+        )
+
+        self.assertGreater(raw_weight, backtest_and_generate.EWY_FX_DIRECT_BLEND_MAX)
+        self.assertEqual(weight, backtest_and_generate.EWY_FX_DIRECT_BLEND_MAX)
+        self.assertEqual(method, "weighted_least_squares_clipped")
 
     def test_strong_ewy_fx_trend_lifts_compressed_mapping_prediction(self):
         ewy_return = backtest_and_generate.simple_return_pct_to_log_return_pct(4.02)

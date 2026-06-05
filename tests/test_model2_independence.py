@@ -217,6 +217,11 @@ class Model2IndependenceTests(unittest.TestCase):
         original_fetch_json = model2._fetch_json
 
         public_artifact = {
+            "ewyFxCorrection": {
+                "ewy_coef": 0.4,
+                "krw_coef": 0.2,
+                "direct_blend_weight": 0.68,
+            },
             "residualModel": {
                 "coefficients": {"broad_factor": -0.2},
                 "mae": 1.25,
@@ -311,6 +316,7 @@ class Model2IndependenceTests(unittest.TestCase):
                 "krwCoef": 0.2,
                 "r2": 0.25,
                 "sampleSize": 180,
+                "directBlendWeight": 0.68,
             },
             "residualModel": {
                 "intercept": 0.0,
@@ -397,6 +403,7 @@ class Model2IndependenceTests(unittest.TestCase):
                 "krwCoef": 0.2,
                 "r2": 0.25,
                 "sampleSize": 180,
+                "directBlendWeight": 0.71,
             },
             "residualModel": {
                 "intercept": 3.0,
@@ -425,8 +432,8 @@ class Model2IndependenceTests(unittest.TestCase):
         direct_pct = returns["ewy"] + returns["krw"]
         learned_pct = 0.2 + 0.4 * returns["ewy"] + 0.2 * returns["krw"]
         core_pct = (
-            model2.DIRECT_AXIS_BLEND_WEIGHT * direct_pct
-            + (1.0 - model2.DIRECT_AXIS_BLEND_WEIGHT) * learned_pct
+            0.71 * direct_pct
+            + (1.0 - 0.71) * learned_pct
         )
         direct_point = baseline * math.exp(direct_pct / 100.0)
         learned_point = baseline * math.exp(learned_pct / 100.0)
@@ -439,7 +446,45 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertAlmostEqual(result["ewyFxLearnedPoint"], learned_point)
         self.assertAlmostEqual(result["ewyFxCorePoint"], core_point)
         self.assertAlmostEqual(result["corePct"], core_pct)
+        self.assertEqual(result["coreCoefficients"]["directBlendSource"], "diagnostics")
+        self.assertEqual(result["coreCoefficients"]["directBlendMode"], "diagnostic_base")
         self.assertLessEqual(abs(result["pointPrediction"] - core_point), max_gap)
+
+    def test_model2_auto_raises_direct_blend_on_large_ewy_fx_move(self):
+        diagnostics = {
+            "ewyFxCorrection": {
+                "intercept": 0.0,
+                "ewyCoef": 0.3,
+                "krwCoef": 0.2,
+                "r2": 0.4,
+                "sampleSize": 180,
+                "directBlendWeight": 0.55,
+                "directBlendHighMoveWeight": 0.82,
+                "directBlendHighMoveTriggerPct": 2.0,
+            },
+            "residualModel": {"weight": 0.0, "coefficients": {}},
+        }
+        returns = {
+            "ewy": -2.4,
+            "krw": -0.1,
+            "sp500": 0.0,
+            "nasdaq": 0.0,
+            "dow": 0.0,
+            "sox": 0.0,
+            "wti": 0.0,
+            "gold": 0.0,
+            "us10y": 0.0,
+        }
+        result = model2.calculate_model2(returns, diagnostics, 8200.0)
+
+        self.assertIsNotNone(result)
+        direct_pct = returns["ewy"] + returns["krw"]
+        learned_pct = 0.3 * returns["ewy"] + 0.2 * returns["krw"]
+        expected_core_pct = 0.82 * direct_pct + 0.18 * learned_pct
+        self.assertAlmostEqual(result["corePct"], expected_core_pct)
+        self.assertEqual(result["coreCoefficients"]["baseDirectBlendWeight"], 0.55)
+        self.assertEqual(result["coreCoefficients"]["directBlendWeight"], 0.82)
+        self.assertEqual(result["coreCoefficients"]["directBlendMode"], "high_move")
 
     def test_residual_features_are_clamped_before_composite_cap(self):
         features = model2.transform_signal_to_residual_features(

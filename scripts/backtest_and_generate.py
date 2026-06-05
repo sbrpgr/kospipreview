@@ -136,6 +136,8 @@ EWY_FX_STRUCTURAL_EWY_WEIGHT = 1.0
 EWY_FX_STRUCTURAL_KRW_WEIGHT = 1.0
 EWY_FX_STRUCTURAL_BLEND = 0.65
 EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE = 0.78
+EWY_FX_DIRECT_BLEND_MIN = 0.50
+EWY_FX_DIRECT_BLEND_MAX = 0.90
 EWY_FX_HIGH_MOVE_TRIGGER_PCT = 2.0
 EWY_FX_LOW_CONFIDENCE_R2 = 0.20
 ML_RESIDUAL_BLEND = 0.12
@@ -1243,7 +1245,29 @@ def build_dataset(market: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return dataset.ffill().dropna()
 
 
-def fit_ewy_fx_correction(dataset: pd.DataFrame) -> dict[str, float | int]:
+def estimate_ewy_fx_direct_blend_weight(
+    target: np.ndarray,
+    learned: np.ndarray,
+    structural: np.ndarray,
+    weights: np.ndarray,
+) -> tuple[float, float | None, str]:
+    delta = structural - learned
+    denom = float(np.dot(weights, np.square(delta)))
+    if denom <= 1e-12:
+        return EWY_FX_STRUCTURAL_BLEND, None, "structural_default_degenerate"
+
+    raw_weight = float(np.dot(weights, delta * (target - learned)) / denom)
+    if not np.isfinite(raw_weight):
+        return EWY_FX_STRUCTURAL_BLEND, None, "structural_default_nonfinite"
+
+    clipped_weight = float(np.clip(raw_weight, EWY_FX_DIRECT_BLEND_MIN, EWY_FX_DIRECT_BLEND_MAX))
+    method = "weighted_least_squares"
+    if clipped_weight != raw_weight:
+        method = "weighted_least_squares_clipped"
+    return clipped_weight, raw_weight, method
+
+
+def fit_ewy_fx_correction(dataset: pd.DataFrame) -> dict[str, float | int | str | None]:
     default_payload = {
         "intercept": 0.0,
         "ewy_coef": EWY_FX_CORE_EWY_WEIGHT,
@@ -1251,6 +1275,15 @@ def fit_ewy_fx_correction(dataset: pd.DataFrame) -> dict[str, float | int]:
         "sample_size": 0,
         "r2": 0.0,
         "mae": 0.0,
+        "direct_blend_weight": EWY_FX_STRUCTURAL_BLEND,
+        "direct_blend_raw_weight": None,
+        "direct_blend_method": "structural_default",
+        "direct_blend_min": EWY_FX_DIRECT_BLEND_MIN,
+        "direct_blend_max": EWY_FX_DIRECT_BLEND_MAX,
+        "direct_blend_high_move_weight": EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE,
+        "direct_blend_high_move_trigger_pct": EWY_FX_HIGH_MOVE_TRIGGER_PCT,
+        "direct_blend_low_confidence_r2": EWY_FX_LOW_CONFIDENCE_R2,
+        "direct_blend_min_samples": EWY_FX_CORRECTION_MIN_SAMPLES,
     }
 
     required_columns = {"target_k200_return", "ewy_return", "krw_return"}
@@ -1290,6 +1323,16 @@ def fit_ewy_fx_correction(dataset: pd.DataFrame) -> dict[str, float | int]:
     krw_coef = float(np.clip(krw_coef_raw, EWY_FX_CORRECTION_KRW_COEF_MIN, EWY_FX_CORRECTION_KRW_COEF_MAX))
 
     fitted = intercept + ewy_coef * ewy + krw_coef * krw
+    structural = (
+        ewy * EWY_FX_STRUCTURAL_EWY_WEIGHT
+        + krw * EWY_FX_STRUCTURAL_KRW_WEIGHT
+    )
+    direct_blend_weight, direct_blend_raw_weight, direct_blend_method = estimate_ewy_fx_direct_blend_weight(
+        y,
+        fitted,
+        structural,
+        weights,
+    )
     residual = y - fitted
     mae = float(np.mean(np.abs(residual)))
     var_y = float(np.var(y))
@@ -1302,6 +1345,15 @@ def fit_ewy_fx_correction(dataset: pd.DataFrame) -> dict[str, float | int]:
         "sample_size": sample_size,
         "r2": r2,
         "mae": mae,
+        "direct_blend_weight": direct_blend_weight,
+        "direct_blend_raw_weight": direct_blend_raw_weight,
+        "direct_blend_method": direct_blend_method,
+        "direct_blend_min": EWY_FX_DIRECT_BLEND_MIN,
+        "direct_blend_max": EWY_FX_DIRECT_BLEND_MAX,
+        "direct_blend_high_move_weight": EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE,
+        "direct_blend_high_move_trigger_pct": EWY_FX_HIGH_MOVE_TRIGGER_PCT,
+        "direct_blend_low_confidence_r2": EWY_FX_LOW_CONFIDENCE_R2,
+        "direct_blend_min_samples": EWY_FX_CORRECTION_MIN_SAMPLES,
     }
 
 
@@ -2341,11 +2393,22 @@ def compute_ewy_fx_core_change(
         return None
 
     learned_core = intercept + learned_sum
-    blend = EWY_FX_STRUCTURAL_BLEND
-    if abs(structural_sum) >= EWY_FX_HIGH_MOVE_TRIGGER_PCT:
-        blend = max(blend, EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
-    if fit_r2 < EWY_FX_LOW_CONFIDENCE_R2 or sample_size < EWY_FX_CORRECTION_MIN_SAMPLES:
-        blend = max(blend, EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
+    blend = float(params.get("direct_blend_weight", EWY_FX_STRUCTURAL_BLEND))
+    high_move_blend = float(
+        params.get("direct_blend_high_move_weight", EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
+    )
+    high_move_trigger = float(
+        params.get("direct_blend_high_move_trigger_pct", EWY_FX_HIGH_MOVE_TRIGGER_PCT)
+    )
+    low_confidence_r2 = float(
+        params.get("direct_blend_low_confidence_r2", EWY_FX_LOW_CONFIDENCE_R2)
+    )
+    min_samples = int(params.get("direct_blend_min_samples", EWY_FX_CORRECTION_MIN_SAMPLES) or 0)
+    if abs(structural_sum) >= high_move_trigger:
+        blend = max(blend, high_move_blend)
+    if fit_r2 < low_confidence_r2 or sample_size < min_samples:
+        blend = max(blend, high_move_blend)
+    blend = float(np.clip(blend, 0.0, 1.0))
 
     return learned_core * (1 - blend) + structural_sum * blend
 
@@ -2895,6 +2958,41 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
             "ewyFxSampleSize": int(latest.get("ewy_fx_correction", {}).get("sample_size", 0) or 0),
             "ewyFxFitR2": round(float(latest.get("ewy_fx_correction", {}).get("r2", 0.0)), 4),
             "ewyFxFitMae": round(float(latest.get("ewy_fx_correction", {}).get("mae", 0.0)), 4),
+            "ewyFxDirectBlendWeight": round(
+                float(latest.get("ewy_fx_correction", {}).get("direct_blend_weight", EWY_FX_STRUCTURAL_BLEND)),
+                4,
+            ),
+            "ewyFxDirectBlendHighMoveWeight": round(
+                float(
+                    latest.get("ewy_fx_correction", {}).get(
+                        "direct_blend_high_move_weight",
+                        EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE,
+                    )
+                ),
+                4,
+            ),
+            "ewyFxDirectBlendHighMoveTriggerPct": round(
+                float(
+                    latest.get("ewy_fx_correction", {}).get(
+                        "direct_blend_high_move_trigger_pct",
+                        EWY_FX_HIGH_MOVE_TRIGGER_PCT,
+                    )
+                ),
+                4,
+            ),
+            "ewyFxDirectBlendLowConfidenceR2": round(
+                float(
+                    latest.get("ewy_fx_correction", {}).get(
+                        "direct_blend_low_confidence_r2",
+                        EWY_FX_LOW_CONFIDENCE_R2,
+                    )
+                ),
+                4,
+            ),
+            "ewyFxDirectBlendMethod": latest.get("ewy_fx_correction", {}).get(
+                "direct_blend_method",
+                "structural_default",
+            ),
             "mlResidualAdjPct": (
                 round(float(latest["ml_residual_adj_c"]), 2) if latest.get("ml_residual_adj_c") is not None else None
             ),
