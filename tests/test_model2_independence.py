@@ -530,6 +530,39 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertEqual(result["coreCoefficients"]["directBlendWeight"], 0.82)
         self.assertEqual(result["coreCoefficients"]["directBlendMode"], "high_move")
 
+    def test_model2_scales_direct_blend_toward_diagnostic_max_on_extreme_move(self):
+        diagnostics = {
+            "ewyFxCorrection": {
+                "intercept": 0.0,
+                "ewyCoef": 0.3,
+                "krwCoef": 0.2,
+                "r2": 0.4,
+                "sampleSize": 180,
+                "directBlendWeight": 0.5,
+                "directBlendHighMoveWeight": 0.78,
+                "directBlendMax": 0.9,
+                "directBlendHighMoveTriggerPct": 2.0,
+            },
+            "residualModel": {"weight": 0.0, "coefficients": {}},
+        }
+        returns = {
+            "ewy": -7.0,
+            "krw": -1.5,
+            "sp500": 0.0,
+            "nasdaq": 0.0,
+            "dow": 0.0,
+            "sox": 0.0,
+            "wti": 0.0,
+            "gold": 0.0,
+            "us10y": 0.0,
+        }
+        result = model2.calculate_model2(returns, diagnostics, 8160.59)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["coreCoefficients"]["directBlendWeight"], 0.9)
+        self.assertEqual(result["coreCoefficients"]["directBlendMax"], 0.9)
+        self.assertEqual(result["coreCoefficients"]["directBlendMode"], "high_move")
+
     def test_residual_features_are_clamped_before_composite_cap(self):
         features = model2.transform_signal_to_residual_features(
             {

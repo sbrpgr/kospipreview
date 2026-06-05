@@ -2397,6 +2397,7 @@ def compute_ewy_fx_core_change(
     high_move_blend = float(
         params.get("direct_blend_high_move_weight", EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE)
     )
+    direct_blend_max = float(params.get("direct_blend_max", high_move_blend))
     high_move_trigger = float(
         params.get("direct_blend_high_move_trigger_pct", EWY_FX_HIGH_MOVE_TRIGGER_PCT)
     )
@@ -2405,7 +2406,9 @@ def compute_ewy_fx_core_change(
     )
     min_samples = int(params.get("direct_blend_min_samples", EWY_FX_CORRECTION_MIN_SAMPLES) or 0)
     if abs(structural_sum) >= high_move_trigger:
-        blend = max(blend, high_move_blend)
+        severity = min(1.0, max(0.0, (abs(structural_sum) - high_move_trigger) / max(high_move_trigger, 1.0)))
+        adaptive_high_move_blend = high_move_blend + severity * (max(direct_blend_max, high_move_blend) - high_move_blend)
+        blend = max(blend, adaptive_high_move_blend)
     if fit_r2 < low_confidence_r2 or sample_size < min_samples:
         blend = max(blend, high_move_blend)
     blend = float(np.clip(blend, 0.0, 1.0))
@@ -2967,6 +2970,15 @@ def write_prediction_json(latest: dict, result: dict, history_df: pd.DataFrame) 
                     latest.get("ewy_fx_correction", {}).get(
                         "direct_blend_high_move_weight",
                         EWY_FX_STRUCTURAL_BLEND_HIGH_MOVE,
+                    )
+                ),
+                4,
+            ),
+            "ewyFxDirectBlendMax": round(
+                float(
+                    latest.get("ewy_fx_correction", {}).get(
+                        "direct_blend_max",
+                        EWY_FX_DIRECT_BLEND_MAX,
                     )
                 ),
                 4,

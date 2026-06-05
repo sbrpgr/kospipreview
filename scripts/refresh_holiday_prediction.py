@@ -812,6 +812,14 @@ def _core_params(diagnostics: dict[str, Any]) -> dict[str, Any]:
     if high_move_weight is None:
         high_move_weight = LEGACY_DIRECT_AXIS_BLEND_HIGH_MOVE_FALLBACK
 
+    direct_blend_max = _get_correction_float(
+        correction,
+        "directBlendMax",
+        "direct_blend_max",
+    )
+    if direct_blend_max is None:
+        direct_blend_max = high_move_weight
+
     high_move_trigger = _get_correction_float(
         correction,
         "directBlendHighMoveTriggerPct",
@@ -844,6 +852,7 @@ def _core_params(diagnostics: dict[str, Any]) -> dict[str, Any]:
         "sampleSize": _to_float(correction.get("sampleSize")) or _to_float(correction.get("sample_size")) or 0.0,
         "directBlendWeight": _clamp(direct_weight, 0.0, 1.0),
         "directBlendHighMoveWeight": _clamp(high_move_weight, 0.0, 1.0),
+        "directBlendMax": _clamp(direct_blend_max, 0.0, 1.0),
         "directBlendHighMoveTriggerPct": max(high_move_trigger, 0.0),
         "directBlendLowConfidenceR2": low_confidence_r2,
         "directBlendMinSamples": max(min_samples, 0.0),
@@ -861,6 +870,7 @@ def _effective_direct_blend_weight(core: dict[str, Any], direct_pct: float) -> t
         0.0,
         1.0,
     )
+    direct_blend_max = _clamp(_to_float(core.get("directBlendMax")) or high_move_blend, 0.0, 1.0)
     high_move_trigger = max(
         _to_float(core.get("directBlendHighMoveTriggerPct"))
         or DIRECT_AXIS_BLEND_HIGH_MOVE_TRIGGER_PCT_FALLBACK,
@@ -879,7 +889,9 @@ def _effective_direct_blend_weight(core: dict[str, Any], direct_pct: float) -> t
 
     reasons: list[str] = []
     if abs(direct_pct) >= high_move_trigger:
-        blend = max(blend, high_move_blend)
+        severity = min(1.0, max(0.0, (abs(direct_pct) - high_move_trigger) / max(high_move_trigger, 1.0)))
+        adaptive_high_move_blend = high_move_blend + severity * (max(direct_blend_max, high_move_blend) - high_move_blend)
+        blend = max(blend, adaptive_high_move_blend)
         reasons.append("high_move")
     if (_to_float(core.get("r2")) or 0.0) < low_confidence_r2 or (_to_float(core.get("sampleSize")) or 0.0) < min_samples:
         blend = max(blend, high_move_blend)
@@ -992,6 +1004,7 @@ def calculate_model2(
             "directBlendWeight": effective_direct_weight,
             "baseDirectBlendWeight": core["directBlendWeight"],
             "directBlendHighMoveWeight": core["directBlendHighMoveWeight"],
+            "directBlendMax": core["directBlendMax"],
             "directBlendHighMoveTriggerPct": core["directBlendHighMoveTriggerPct"],
             "directBlendLowConfidenceR2": core["directBlendLowConfidenceR2"],
             "directBlendMinSamples": core["directBlendMinSamples"],
