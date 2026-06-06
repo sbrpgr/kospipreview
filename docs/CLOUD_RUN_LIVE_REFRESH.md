@@ -39,6 +39,9 @@ serve and seed `holiday_prediction.json`, `holiday_prediction_series.json`, and
 `holiday_history.json`, but the Scheduler refresh must not upload those files.
 They are produced by the `refresh-holiday-prediction` workflow so minute-level
 night-futures refreshes cannot overwrite the independent EWY/FX model output.
+Model 2 production refreshes must keep `nightFuturesUsed` and
+`nightFuturesReadThisRun` false; the legacy night-futures bootstrap path is
+disabled by default and is not part of routine operation.
 
 ## Refresh Cadence And Performance
 

@@ -74,6 +74,12 @@ If work resumes later, read these documents in order:
   repairing or reissuing Model2 JSON outside the U.S. live/pre-market window.
   It still uses only EWY, USD/KRW, KRX sync baselines, and diagnostics; it does
   not enable night-futures input.
+- Model2 production invariants:
+  normal and forced production Model2 refreshes must publish
+  `independentModel: true`, `usesOtherModelPrediction: false`,
+  `nightFuturesUsed: false`, and `nightFuturesReadThisRun: false`. The
+  historical one-time night-futures bootstrap path is disabled by default and
+  exists only for explicit legacy migration tests, not routine operation.
 - Live prediction trend repair:
   if `live_prediction_series.json` is shortened or overwritten, use
   `recover-live-prediction-series` with the target `kst_date` and

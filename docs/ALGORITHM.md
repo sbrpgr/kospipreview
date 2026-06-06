@@ -106,6 +106,52 @@ Required basis:
 - EWY and USD/KRW returns are measured from the bridge timestamp onward.
 - No residual model or K200 mapping is used in the EWY + FX simple conversion.
 
+## Independent Model 2
+
+Model 2 is the independent EWY/FX composite engine published through
+`holiday_prediction.json`, `holiday_prediction_series.json`, and
+`holiday_history.json`.
+
+Purpose:
+
+- provide a standing model for Korean-market holidays and other no-KRX-open
+  windows;
+- use EWY and USD/KRW as the direct replacement axis for unavailable local
+  night-futures information;
+- add only bounded composite-market residual information after the EWY/KRW
+  core.
+
+Allowed inputs:
+
+- the latest synchronized KOSPI close baseline from the KRX operating session;
+- EWY and USD/KRW baseline/current prices;
+- diagnostics-generated EWY/FX correction coefficients, including
+  `direct_blend_weight`;
+- bounded composite indicators such as S&P 500, NASDAQ, Dow, SOX, VIX, Gold,
+  WTI, and U.S. 10Y.
+
+Forbidden inputs:
+
+- KOSPI 200 night futures prices, returns, or `nightFuturesSimplePoint`;
+- the primary model's `pointPrediction` or any other model prediction;
+- manual direct-blend tuning in live refresh code.
+
+Runtime invariants:
+
+- `independentModel` must be `true`;
+- `usesOtherModelPrediction` must be `false`;
+- `nightFuturesUsed` must be `false`;
+- `nightFuturesReadThisRun` must be `false` for normal and forced production
+  repairs;
+- `model.engine` must remain `EWYFXHybridCompositeNoNightFutures`;
+- the direct-vs-learned EWY/FX blend must come from diagnostics and may be
+  raised automatically only by the documented high-move or low-confidence
+  rules.
+
+The historical one-time night-futures bootstrap path is kept only as an
+explicit legacy migration/test path and is disabled by default. It must not be
+used for current production Model 2 refreshes.
+
 ## EWY + FX Trend Follow Floor
 
 The K200-to-KOSPI mapping can under-react when EWY + USD/KRW makes a large

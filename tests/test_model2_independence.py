@@ -38,6 +38,7 @@ class Model2IndependenceTests(unittest.TestCase):
                 "nightFuturesSimplePoint": 8548.1,
             },
             now_utc=now_utc,
+            allow_one_time_night_bootstrap=True,
         )
 
         self.assertEqual(first["baselineSource"], model2.BOOTSTRAP_SOURCE)
@@ -128,6 +129,30 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertFalse(baseline["nightFuturesReadThisRun"])
         self.assertEqual(baseline["resetReason"], "fresh_kospi_close")
 
+    def test_normal_run_does_not_bootstrap_from_night_futures_by_default(self):
+        original_get_session_close_prices = model2.get_session_close_prices
+
+        try:
+            model2.get_session_close_prices = lambda session_date: {
+                "ewy": 100.0,
+                "krw": 1300.0,
+            }
+            baseline = model2.resolve_model2_baseline(
+                existing_payload={},
+                last_session={"date": "2026-06-05", "close": 8160.59},
+                current_prices=CURRENT_PRICES,
+                primary_snapshot={"nightFuturesSimplePoint": 7500.0},
+                now_utc=datetime(2026, 6, 5, 22, 30, tzinfo=timezone.utc),
+            )
+        finally:
+            model2.get_session_close_prices = original_get_session_close_prices
+
+        self.assertEqual(baseline["baselinePoint"], 8160.59)
+        self.assertEqual(baseline["baselineSource"], model2.KOSPI_CLOSE_SOURCE)
+        self.assertFalse(baseline["oneTimeNightFuturesBootstrapUsed"])
+        self.assertFalse(baseline["nightFuturesReadThisRun"])
+        self.assertEqual(baseline["resetReason"], "fresh_kospi_close")
+
     def test_forced_run_ignores_existing_bootstrap_payload(self):
         existing_model2_payload = {
             "calculationMode": model2.MODEL2_MODE,
@@ -193,6 +218,7 @@ class Model2IndependenceTests(unittest.TestCase):
             current_prices=CURRENT_PRICES,
             primary_snapshot={"nightFuturesSimplePoint": 8595.01},
             now_utc=datetime(2026, 6, 4, 16, 38, tzinfo=timezone.utc),
+            allow_one_time_night_bootstrap=True,
         )
 
         self.assertEqual(repaired["baselinePoint"], 8595.01)

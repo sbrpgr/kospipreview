@@ -6,8 +6,8 @@ market-factor artifacts.
 
 Operational rule:
 - Normal runs never use night futures or another model's prediction.
-- A legacy/broken output may be bootstrapped once with nightFuturesSimplePoint
-  only to set the initial clock/baseline while KRX is closed.
+- The historical one-time night-futures bootstrap path is disabled by default
+  and may be enabled only for an explicit legacy migration test/run.
 - After a valid Model 2 payload exists, the stored baseline is reused until a
   new KRX close is available; then the baseline resets to the KOSPI close.
 """
@@ -654,7 +654,7 @@ def resolve_model2_baseline(
     primary_snapshot: dict[str, Any] | None = None,
     *,
     now_utc: datetime | None = None,
-    allow_one_time_night_bootstrap: bool = True,
+    allow_one_time_night_bootstrap: bool = False,
 ) -> dict[str, Any]:
     """Resolve the Model 2 baseline without normal night-futures dependency."""
 
@@ -736,6 +736,7 @@ def resolve_model2_baseline(
         and bool(existing_payload.get("oneTimeNightFuturesBootstrapUsed"))
         and existing_payload.get("baselineSource") == KOSPI_CLOSE_SOURCE
         and _has_required_prices(current_prices)
+        and allow_one_time_night_bootstrap
     ):
         snapshot = primary_snapshot if isinstance(primary_snapshot, dict) else {}
         repair_point = _positive_float(snapshot.get("nightFuturesSimplePoint"))
