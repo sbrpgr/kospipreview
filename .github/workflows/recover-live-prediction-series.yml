@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       kst_date:
-        description: "KST date partition, e.g. 2026-06-06"
+        description: "KST date partition(s), e.g. 2026-06-05,2026-06-06"
         required: true
       prediction_date:
         description: "Prediction date partition, e.g. 2026-06-08"
@@ -50,10 +50,22 @@ jobs:
             gs://kospipreview-live-data/live_prediction_series.json \
             frontend/public/data/live_prediction_series.json \
             --quiet
-          gcloud storage cp \
-            "gs://kospipreview-live-data/intraday_indicator_series/kst_date=${{ github.event.inputs.kst_date }}/prediction_date=${{ github.event.inputs.prediction_date }}/*.json" \
-            .recover/intraday/ \
-            --quiet
+          IFS=',' read -ra KST_DATES <<< "${{ github.event.inputs.kst_date }}"
+          for raw_date in "${KST_DATES[@]}"; do
+            kst_date="$(echo "$raw_date" | xargs)"
+            if [ -z "$kst_date" ]; then
+              continue
+            fi
+            gcloud storage cp \
+              "gs://kospipreview-live-data/intraday_indicator_series/kst_date=${kst_date}/prediction_date=${{ github.event.inputs.prediction_date }}/*.json" \
+              .recover/intraday/ \
+              --quiet
+          done
+          snapshot_count="$(find .recover/intraday -type f -name '*.json' | wc -l | xargs)"
+          if [ "$snapshot_count" -eq 0 ]; then
+            echo "No intraday snapshots were downloaded."
+            exit 1
+          fi
 
       - name: Rebuild live prediction series
         run: |

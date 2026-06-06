@@ -162,6 +162,9 @@ Expected behavior:
 
 `live_prediction_series.json` is updated only from U.S. premarket open through `09:00 KST`.
 This is `17:00 KST` during U.S. daylight time and `18:00 KST` during U.S. standard time.
+Because that window crosses midnight, a single prediction target can have
+archive snapshots under two KST partitions: the prior evening partition and the
+current pre-open partition.
 
 Expected behavior:
 
@@ -173,6 +176,8 @@ Expected behavior:
   longer Cloud Storage copy; repair shortened trends with
   `recover-live-prediction-series` and then verify the next Scheduler refresh
   keeps the recovered record count.
+- a full daylight-time session is about `960` minute records from `17:00` to
+  `08:59 KST`, so recovery tools must not cap the series below that range.
 
 ### Night futures session close carry-forward
 

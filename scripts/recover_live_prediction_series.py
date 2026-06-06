@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 
 KST = ZoneInfo("Asia/Seoul")
-SERIES_MAX_RECORDS = 720
+SERIES_MAX_RECORDS = 1200
 
 
 def read_json(path: Path) -> dict[str, Any] | None:

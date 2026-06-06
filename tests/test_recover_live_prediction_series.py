@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from scripts import recover_live_prediction_series as recover
@@ -72,6 +73,30 @@ class RecoverLivePredictionSeriesTests(unittest.TestCase):
                     prediction_date="2026-06-08",
                     min_records=3,
                 )
+
+    def test_keeps_full_overnight_trend_window(self):
+        start = datetime(2026, 6, 5, 8, 0, tzinfo=timezone.utc)
+        records = [
+            {
+                "predictionDateIso": "2026-06-08",
+                "observedAt": (start + timedelta(minutes=minute)).isoformat(),
+                "pointPrediction": 7500.0 + minute,
+            }
+            for minute in range(960)
+        ]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            snapshot_dir = root / "snapshots"
+            snapshot_dir.mkdir()
+            current = root / "live_prediction_series.json"
+            current.write_text(json.dumps({"records": records}), encoding="utf-8")
+
+            payload = recover.rebuild_series(snapshot_dir, current, "2026-06-08")
+
+        self.assertEqual(len(payload["records"]), 960)
+        self.assertEqual(payload["records"][0]["observedAt"], "2026-06-05T08:00:00+00:00")
+        self.assertEqual(payload["records"][-1]["observedAt"], "2026-06-05T23:59:00+00:00")
 
 
 if __name__ == "__main__":

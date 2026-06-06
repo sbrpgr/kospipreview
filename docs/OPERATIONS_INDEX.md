@@ -83,7 +83,10 @@ If work resumes later, read these documents in order:
   or requested minimum. Cloud Run refresh must skip uploading
   `live_prediction_series.json` when the regenerated same-target series is
   shorter than the current Cloud Storage object, otherwise Scheduler can
-  immediately overwrite a recovered trend with a shortened file.
+  immediately overwrite a recovered trend with a shortened file. A full U.S.
+  premarket-through-open trend can span two KST archive partitions, for example
+  `17:00~23:59` on the prior KST date and `00:00~08:59` on the current KST
+  date; recover both partitions before declaring the trend complete.
 - Model2 calculation rule:
   the independent engine must use a hybrid EWY/FX core: the raw EWY+KRW
   fair-value axis remains the main night-futures replacement signal, while
