@@ -276,6 +276,87 @@ p {
   animation: pulseLive 1.2s infinite;
 }
 
+.homeTopAdBanner {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: -8px 0 24px;
+}
+
+.homeTopAdSlot {
+  position: relative;
+  display: flex;
+  min-height: 140px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.homeTopAdSlot.isInquiry {
+  border-style: dashed;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.homeTopAdSlot.isCoupang {
+  padding: 0;
+}
+
+.homeTopCoupangMount {
+  display: flex;
+  width: 320px;
+  max-width: 100%;
+  height: 140px;
+  align-items: center;
+  justify-content: center;
+}
+
+.homeTopCoupangMount iframe,
+.homeTopCoupangMount ins {
+  max-width: 100%;
+}
+
+.homeTopAdLabel {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  z-index: 1;
+  color: var(--text-dim);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.homeTopAdInquiry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px;
+  text-align: center;
+}
+
+.homeTopAdInquiry span {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.homeTopAdInquiry a {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 800;
+  word-break: break-all;
+}
+
+.homeTopAdInquiry a:hover {
+  color: var(--brand-strong);
+}
+
 .heroSection {
   position: relative;
   overflow: hidden;
@@ -3888,6 +3969,30 @@ p {
   .card {
     padding: 20px;
     border-radius: 18px;
+  }
+
+  .homeTopAdBanner {
+    gap: 8px;
+    margin: -8px 0 18px;
+  }
+
+  .homeTopAdSlot {
+    min-height: 140px;
+  }
+
+  .homeTopAdLabel {
+    top: 5px;
+    left: 6px;
+    font-size: 0.56rem;
+  }
+
+  .homeTopAdInquiry {
+    padding: 14px 6px;
+  }
+
+  .homeTopAdInquiry span,
+  .homeTopAdInquiry a {
+    font-size: 0.62rem;
   }
 
   .heroSection {
