@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "EWY 계수와 환율 계수를 매일 롤링 윈도우로 재추정하는 이유와 Ridge 정규화의 역할을 실제 파라미터로 설명합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/rolling-ridge-reestimation" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function Page() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn의 EWY 계수(현재 0.3535)와 환율 계수(현재 0.20)는 고정값이 아니다.
+            코스피프리뷰의 EWY 계수(현재 0.3535)와 환율 계수(현재 0.20)는 고정값이 아니다.
             매 예측 사이클마다 최근 180거래일 데이터로 다시 추정된다.
             왜 고정 계수를 쓰지 않는지, Ridge 정규화가 무엇을 막는지 설명한다.
           </p>
@@ -56,7 +56,7 @@ export default async function Page() {
         </p>
         <p>
           이 문제를 해결하는 방법은 계수를 주기적으로 다시 추정하는 것이다.
-          KOSPI Dawn은 예측 사이클마다 직전 180거래일(약 9개월) 데이터를 사용해
+          코스피프리뷰는 예측 사이클마다 직전 180거래일(약 9개월) 데이터를 사용해
           EWY와 환율의 계수를 다시 계산한다. 이를 롤링 윈도우 재추정이라고 한다.
           오래된 데이터는 자동으로 제외되고, 최근 시장 성격이 반영된 계수로 예측이 이루어진다.
         </p>

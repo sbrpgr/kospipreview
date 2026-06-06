@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "EWY 신호는 상승이었지만 코스피 시초가가 하락한 날의 구조를 환율 역전과 수급 관점에서 설명합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/ewy-up-kospi-down-divergence" },
   openGraph: {

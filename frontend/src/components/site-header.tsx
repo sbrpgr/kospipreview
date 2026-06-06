@@ -62,7 +62,7 @@ export function SiteHeader({
           </svg>
         </span>
         <span className="brandText">
-          <span className="brandTitle">KOSPI DAWN</span>
+          <span className="brandTitle">코스피프리뷰</span>
           <span className="brandSubtitle">Opening Range Tracker</span>
         </span>
       </a>

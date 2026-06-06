@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "야간선물 데이터가 장기간 비어 있는 구조적 원인을 분석하고, 이를 대체하는 EWY 신호의 정보 전달 충실도와 한계를 실측 데이터로 평가한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/night-futures-signal-limitations" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 8</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -91,7 +91,7 @@ export default async function Page() {
             코스피 시초가 예측 모델이 가장 직접적인 야간 신호로 활용하는 것은 K200 야간 선물이다.
             K200 야간선물은 한국 시간 18:00~06:00 구간(서머타임 기준)에 CME(시카고상업거래소)
             또는 SGX(싱가포르거래소)에서 거래되며, 다음 날 코스피 시초가를 가장 직접적으로
-            반영하는 선행 지표로 알려져 있다. 그러나 KOSPI Dawn 플랫폼의 2026년 4~5월 실측
+            반영하는 선행 지표로 알려져 있다. 그러나 코스피프리뷰 플랫폼의 2026년 4~5월 실측
             기록에서 이 신호는 단 하루도 유효한 값을 제공하지 못했다.
           </p>
           <p>
@@ -123,7 +123,7 @@ export default async function Page() {
           <h2>Ⅲ. 데이터 및 연구방법론</h2>
           <h3>1. 야간선물 공백의 구조적 원인</h3>
           <p>
-            KOSPI Dawn 플랫폼의 history.json 기록에서 2026년 4월 9일~5월 15일 전 기간에 걸쳐
+            코스피프리뷰 플랫폼의 history.json 기록에서 2026년 4월 9일~5월 15일 전 기간에 걸쳐
             nightFuturesSimpleOpen이 null이다. 이 공백의 구조적 원인은 두 가지로 분석된다.
             첫째, CME 야간 K200 선물의 유동성이 2025년 이후 급감하여 신뢰할 수 있는 호가를
             형성하지 못하는 구간이 증가했다. 둘째, SGX K200 선물은 정규 CME보다 유동성이
@@ -260,7 +260,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
 

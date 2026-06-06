@@ -64,7 +64,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
-    template: "%s | KOSPI Dawn",
+    template: "%s | 코스피프리뷰",
   },
   description: SITE_DESCRIPTION,
   keywords: SITE_KEYWORDS,
@@ -114,7 +114,7 @@ export const metadata: Metadata = {
         url: toAbsoluteUrl("/og-image.svg"),
         width: 1200,
         height: 630,
-        alt: "KOSPI Dawn - 코스피 시초가 예측 대시보드",
+        alt: "코스피프리뷰 - 코스피 시초가 예측 대시보드",
       },
     ],
   },

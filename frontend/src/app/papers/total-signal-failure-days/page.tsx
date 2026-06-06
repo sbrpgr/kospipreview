@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "통계 모델, EWY 신호, 야간선물 기대값이 동시에 같은 방향으로 크게 이탈하는 날의 공통 선행 조건을 실측 데이터로 분석한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/total-signal-failure-days" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 6</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -102,7 +102,7 @@ export default async function Page() {
             조건이 존재하는가? 셋째, 이탈 방향에 비대칭성이 있으며, 그 원인은 무엇인가?
           </p>
           <p>
-            분석 대상은 2026년 4월 9일부터 5월 4일까지 KOSPI Dawn 플랫폼의 실측 예측 기록이다.
+            분석 대상은 2026년 4월 9일부터 5월 4일까지 코스피프리뷰 플랫폼의 실측 예측 기록이다.
             이 기간은 미국발 관세 충격, 유예 발표, 미중 협상 타결 등 복수의 정책 이벤트가
             집중된 자연 실험 환경을 제공한다.
           </p>
@@ -142,7 +142,7 @@ export default async function Page() {
             (2) EWY+환율 단순환산이 실제 시초가 대비 같은 방향으로 60포인트 이상 차이 나며,
             (3) 이탈 절대값이 100포인트 이상인 날을 전신호 동시 이탈日로 분류한다.
             야간선물 데이터가 null인 날은 야간선물 조건을 EWY 조건으로 대체한다.
-            분석 표본은 KOSPI Dawn history.json의 2026년 4월 9일~5월 4일 실측 기록이다.
+            분석 표본은 코스피프리뷰 history.json의 2026년 4월 9일~5월 4일 실측 기록이다.
           </p>
           <h3>2. 선행 조건 변수</h3>
           <p>
@@ -312,7 +312,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
 

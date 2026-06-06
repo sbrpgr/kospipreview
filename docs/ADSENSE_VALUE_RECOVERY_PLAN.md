@@ -148,7 +148,7 @@ Preferred durable option:
 - Carry `summary_provider` into the public JSON as `summaryProvider`.
 - Add an explicit `reviewed` / `editorialReviewedAt` field before a post is eligible for sitemap or ads.
 - Filter public board exposure by `summaryProvider === "gemini"` plus quality score.
-- Add a KOSPI Dawn interpretation block to each post:
+- Add a 코스피프리뷰 interpretation block to each post:
   - "왜 중요한가"
   - "코스피 시초가 모델에 주는 시사점"
   - "관련 지표"

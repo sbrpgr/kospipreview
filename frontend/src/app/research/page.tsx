@@ -5,10 +5,10 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const PAGE_TITLE = "리서치";
 const PAGE_DESCRIPTION =
-  "KOSPI Dawn 퀀트 리서치 아카이브. 코스피 시초가 예측 모델을 운영하며 실제 데이터에서 발견한 인사이트를 정리합니다.";
+  "코스피프리뷰 퀀트 리서치 아카이브. 코스피 시초가 예측 모델을 운영하며 실제 데이터에서 발견한 인사이트를 정리합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research" },
   openGraph: {
@@ -38,10 +38,10 @@ const ARTICLES = [
   { href: "/research/night-futures-vs-model-comparison", title: "야간선물 단순환산 vs 모델 예측 — 두 숫자가 다를 때 무엇을 보는가", description: "대시보드의 야간선물 단순환산과 모델 예측이 각각 무엇을 측정하고, 두 값이 크게 다를 때 어떻게 해석해야 하는지 설명합니다.", date: "2026-05-15", tag: "지표 분석" },
   { href: "/research/usdkrw-regime-and-model", title: "달러-원 환율 1,400원대의 의미 — 레짐 변화가 모델 계수에 미치는 영향", description: "환율이 특정 레짐에 있을 때 EWY-코스피 관계가 어떻게 달라지고, 롤링 재추정이 이를 어떻게 포착하는지 설명합니다.", date: "2026-05-15", tag: "지표 분석" },
   { href: "/research/kospi-simultaneous-quote-mechanism", title: "코스피 동시호가 8분 — 시초가가 결정되는 구조", description: "KRX 동시호가 제도에서 09:00 시초가가 형성되는 과정을 설명하고, 이 구조가 왜 통계적 예측을 어렵게 만드는지 분석합니다.", date: "2026-05-15", tag: "메커니즘" },
-  { href: "/research/information-timeline-1530-to-0900", title: "한국장 마감 이후 정보 타임라인 — 15:30 KST에서 익일 09:00까지", description: "코스피 마감 이후 다음날 시초가까지 정보가 순서대로 쌓이는 타임라인과, 각 시점에서 KOSPI Dawn이 무엇을 처리하는지 설명합니다.", date: "2026-05-15", tag: "메커니즘" },
+  { href: "/research/information-timeline-1530-to-0900", title: "한국장 마감 이후 정보 타임라인 — 15:30 KST에서 익일 09:00까지", description: "코스피 마감 이후 다음날 시초가까지 정보가 순서대로 쌓이는 타임라인과, 각 시점에서 코스피프리뷰가 무엇을 처리하는지 설명합니다.", date: "2026-05-15", tag: "메커니즘" },
   { href: "/research/opening-gap-conditions", title: "개장 갭이 큰 날의 조건 — 전일 종가와 크게 다르게 열리는 패턴", description: "코스피가 전일 종가 대비 큰 갭으로 열리는 날의 공통 조건을 실측 데이터에서 추출하고, 대형 갭이 예측에 미치는 영향을 분석합니다.", date: "2026-05-15", tag: "메커니즘" },
   { href: "/research/three-numbers-together", title: "세 가지 예측값을 함께 읽는 방법 — 수렴할 때와 발산할 때", description: "대시보드의 야간선물 단순환산, EWY+환율 환산, 모델 예측 세 값이 수렴·발산하는 경우 각각 어떻게 해석해야 하는지 안내합니다.", date: "2026-05-15", tag: "사용 가이드" },
-  { href: "/research/five-principles-for-using-forecast", title: "예측 모델을 참고할 때 반드시 알아야 할 다섯 가지", description: "KOSPI Dawn 예측값을 올바르게 활용하고 잘못 사용하지 않기 위한 다섯 가지 원칙을 정리합니다.", date: "2026-05-15", tag: "사용 가이드" },
+  { href: "/research/five-principles-for-using-forecast", title: "예측 모델을 참고할 때 반드시 알아야 할 다섯 가지", description: "코스피프리뷰 예측값을 올바르게 활용하고 잘못 사용하지 않기 위한 다섯 가지 원칙을 정리합니다.", date: "2026-05-15", tag: "사용 가이드" },
 ] as const;
 
 export default async function ResearchIndexPage() {

@@ -5,10 +5,10 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const PAGE_TITLE = "한국장 마감 이후 정보 타임라인 — 15:30 KST에서 익일 09:00까지";
 const PAGE_DESCRIPTION =
-  "코스피 마감 이후 다음날 시초가까지 정보가 순서대로 쌓이는 타임라인과, 각 시점에서 KOSPI Dawn이 무엇을 처리하는지 설명합니다.";
+  "코스피 마감 이후 다음날 시초가까지 정보가 순서대로 쌓이는 타임라인과, 각 시점에서 코스피프리뷰가 무엇을 처리하는지 설명합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/information-timeline-1530-to-0900" },
   openGraph: {
@@ -41,7 +41,7 @@ export default async function Page() {
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
             코스피가 오후 3시 30분에 마감하고 다음날 오전 9시에 시초가가 형성되기까지
-            약 17시간 30분 동안 정보가 단계적으로 쌓인다. KOSPI Dawn은 이 타임라인의
+            약 17시간 30분 동안 정보가 단계적으로 쌓인다. 코스피프리뷰는 이 타임라인의
             각 시점에서 다른 데이터를 처리한다. 타임라인을 알면 현재 표시된 예측값이
             어떤 정보를 기반으로 하는지 이해할 수 있다.
           </p>
@@ -49,7 +49,7 @@ export default async function Page() {
 
         <h3>1. 15:30 KST: 한국장 마감과 기준선 설정</h3>
         <p>
-          오후 3시 30분 코스피가 마감하면 KOSPI Dawn은 이 종가를 prevClose로 확정한다.
+          오후 3시 30분 코스피가 마감하면 코스피프리뷰는 이 종가를 prevClose로 확정한다.
           이것이 다음날 예측의 기준점이 된다. 이 시점부터 EWY 예측 운영이 시작된다.
           그러나 EWY는 미국 시장 시간에 거래되므로 한국 시간 15:30에는 아직 거래 중이 아니다.
           미국 프리마켓이 열리는 한국 시간 17:00(서머타임)까지는 야간선물만 거래된다.
@@ -73,7 +73,7 @@ export default async function Page() {
         <h3>3. 17:00 KST: 브릿지 샘플링과 EWY 기준점 설정</h3>
         <p>
           미국 서머타임 기준 한국 시간 17:00에 미국 프리마켓이 열리고 EWY 거래가 시작된다.
-          KOSPI Dawn은 이 시점 전후 2분 간격으로 5개 슬롯을 샘플링해
+          코스피프리뷰는 이 시점 전후 2분 간격으로 5개 슬롯을 샘플링해
           EWY와 환율의 기준점(브릿지 앵커)을 설정한다.
           이 앵커가 이후 모든 EWY 수익률 계산의 출발점이 된다.
           17:00 이후 EWY가 1% 올랐다는 계산은 이 앵커 대비 변화량이다.
@@ -87,7 +87,7 @@ export default async function Page() {
 
         <h3>4. 17:00~09:00: 분당 갱신 구간</h3>
         <p>
-          브릿지 앵커가 설정된 이후부터 다음날 09:00까지 KOSPI Dawn은 분당 1회
+          브릿지 앵커가 설정된 이후부터 다음날 09:00까지 코스피프리뷰는 분당 1회
           EWY와 환율 변화를 반영해 예측을 갱신한다. 최대 1,080개 관측값이 기록된다.
           이 구간에서 EWY가 추가로 움직이면 예측값도 분 단위로 변한다.
           대시보드의 "예측 추이" 차트가 이 분당 갱신 데이터를 시각화한다.
@@ -104,7 +104,7 @@ export default async function Page() {
           이 시점에서 예측 대상이 다음 거래일로 넘어간다.
           09:00~15:30 사이 장중 시간에는 모델이 비작동 구간에 들어가고,
           15:30 코스피 마감 이후 다시 새 사이클이 시작된다.
-          이 타임라인을 이해하면 왜 KOSPI Dawn의 예측이 항상 "다음 거래일" 기준이며,
+          이 타임라인을 이해하면 왜 코스피프리뷰의 예측이 항상 "다음 거래일" 기준이며,
           정확히 어떤 시점의 정보를 담고 있는지 파악할 수 있다.
         </p>
 

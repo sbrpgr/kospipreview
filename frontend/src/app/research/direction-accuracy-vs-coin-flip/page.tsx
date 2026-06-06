@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "무작위 50% 대비 76.53%가 통계적으로 유의미한 이유를 설명하고, 방향 적중이 실전에서 어떤 의미를 가지는지 분석합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/direction-accuracy-vs-coin-flip" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function Page() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn 모델의 백테스트 방향 적중률은 76.53%다. 이 숫자가 동전 던지기(50%)와
+            코스피프리뷰 모델의 백테스트 방향 적중률은 76.53%다. 이 숫자가 동전 던지기(50%)와
             얼마나 다른지, 그리고 실전에서 무엇을 의미하는지를 1,462거래일 데이터를 근거로 분석한다.
           </p>
         </div>
@@ -53,7 +53,7 @@ export default async function Page() {
           구조적 신호에 의한 결과임을 보여야 한다.
         </p>
         <p>
-          KOSPI Dawn의 백테스트는 1,462거래일(약 6년치)을 대상으로 했다. 이 기간 동안 방향 적중률은
+          코스피프리뷰의 백테스트는 1,462거래일(약 6년치)을 대상으로 했다. 이 기간 동안 방향 적중률은
           76.53%였다. 1,462번의 시도에서 50%와 76.53%의 차이는 우연으로 설명되기 어렵다.
           같은 기간 밴드 적중률은 75.26%, RMSE는 21.82, MAE는 12.24였다.
         </p>

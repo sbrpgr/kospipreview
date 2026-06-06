@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "KRX 동시호가 제도에서 09:00 시초가가 형성되는 과정을 설명하고, 이 구조가 왜 통계적 예측을 어렵게 만드는지 분석합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/kospi-simultaneous-quote-mechanism" },
   openGraph: {
@@ -69,7 +69,7 @@ export default async function Page() {
           이 주문들이 경쟁하면서 09:00 동시호가 체결 예상 가격이 실시간으로 변한다.
         </p>
         <p>
-          KOSPI Dawn의 예측은 09:00 이전 마지막 갱신을 기준으로 한다.
+          코스피프리뷰의 예측은 09:00 이전 마지막 갱신을 기준으로 한다.
           따라서 08:30~09:00 구간에 새로운 정보가 들어와도 그 정보는 예측에 반영되지 않는다.
           이 시간대에 발표되는 경제지표나 기업 공시, 외신 뉴스 등은 예측값에 나타나지 않지만
           실제 시초가에는 반영될 수 있다.

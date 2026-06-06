@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "환율이 특정 레짐에 있을 때 EWY-코스피 관계가 어떻게 달라지고, 롤링 재추정이 이를 어떻게 포착하는지 설명합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/usdkrw-regime-and-model" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function Page() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn 모델의 현재 환율 계수는 0.20이다. 이 값은 최근 180거래일 데이터로 추정된 것이다.
+            코스피프리뷰 모델의 현재 환율 계수는 0.20이다. 이 값은 최근 180거래일 데이터로 추정된 것이다.
             2024~2026년 원화 약세 기조가 장기화되면서 환율 레짐이 1,200원대에서 1,400원대로 이동했다.
             이 변화가 모델 계수와 예측에 어떤 영향을 미치는지 분석한다.
           </p>

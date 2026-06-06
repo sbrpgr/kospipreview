@@ -5,7 +5,7 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const CONTACT_TITLE = "문의";
 const CONTACT_DESCRIPTION =
-  "KOSPI Dawn 서비스 문의 접수 방법, 처리 기준, 응답 범위 안내입니다.";
+  "코스피프리뷰 서비스 문의 접수 방법, 처리 기준, 응답 범위 안내입니다.";
 
 export const metadata: Metadata = {
   title: CONTACT_TITLE,
@@ -48,7 +48,7 @@ export default async function ContactPage() {
       <main className="prose">
         <h2 className="sectionTitle">문의 안내</h2>
         <p>
-          KOSPI Dawn 서비스 문의는 이메일 단일 채널로 접수받습니다. 요청하신 운영 원칙에 따라 전화, 메신저, SNS DM,
+          코스피프리뷰 서비스 문의는 이메일 단일 채널로 접수받습니다. 요청하신 운영 원칙에 따라 전화, 메신저, SNS DM,
           댓글 기반 상담은 별도 운영하지 않으며, 공식 문의는 아래 이메일 주소로만 처리됩니다. 단일 채널 정책을 유지하는
           이유는 문의 이력 관리의 일관성, 답변 품질 통일, 보안 이슈 대응의 신속성을 확보하기 위함입니다.
         </p>
@@ -96,7 +96,7 @@ export default async function ContactPage() {
 
         <h3>6. 커뮤니케이션 원칙</h3>
         <p>
-          KOSPI Dawn 팀은 정확하고 재현 가능한 답변을 우선합니다. 즉시 답변보다 정확한 원인 파악을 목표로 하며, 임시 조치와
+          코스피프리뷰 팀은 정확하고 재현 가능한 답변을 우선합니다. 즉시 답변보다 정확한 원인 파악을 목표로 하며, 임시 조치와
           영구 조치를 구분해 안내합니다. 필요 시 "현재 상황", "임시 우회방법", "완료 예정 조치"를 단계별로 공유하여
           사용자가 불확실성을 줄이고 서비스 상태를 이해할 수 있도록 돕겠습니다.
         </p>

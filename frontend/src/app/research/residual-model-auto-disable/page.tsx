@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "SOX, S&P 등 보조 신호로 구성된 잔차 보정 레이어가 자동 비활성화되는 로직과, 현재 비활성 상태인 이유를 설명합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/residual-model-auto-disable" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function Page() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn 모델에는 SOX, S&P 500, VIX, 금리 등 보조 신호로 구성된 잔차 보정 레이어가 있다.
+            코스피프리뷰 모델에는 SOX, S&P 500, VIX, 금리 등 보조 신호로 구성된 잔차 보정 레이어가 있다.
             그런데 2026년 5월 기준 이 레이어의 가중치는 0.0으로 자동 비활성 상태다.
             왜 꺼졌는지, 그리고 꺼진 상태에서 예측이 어떻게 달라지는지 설명한다.
           </p>

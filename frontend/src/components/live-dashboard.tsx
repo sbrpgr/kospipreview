@@ -73,7 +73,7 @@ const PAPERS_HOME = [
   {
     num: "No. 19",
     href: "/papers/prediction-accuracy-extreme-regime-analysis",
-    title: "KOSPI Dawn 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건",
+    title: "코스피프리뷰 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건",
     abstract: "고정확도(MAE<8pt, 방향 일치 79.4%)와 저정확도(MAE>30pt, 방향 일치 41.2%) 구간의 공통 선행 조건을 실증하고 정확도 신호등 3색 시스템을 제안한다.",
     date: "2026-05-16",
   },
@@ -835,7 +835,7 @@ export function LiveDashboard({
       </main>
 
       <footer className="footer">
-        <div>© 2026 KOSPI Dawn. Forecast dashboard for KOSPI opening range.</div>
+        <div>© 2026 코스피프리뷰. Forecast dashboard for KOSPI opening range.</div>
         <div className="footerAdNotice">본 사이트에는 서비스 운영을 위한 광고가 포함될 수 있습니다.</div>
         <div className="footerContactNotice">
           문의 이메일: <a href="mailto:ytbtheguy@gmail.com">ytbtheguy@gmail.com</a>

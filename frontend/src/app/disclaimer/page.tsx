@@ -5,7 +5,7 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const DISCLAIMER_TITLE = "면책 및 광고 고지";
 const DISCLAIMER_DESCRIPTION =
-  "KOSPI Dawn의 연구 목적, 투자 면책, 광고 운영 원칙, 책임 제한 범위를 안내합니다.";
+  "코스피프리뷰의 연구 목적, 투자 면책, 광고 운영 원칙, 책임 제한 범위를 안내합니다.";
 
 export const metadata: Metadata = {
   title: DISCLAIMER_TITLE,
@@ -42,7 +42,7 @@ export default async function DisclaimerPage() {
       <main className="prose">
         <h2 className="sectionTitle">면책 및 광고 고지</h2>
         <p>
-          KOSPI Dawn은 퀀트급 금융 예측모델의 개발과 검증을 위해 운영되는 연구용 플랫폼입니다. 본 페이지는 서비스의 연구
+          코스피프리뷰는 퀀트급 금융 예측모델의 개발과 검증을 위해 운영되는 연구용 플랫폼입니다. 본 페이지는 서비스의 연구
           목적, 투자 면책, 광고 표시 원칙, 책임 제한 범위를 명확히 안내하기 위해 작성되었습니다. 사이트에 표시되는 예측값,
           지표, 단순환산치, 해설, 기록 비교는 모두 연구·학습·비교 검증을 위한 참고 자료이며, 특정 상품의 매수 또는 매도를
           직접 권유하지 않습니다.

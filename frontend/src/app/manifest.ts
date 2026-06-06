@@ -6,7 +6,7 @@ export const dynamic = "force-static";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: SITE_NAME,
-    short_name: "KOSPI Dawn",
+    short_name: "코스피프리뷰",
     description: SITE_DESCRIPTION,
     start_url: "/",
     scope: "/",

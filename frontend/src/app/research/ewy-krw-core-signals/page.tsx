@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "현재 모델에서 EWY 계수 0.3535, 환율 계수 0.2가 어떻게 도출되었고 왜 이 두 신호가 코스피 시초가 예측의 핵심인지 실제 수치로 설명합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/ewy-krw-core-signals" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function EwyKrwCoreSignalsPage() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn의 핵심 모델은 EWY(iShares MSCI South Korea ETF)와 달러-원 환율 두 가지를
+            코스피프리뷰의 핵심 모델은 EWY(iShares MSCI South Korea ETF)와 달러-원 환율 두 가지를
             코어 신호로 사용한다. 이 선택이 자의적이지 않다는 것을, 현재 모델에서 실제로
             추정된 계수값과 함께 설명한다.
           </p>
@@ -78,7 +78,7 @@ export default async function EwyKrwCoreSignalsPage() {
 
         <h3>3. 현재 모델 계수: 실제 추정값</h3>
         <p>
-          KOSPI Dawn 모델은 최근 180거래일 데이터를 사용해 EWY 계수와 환율 계수를 반복적으로
+          코스피프리뷰 모델은 최근 180거래일 데이터를 사용해 EWY 계수와 환율 계수를 반복적으로
           재추정한다(Rolling Ridge). 2026년 5월 초 기준 추정된 값은 다음과 같다.
         </p>
         <div className="researchDataTable">
@@ -127,7 +127,7 @@ export default async function EwyKrwCoreSignalsPage() {
         <p>
           23%라는 숫자가 낮게 느껴질 수 있지만, 금융 시장 예측에서 단일 모델 레이어로
           23% 이상의 분산을 설명하는 것은 작은 성과가 아니다.
-          실제로 KOSPI Dawn의 전체 백테스트(1,462행)에서 방향 적중률이 76.53%에 달하는 것은
+          실제로 코스피프리뷰의 전체 백테스트(1,462행)에서 방향 적중률이 76.53%에 달하는 것은
           EWY+환율 코어 레이어가 방향성에서는 상당한 예측력을 가지고 있음을 보여준다.
         </p>
 

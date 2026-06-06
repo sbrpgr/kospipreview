@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "2026년 4월 관세 충격 전후 실측 데이터를 이용해 VIX 임계값 기반 레짐 분류가 예측 정확도에 미치는 구조적 영향을 분석한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/regime-dependent-accuracy" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 2</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -96,7 +96,7 @@ export default async function Page() {
             코스피 시초가 예측의 맥락에서 이 문제는 특히 두드러진다. 2026년 4월,
             트럼프 행정부의 상호관세 부과 및 90일 유예 발표가 이틀 연속 반전되면서
             EWY와 USD/KRW 신호는 전례 없는 크기의 일일 변동을 보였다.
-            이 기간 KOSPI Dawn 모델은 13거래일 연속 예측 밴드를 이탈했다.
+            이 기간 코스피프리뷰 모델은 13거래일 연속 예측 밴드를 이탈했다.
             본 연구는 이 사례를 자연 실험(natural experiment)으로 활용하여,
             레짐 전환이 예측 정확도에 미치는 구조적 영향을 실증 분석한다.
           </p>

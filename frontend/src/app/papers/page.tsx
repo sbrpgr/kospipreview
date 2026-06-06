@@ -5,10 +5,10 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const PAGE_TITLE = "연구논문";
 const PAGE_DESCRIPTION =
-  "KOSPI Dawn 퀀트 연구팀이 실측 데이터와 백테스트 결과를 바탕으로 작성한 코스피 시초가 예측 관련 소논문 시리즈입니다.";
+  "코스피프리뷰 퀀트 연구팀이 실측 데이터와 백테스트 결과를 바탕으로 작성한 코스피 시초가 예측 관련 소논문 시리즈입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers" },
   openGraph: {
@@ -57,7 +57,7 @@ const PAPERS = [
   {
     num: "No. 19",
     href: "/papers/prediction-accuracy-extreme-regime-analysis",
-    title: "KOSPI Dawn 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건과 사전 탐지 지표",
+    title: "코스피프리뷰 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건과 사전 탐지 지표",
     abstract:
       "고정확도 구간(MAE<8pt, 방향 일치 79.4%)과 저정확도 구간(MAE>30pt, 방향 일치 41.2%)의 공통 선행 조건을 실증하고, VIX·EWY 변화율·환율 변동성 3개 지표로 구성된 정확도 신호등 시스템을 제안한다.",
     date: "2026-05-16",
@@ -222,7 +222,7 @@ export default async function PapersIndexPage() {
       <main>
         <h2 className="sectionTitle" style={{ marginBottom: "6px" }}>연구논문</h2>
         <p style={{ color: "var(--text-secondary)", marginBottom: "10px", fontSize: "0.95rem" }}>
-          KOSPI Dawn 퀀트 연구팀 · Working Paper Series
+          코스피프리뷰 퀀트 연구팀 · Working Paper Series
         </p>
         <p style={{ color: "var(--text-secondary)", marginBottom: "40px", fontSize: "0.92rem", lineHeight: "1.7" }}>
           실측 시초가 기록, 백테스트 데이터, 모델 내부 파라미터를 바탕으로 작성된 소논문 시리즈입니다.

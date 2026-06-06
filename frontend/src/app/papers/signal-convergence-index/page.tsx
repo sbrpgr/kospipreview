@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "야간선물 단순환산, EWY+환율 환산, 통계 모델 예측 세 신호의 발산 폭을 정량화한 수렴도 지수(CSI)가 당일 예측 오차의 유효한 선행지표인지를 실증 검증한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/signal-convergence-index" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 3</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 

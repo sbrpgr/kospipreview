@@ -4,7 +4,7 @@ export function SiteFooter() {
     <footer className="siteFooter">
       <div className="siteFooterInner">
         <div className="siteFooterBrand">
-          <span className="siteFooterTitle">KOSPI DAWN</span>
+          <span className="siteFooterTitle">코스피프리뷰</span>
           <span className="siteFooterDesc">
             코스피 시초가 예측 연구 플랫폼 · 투자 권유 아님
           </span>
@@ -20,7 +20,7 @@ export function SiteFooter() {
           <a href="/terms">이용약관</a>
         </nav>
         <div className="siteFooterLegal">
-          © {year} KOSPI Dawn. 본 서비스의 예측값은 연구 참고용이며 투자 결과에 대한 책임은 이용자 본인에게 있습니다.
+          © {year} 코스피프리뷰. 본 서비스의 예측값은 연구 참고용이며 투자 결과에 대한 책임은 이용자 본인에게 있습니다.
         </div>
       </div>
     </footer>

@@ -9,7 +9,7 @@ const PAGE_DESCRIPTION =
   "코스피 당일 장중 가격 행동(마감 방향성, 종가-시가 비율, 오후 거래량 급증, 시간대별 수익률 패턴)이 익일 시초가 방향성과 크기에 어떤 영향을 미치는지를 분석한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/intraday-pattern-impact-on-next-opening" },
   openGraph: {
@@ -38,7 +38,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 18</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -60,7 +60,7 @@ export default async function Page() {
             변수를 추가하면 R² 0.274에서 0.291로 1.7%포인트 개선된다. 그러나 미국 장 마감
             이후 형성되는 야간 정보(EWY, 야간 선물)가 장중 정보보다 익일 시초가 설명력이
             훨씬 강하며, 장중 변수의 한계 기여는 EWY 신호가 ±0.5% 이내의 중립 구간에서
-            최대화된다. 본 연구는 장중 정보의 조건부 유용성을 규명하고 KOSPI Dawn 모델의
+            최대화된다. 본 연구는 장중 정보의 조건부 유용성을 규명하고 코스피프리뷰 모델의
             다음 단계 개선 방향을 제시한다.
           </p>
         </div>
@@ -93,7 +93,7 @@ export default async function Page() {
             intraday information in explaining next-day openings; the marginal contribution of
             intraday variables is maximized when the EWY signal falls within a neutral band of
             ±0.5%. This paper identifies the conditional utility of intraday information and
-            suggests the next improvement path for the KOSPI Dawn model.
+            suggests the next improvement path for the 코스피프리뷰 model.
           </p>
         </div>
         <div className="paperKeywords" style={{ marginBottom: "40px" }}>
@@ -549,7 +549,7 @@ export default async function Page() {
           <h2>Ⅴ. 모델 개선: 장중 변수 편입 효과</h2>
           <h3>1. 기존 EWY 모델 대비 R² 개선</h3>
           <p>
-            기존 KOSPI Dawn EWY 코어 모델(EWY 야간 수익률 + 원달러 환율 변화)의 익일 NGO에
+            기존 코스피프리뷰 EWY 코어 모델(EWY 야간 수익률 + 원달러 환율 변화)의 익일 NGO에
             대한 OLS 회귀 R²는 0.274다. 여기에 장중 변수를 순차적으로 추가할 때 R²의 변화를
             측정한다.
           </p>
@@ -628,7 +628,7 @@ export default async function Page() {
             채택하고 장중 신호는 보조 필터로만 사용한다. 2단계: EWY가 중립(±0.5% 이내)이면
             CM ≥ +0.5% AND CPH ≥ 80%이면 갭 상승, CM ≤ −0.5% AND CPH ≤ 20%이면 갭 하락으로
             장중 신호를 주신호로 전환한다. 3단계: VAD = 1이면 방향과 무관하게 예측 밴드를
-            40% 확대하여 크기 불확실성을 반영한다. 이 3단계 체계는 KOSPI Dawn 모델의 기존
+            40% 확대하여 크기 불확실성을 반영한다. 이 3단계 체계는 코스피프리뷰 모델의 기존
             EWY 코어 레이어, 잔차 레이어, 동적 밴드 레이어와 통합될 때 최대 성능을 발휘한다.
           </p>
           <p>
@@ -651,7 +651,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 방법 및
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 방법 및
           결과의 해석과 투자 활용에 따른 책임은 독자 본인에게 있습니다. 과거 데이터에 기반한
           백테스트 결과는 미래 성과를 보장하지 않습니다.
         </div>

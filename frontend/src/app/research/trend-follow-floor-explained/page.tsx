@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "EWY+환율 신호가 크게 움직일 때 모델이 과소반응하지 않도록 강제하는 trendFollowFloor 로직을 실제 수치로 설명합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/trend-follow-floor-explained" },
   openGraph: {

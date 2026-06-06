@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "대시보드의 야간선물 단순환산, EWY+환율 환산, 모델 예측 세 값이 수렴·발산하는 경우 각각 어떻게 해석해야 하는지 안내합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/three-numbers-together" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function Page() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn 대시보드에는 야간선물 단순환산, EWY+환율 단순환산, 모델 예측 세 가지 숫자가 나란히 표시된다.
+            코스피프리뷰 대시보드에는 야간선물 단순환산, EWY+환율 단순환산, 모델 예측 세 가지 숫자가 나란히 표시된다.
             2026년 5월 4일 기준으로 세 값은 6,862, 6,889, 6,903이었다—41포인트 범위 안의 수렴.
             이 세 숫자를 함께 읽는 방법과, 발산할 때 무엇을 의심해야 하는지 안내한다.
           </p>

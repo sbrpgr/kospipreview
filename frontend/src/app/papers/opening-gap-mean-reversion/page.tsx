@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "코스피 시초가 갭이 크게 형성된 날의 익일 방향성이 갭 회귀(mean reversion) 경향을 보이는지를 실측 데이터로 분석하고, 갭 크기별 익일 예측 난이도를 정량화한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/opening-gap-mean-reversion" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 11</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -159,7 +159,7 @@ export default async function Page() {
           <h3>1. 갭 정의 및 분류</h3>
           <p>
             본 연구에서 갭은 당일 actualOpen과 전일 종가(prevClose)의 차이로 정의한다.
-            KOSPI Dawn 데이터에서 prevClose는 당일 야간 선물 기준 환산값으로 추정되며,
+            코스피프리뷰 데이터에서 prevClose는 당일 야간 선물 기준 환산값으로 추정되며,
             연속 거래일 간 actualOpen 시퀀스로부터 계산된다. 갭 분류 기준은 세 구간이다.
           </p>
           <p>
@@ -404,7 +404,7 @@ export default async function Page() {
             투자 활용 관점에서, 100포인트 이상 상방 갭이 발생한 날은 다음 날 예측을
             낙관적으로 신뢰하기보다 하방 시나리오를 함께 준비하는 것이 합리적이다.
             반대로 대형 하방 갭 익일은 방향 불확실성이 높아 어떤 신호도 단독으로 신뢰하지
-            말아야 하며, 대형 갭 익일에는 KOSPI Dawn 모델의 예측 밴드를 표준 너비의 2~3배로
+            말아야 하며, 대형 갭 익일에는 코스피프리뷰 모델의 예측 밴드를 표준 너비의 2~3배로
             확장하여 해석하는 것이 권장된다(Working Paper No.15 동적 밴드 연구 참조).
           </p>
           <p>
@@ -429,7 +429,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
         <div className="paperNav">

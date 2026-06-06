@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "코스피가 전일 종가 대비 큰 갭으로 열리는 날의 공통 조건을 실측 데이터에서 추출하고, 대형 갭이 예측에 미치는 영향을 분석합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/opening-gap-conditions" },
   openGraph: {

@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "코스피 개장 전 동시호가 8분 구간에서 기관과 외국인 선물 수급이 EWY 방향 신호를 증폭하거나 상쇄하는 메커니즘을 실측 케이스로 분석한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/simultaneous-quote-information-asymmetry" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 13</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -55,7 +55,7 @@ export default async function Page() {
             동시호가에 진입하면 EWY 방향을 역행하는 상방 시초가가 형성될 수 있다.
             2026년 4~5월 27거래일 분석에서 EWY 신호 역전일은 13일(48%)에 달했으며,
             상승 신호 역전 비율(53%)이 하락 신호 역전 비율(39%)보다 높아 비대칭성이 확인된다.
-            본 연구는 이 수급 비대칭이 현재 KOSPI Dawn 모델의 잔차 레이어로는 포착되지 않는
+            본 연구는 이 수급 비대칭이 현재 코스피프리뷰 모델의 잔차 레이어로는 포착되지 않는
             비정형 정보임을 규명하고, 수급 프록시 지표(코스피 선물 야간 미결제약정 변화,
             외국인 야간 순매수 추정치)의 모델 편입 가능성 및 구체적 편입 방법을 검토한다.
           </p>
@@ -81,7 +81,7 @@ export default async function Page() {
             the EWY signal. Among 27 trading days in April–May 2026, EWY signal reversals occurred
             on 13 days (48%), with upward signal reversals (53%) exceeding downward signal reversals
             (39%), confirming asymmetry. We identify this supply-demand asymmetry as atypical
-            information not captured by KOSPI Dawn's current residual layer, and examine the
+            information not captured by 코스피프리뷰의 current residual layer, and examine the
             feasibility and specific methods of incorporating supply-demand proxy indicators
             (overnight KOSPI futures open interest changes, estimated foreign overnight net buying)
             into the model.
@@ -96,7 +96,7 @@ export default async function Page() {
 
           <h2>Ⅰ. 서론</h2>
           <p>
-            KOSPI Dawn 예측 모델이 EWY 신호를 정확하게 처리했음에도 실제 시초가가 크게 다른 날이
+            코스피프리뷰 예측 모델이 EWY 신호를 정확하게 처리했음에도 실제 시초가가 크게 다른 날이
             반복적으로 발생한다. 2026년 4월 23일, EWY+환율 환산은 6,889포인트를 가리켰으나
             실제 시초가는 6,489포인트로 400포인트 낮게 형성되었다. 이 괴리의 원인은 EWY 신호
             자체가 아니라, 동시호가 구간에서 기관·외국인 수급이 EWY 방향을 역행했기 때문이다.
@@ -112,7 +112,7 @@ export default async function Page() {
           <p>
             본 연구는 이 충돌을 "EWY 신호 상쇄" 현상으로 정의하고, 발생 빈도·방향 비대칭·
             규모를 실증적으로 측정한다. 또한 수급 정보를 사전에 파악할 수 있는 프록시 지표의
-            타당성을 검토하여, KOSPI Dawn 모델의 다음 단계 개선 방향을 제시한다.
+            타당성을 검토하여, 코스피프리뷰 모델의 다음 단계 개선 방향을 제시한다.
           </p>
 
           <h2>Ⅱ. 이론적 배경 및 선행연구</h2>
@@ -156,7 +156,7 @@ export default async function Page() {
           <h2>Ⅲ. 데이터 및 연구방법론</h2>
           <h3>1. EWY 신호와 실제 시초가 괴리 측정</h3>
           <p>
-            KOSPI Dawn history.json의 ewyFxSimpleOpen과 actualOpen의 차이를 EWY 괴리로 정의한다.
+            코스피프리뷰 history.json의 ewyFxSimpleOpen과 actualOpen의 차이를 EWY 괴리로 정의한다.
             EWY 방향과 실제 시초가 방향이 불일치하는 날을 "수급 역전일"로 분류하고,
             이 날들의 공통 특성을 추출한다. 분석 대상은 2026년 4월 1일부터 5월 15일까지의
             27거래일이며, 이 기간은 미중 관세 충돌, 지정학적 불확실성, 코스피 급등락 등
@@ -299,7 +299,7 @@ export default async function Page() {
                 </tr>
                 <tr>
                   <td className="textLeft">모델 예측 오차</td>
-                  <td className="textLeft">KOSPI Dawn MAE 397pt (역대 최대)</td>
+                  <td className="textLeft">코스피프리뷰 MAE 397pt (역대 최대)</td>
                 </tr>
               </tbody>
             </table>
@@ -395,7 +395,7 @@ export default async function Page() {
           <h2>Ⅵ. 결론 및 시사점</h2>
           <p>
             동시호가 8분은 EWY 신호가 실제 시초가로 전환되는 과정에서 가장 큰 변수다.
-            현재 KOSPI Dawn 모델은 이 수급 정보를 직접 포착하는 변수를 포함하지 않으며,
+            현재 코스피프리뷰 모델은 이 수급 정보를 직접 포착하는 변수를 포함하지 않으며,
             이것이 EWY 신호가 맞는데 시초가가 역행하는 날의 구조적 설명 공백이다.
             27거래일 실측 분석에서 48%의 수급 역전 발생률과 평균 268포인트의 괴리는
             이 공백의 규모를 정량적으로 보여준다.
@@ -403,7 +403,7 @@ export default async function Page() {
           <p>
             수급 역전 선행 지표로 EWY 전일 변화율(3.8% 초과), VIX(32 초과), 외국인 순매도
             (4,000억원 초과) 세 조건이 동시에 성립할 때 역전 확률이 약 75%로 높아짐이 확인된다.
-            투자자는 이 조건이 충족되는 날 KOSPI Dawn의 EWY 방향 신호를 100% 신뢰하기보다
+            투자자는 이 조건이 충족되는 날 코스피프리뷰의 EWY 방향 신호를 100% 신뢰하기보다
             하방 시나리오를 병행 준비해야 한다.
           </p>
           <p>
@@ -426,7 +426,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
         <div className="paperNav">

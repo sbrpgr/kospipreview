@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "충격 이후 반등 구간에서 나흘 연속 실제 시초가가 예측 밴드 위에서 열린 패턴을 실측 데이터로 분석합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/april-recovery-underestimation" },
   openGraph: {
@@ -41,7 +41,7 @@ export default async function Page() {
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
             2026년 4월 21일부터 24일까지 코스피는 관세 충격 이후 반등 국면에 접어들었다.
-            그런데 KOSPI Dawn 모델은 이 4거래일 중 3일에서 실제 시초가를 크게 낮게 예측했고,
+            그런데 코스피프리뷰 모델은 이 4거래일 중 3일에서 실제 시초가를 크게 낮게 예측했고,
             하루는 반대로 크게 높게 예측했다. 이 불규칙한 오차 패턴의 이유를 분석한다.
           </p>
         </div>

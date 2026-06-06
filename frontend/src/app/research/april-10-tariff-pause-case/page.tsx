@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "트럼프 90일 관세 유예 발표 당일, 모델이 실제 시초가보다 188포인트 낮게 예측한 구조적 이유를 분석합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/april-10-tariff-pause-case" },
   openGraph: {
@@ -41,7 +41,7 @@ export default async function Page() {
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
             2026년 4월 10일, 트럼프 행정부의 90일 관세 유예 발표로 코스피는 급등해 5,876포인트에 시초가를 형성했다.
-            그날 KOSPI Dawn 모델은 5,688포인트를 예측했다. 188포인트 오차가 발생한 구조적 원인을 분석한다.
+            그날 코스피프리뷰 모델은 5,688포인트를 예측했다. 188포인트 오차가 발생한 구조적 원인을 분석한다.
           </p>
         </div>
 
@@ -62,7 +62,7 @@ export default async function Page() {
         <p>
           트럼프 대통령의 90일 관세 유예 발표는 미국 시간 기준 새벽에 이루어졌다.
           한국 기준으로 4월 10일 새벽, 미국 프리마켓이 열리면서 EWY가 급등하기 시작했다.
-          이 정보는 KOSPI Dawn의 브릿지 샘플링(17:00 KST 전후, 2분 간격 5슬롯)을 통해
+          이 정보는 코스피프리뷰의 브릿지 샘플링(17:00 KST 전후, 2분 간격 5슬롯)을 통해
           모델에 반영되기 시작했다.
         </p>
         <p>

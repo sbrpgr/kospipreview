@@ -9,7 +9,7 @@ const PAGE_DESCRIPTION =
   "Shannon 상호 정보량 이론을 코스피 시초가 예측에 적용하여, EWY 신호가 제공하는 이론적 최대 예측 가능성과 동시호가 과정에서 생성되는 구조적 불확실성의 하한을 추정한 독창적 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/kospi-predictability-ceiling-information-entropy" },
   openGraph: {
@@ -38,7 +38,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 21</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -57,7 +57,7 @@ export default async function Page() {
             생성되는 불가예측 엔트로피는 네 개의 원천—개장 전 수급 집계 과정(40%), 레짐 전환
             타이밍(30%), 뉴스 이벤트 오버랩(20%), 시장 참가자 해석 다양성(10%)—으로 분해된다.
             본 연구가 도입하는 예측 효율성 지표(Prediction Efficiency, PE)에 따르면, 현재
-            KOSPI Dawn 모델은 정상 레짐에서 PE = 74.3%, 충격 레짐에서 PE = 51.7%를 달성하고
+            코스피프리뷰 모델은 정상 레짐에서 PE = 74.3%, 충격 레짐에서 PE = 51.7%를 달성하고
             있으며, 이론적으로 달성 가능한 최대 PE(정상 85%, 충격 60%)의 87% 수준에 이미 도달해
             있다. 또한 EWY 변화율이 ±3% 이상인 날에서 상호 정보량이 오히려 감소하는 "정보 과부하
             역설"을 발견하였으며, 이는 강한 외부 신호가 동시호가 참가자의 반응 다양성을 극대화하여
@@ -92,7 +92,7 @@ export default async function Page() {
             regime-transition timing (30%), news event overlap with market open (20%), and
             cross-participant interpretation heterogeneity (10%). We introduce the Prediction
             Efficiency (PE) metric—defined as the ratio of actual model-explained variance to
-            the theoretical maximum explainable variance—and find that the current KOSPI Dawn
+            the theoretical maximum explainable variance—and find that the current 코스피프리뷰
             model achieves PE = 74.3% in normal regimes and PE = 51.7% in shock regimes,
             already reaching 87% of the theoretically attainable maximum efficiency. A critical
             anomaly is documented: on days when the EWY return magnitude exceeds ±3%, mutual
@@ -138,7 +138,7 @@ export default async function Page() {
           <p>
             핵심 테제는 다음과 같다: 코스피 시초가 예측에는 이론적 상한(ceiling)이 존재하며,
             이 상한은 입력 신호(EWY)와 출력(코스피 시초가) 사이의 Shannon 상호 정보량으로
-            측정할 수 있다. 현재 KOSPI Dawn 모델은 정상 레짐에서 이 상한의 약 74.3%를 이미
+            측정할 수 있다. 현재 코스피프리뷰 모델은 정상 레짐에서 이 상한의 약 74.3%를 이미
             달성하고 있으며, 나머지 25.7%의 대부분은 동시호가 과정에서 내생적으로 생성되는
             "불가예측 엔트로피(irreducible uncertainty entropy)"에 해당하여, 어떤 모델도 이
             하한 이하의 오차를 구조적으로 달성할 수 없다.
@@ -514,7 +514,7 @@ export default async function Page() {
           {/* 표3 */}
           <div className="paperDataTable">
             <table>
-              <caption>표 3. 예측 효율성(PE) 지표 — 현재 KOSPI Dawn 모델 vs 이론적 최대 달성 모델</caption>
+              <caption>표 3. 예측 효율성(PE) 지표 — 현재 코스피프리뷰 모델 vs 이론적 최대 달성 모델</caption>
               <thead>
                 <tr>
                   <th>구분</th>
@@ -537,7 +537,7 @@ export default async function Page() {
                   <td>~9.4pt</td>
                 </tr>
                 <tr>
-                  <td>현재 KOSPI Dawn 모델 MAE</td>
+                  <td>현재 코스피프리뷰 모델 MAE</td>
                   <td>12.24pt</td>
                   <td>41.2pt</td>
                   <td>18.3pt</td>
@@ -571,7 +571,7 @@ export default async function Page() {
           </div>
 
           <p>
-            표 3의 핵심 메시지: 현재 KOSPI Dawn 모델은 이미 이론적 한계의 87% 수준을 달성하고
+            표 3의 핵심 메시지: 현재 코스피프리뷰 모델은 이미 이론적 한계의 87% 수준을 달성하고
             있다. 정상 레짐에서 MAE 12.24pt는 이론적 하한 4.8pt의 2.55배이지만, 이 차이의
             대부분은 불가예측 엔트로피(4.8pt)와 미시구조 노이즈(~0.8pt 추가)가 차지하고,
             순수하게 모델 개선으로 줄일 수 있는 부분은 6.6pt 이내다. 이는 새로운 특성 공학이나
@@ -642,7 +642,7 @@ export default async function Page() {
             정보 과부하 역설은 두 가지 중요한 실용적 시사점을 가진다. 첫째, 예측 모델을 운용할 때
             EWY 신호 강도를 그대로 반영하는 것이 항상 최적이 아니다. EWY 변화율이 임계값(±3%)을
             초과하는 날에는 EWY 계수를 축소 조정(coefficient dampening)하는 것이 오히려 예측
-            정확도를 높일 수 있다. 이는 현재 KOSPI Dawn 모델에서 충격 레짐 시 트렌드팔로우 플로어
+            정확도를 높일 수 있다. 이는 현재 코스피프리뷰 모델에서 충격 레짐 시 트렌드팔로우 플로어
             보정을 적용하는 것과 맥락을 같이 한다.
           </p>
           <p>
@@ -793,7 +793,7 @@ export default async function Page() {
             이 불가예측 엔트로피가 이론적 MAE 하한 ~4.8pt(정상 레짐)와 ~21.3pt(충격 레짐)를 형성한다.
           </p>
           <p>
-            <strong>발견 3 — 예측 효율성 87%:</strong> 현재 KOSPI Dawn 모델은 정상 레짐에서
+            <strong>발견 3 — 예측 효율성 87%:</strong> 현재 코스피프리뷰 모델은 정상 레짐에서
             PE = 74.3%, 충격 레짐에서 PE = 51.7%를 달성하며, 이는 이론적 달성 가능 최대치
             (정상 85%, 충격 60%)의 각각 87%, 86%에 해당한다. 이 결과는 현재 모델이 이미
             상당히 성숙한 단계에 도달해 있음을 의미한다.
@@ -927,7 +927,7 @@ export default async function Page() {
         </div>
 
         <div className="paperDisclaimer">
-          본 논문은 KOSPI Dawn 퀀트 연구팀이 학술·연구 목적으로 작성한 Working Paper이며,
+          본 논문은 코스피프리뷰 퀀트 연구팀이 학술·연구 목적으로 작성한 Working Paper이며,
           특정 금융 상품 또는 자산에 대한 투자를 권유하거나 추천하지 않습니다.
           본 논문에 포함된 모든 수치, 추정값, 모델 결과는 이론적·실증적 분석에 기반하나,
           미래의 투자 성과를 보장하지 않습니다. 코스피를 포함한 모든 금융 자산 투자에는

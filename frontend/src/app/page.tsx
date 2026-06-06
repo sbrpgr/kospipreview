@@ -34,7 +34,7 @@ export const metadata: Metadata = {
         url: toAbsoluteUrl("/og-image.svg"),
         width: 1200,
         height: 630,
-        alt: "KOSPI Dawn - 코스피 시초가 예측 대시보드",
+        alt: "코스피프리뷰 - 코스피 시초가 예측 대시보드",
       },
     ],
   },
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
 
 const FAQ_ITEMS = [
   {
-    q: "KOSPI Dawn은 어떤 서비스인가요?",
+    q: "코스피프리뷰는 어떤 서비스인가요?",
     a: "다음 거래일 코스피 시초가를 시장 지표 기반으로 추정해 보여주는 인공지능 예측 대시보드입니다.",
   },
   {

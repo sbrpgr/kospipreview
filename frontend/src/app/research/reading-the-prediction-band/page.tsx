@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "백테스트 75% 밴드 적중률과 최근 실측 기록의 차이를 구체적인 날짜별 데이터로 비교하고, 예측 밴드를 올바르게 해석하는 방법을 안내합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/reading-the-prediction-band" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function ReadingThePredictionBandPage() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn 대시보드에는 점 예측값(pointPrediction)과 함께 예측 밴드(rangeLow~rangeHigh)가
+            코스피프리뷰 대시보드에는 점 예측값(pointPrediction)과 함께 예측 밴드(rangeLow~rangeHigh)가
             표시된다. 이 두 숫자를 어떻게 해석해야 하는지, 그리고 왜 백테스트 적중률과
             최근 실측 기록이 다를 수 있는지 실제 데이터를 통해 설명한다.
           </p>
@@ -48,7 +48,7 @@ export default async function ReadingThePredictionBandPage() {
 
         <h3>1. 예측 밴드의 정의</h3>
         <p>
-          KOSPI Dawn이 매일 제시하는 숫자는 두 가지 레이어로 구성된다.
+          코스피프리뷰가 매일 제시하는 숫자는 두 가지 레이어로 구성된다.
           첫 번째는 점 예측값(pointPrediction)으로, 모델이 계산한 가장 가능성 높은 코스피 시초가다.
           두 번째는 예측 밴드(rangeLow ~ rangeHigh)로, 최근 예측 오차의 분포와 시장 변동성을
           반영해 시초가가 들어올 것으로 기대되는 범위를 나타낸다.
@@ -62,7 +62,7 @@ export default async function ReadingThePredictionBandPage() {
 
         <h3>2. 백테스트 적중률: 1,462행, 75.26%</h3>
         <p>
-          KOSPI Dawn 모델의 백테스트는 약 6년치 데이터(1,462거래일)를 대상으로 진행되었다.
+          코스피프리뷰 모델의 백테스트는 약 6년치 데이터(1,462거래일)를 대상으로 진행되었다.
           이 기간 동안 모델 예측 밴드 안에 실제 시초가가 들어온 비율은 75.26%였다.
           방향(상승/하락) 적중률은 76.53%였다.
         </p>
@@ -167,7 +167,7 @@ export default async function ReadingThePredictionBandPage() {
 
         <h3>7. 한 가지 원칙</h3>
         <p>
-          KOSPI Dawn은 예측이 맞은 날만 골라서 보여주지 않는다.
+          코스피프리뷰는 예측이 맞은 날만 골라서 보여주지 않는다.
           틀린 날도 그대로 기록에 남기고 공개한다.
           이 원칙이 없다면 "75% 적중"이라는 숫자는 의미 없는 사후 선택 편향이 된다.
           실측 기록을 모두 공개하는 것이 이 플랫폼이 연구 도구로서 신뢰를 유지하는 방식이다.

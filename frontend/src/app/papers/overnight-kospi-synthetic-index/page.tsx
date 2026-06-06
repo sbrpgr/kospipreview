@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "K200 야간선물에 의존하지 않고 S&P 500 선물·나스닥·닛케이·SOX·달러인덱스를 합성한 글로벌 바스켓 회귀로 코스피 야간 지수를 더 정확하게 추정하는 방법론과 실증 결과를 담은 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/overnight-kospi-synthetic-index" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 16</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -109,7 +109,7 @@ export default async function Page() {
           <p>
             그러나 두 수단 모두 구조적 공백을 갖는다. K200 야간선물은 정규 거래 시간 대비
             유동성이 극히 낮아 비드-아스크 스프레드가 평균 4.7포인트로 확대된다. 2025년 이후
-            KOSPI Dawn 플랫폼에서 관찰한 결과, 27개 거래일 연속으로 K200 야간선물이 유효한
+            코스피프리뷰 플랫폼에서 관찰한 결과, 27개 거래일 연속으로 K200 야간선물이 유효한
             호가를 제공하지 못하거나 신뢰하기 어려운 가격을 표시하는 사례가 발생했다. EWY는
             미국 정규 거래 시간(22:30~05:00 KST)에는 유동성 있게 작동하지만, 04:30 KST 이후
             유동성이 급감하고 05:00 KST 미국 장 마감 이후에는 사실상 가격 갱신이 멈춘다.
@@ -151,7 +151,7 @@ export default async function Page() {
             실증하며, 유동성이 낮은 자산일수록 가격 발견 기능이 저하됨을 보였다. K200
             야간선물의 경우, 야간 비드-아스크 스프레드가 정규 거래 시간 대비 평균 4.7배
             확대된다. 야간 스프레드 평균 4.7포인트는 소규모 참가자가 신뢰할 수 있는 가격
-            신호로 활용하기 어렵게 만드는 수준이며, 실제로 KOSPI Dawn 플랫폼 운용 중
+            신호로 활용하기 어렵게 만드는 수준이며, 실제로 코스피프리뷰 플랫폼 운용 중
             K200 야간선물 데이터는 일관성 없는 null 값 및 이상치로 인해 모델에서 제외되었다.
           </p>
           <p>
@@ -573,7 +573,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
         <div className="paperNav">

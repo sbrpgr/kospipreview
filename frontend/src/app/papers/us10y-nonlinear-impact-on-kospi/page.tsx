@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "미국 10년물 금리 상승이 코스피 시초가에 호재(성장 기대)로 작용하는 구간과 악재(할인율 부담)로 전환되는 임계값을 실증적으로 추정한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/us10y-nonlinear-impact-on-kospi" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 14</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -47,7 +47,7 @@ export default async function Page() {
             본 연구는 미국 10년물 국채 금리(US10Y)가 코스피 시초가에 미치는 영향이
             금리 수준에 따라 방향이 달라지는 비선형적 구조를 가지는지를 분석하고,
             "성장 기대 확인"(코스피 호재)과 "할인율 부담"(코스피 악재)으로 전환되는
-            임계값을 실증적으로 추정한다. KOSPI Dawn 모델의 잔차 레이어에서
+            임계값을 실증적으로 추정한다. 코스피프리뷰 모델의 잔차 레이어에서
             us10y_z(미국 10년물 금리 표준화 z-score) 계수는 현재 +0.524로 양(+)의
             방향으로 추정되어 있다. 그러나 이 양의 계수는 금리 수준이 낮을 때(4% 미만)
             유효하며, 금리가 5%를 초과하는 구간에서는 계수 부호가 음으로 반전되는 경향을
@@ -71,7 +71,7 @@ export default async function Page() {
             This study analyzes whether U.S. 10-year Treasury yield (US10Y) has a nonlinear,
             level-dependent impact on KOSPI opening prices, and empirically estimates the threshold
             at which its effect transitions from "growth expectation confirmation" (positive for
-            KOSPI) to "discount rate burden" (negative for KOSPI). In KOSPI Dawn's residual layer,
+            KOSPI) to "discount rate burden" (negative for KOSPI). In 코스피프리뷰의 residual layer,
             the us10y_z coefficient (standardized z-score) is currently estimated at +0.524,
             indicating a positive relationship. However, this positive coefficient holds when rates
             are low (&lt;4%) and tends to flip negative when rates exceed 5%. Applying Hansen's
@@ -101,7 +101,7 @@ export default async function Page() {
             시장 참여자에게 핵심 질문이다.
           </p>
           <p>
-            KOSPI Dawn 모델의 잔차 레이어는 US10Y z-score를 보조 신호로 포함하고 있으며,
+            코스피프리뷰 모델의 잔차 레이어는 US10Y z-score를 보조 신호로 포함하고 있으며,
             현재 계수가 +0.524다. 이 양의 계수는 금리 상승이 코스피에 호재임을 의미하는 것처럼
             보이지만, 이 관계가 금리 수준에 따라 달라질 수 있다는 점이 본 연구의 출발점이다.
             2022년 미국 연준의 급격한 금리 인상(3%→5.2%) 기간 동안 코스피는 지속적으로 하락했으며,
@@ -110,7 +110,7 @@ export default async function Page() {
           </p>
           <p>
             본 연구는 1,462거래일 백테스트 데이터를 활용하여 US10Y 임계값을 실증적으로 추정하고,
-            현재 금리 수준(4.3%)이 임계값 부근에 위치한다는 사실이 KOSPI Dawn 모델 운용에
+            현재 금리 수준(4.3%)이 임계값 부근에 위치한다는 사실이 코스피프리뷰 모델 운용에
             어떤 함의를 갖는지를 구체적으로 분석한다. 이를 통해 단순히 "금리가 올랐다/내렸다"가
             아니라 "금리 수준이 어느 구간에 있는가"를 중심으로 코스피 예측 신호를 조정하는
             방법론을 제시한다.
@@ -158,7 +158,7 @@ export default async function Page() {
             종속변수는 EWY 코어 레이어 잔차(코스피 실제 수익률 − EWY+KRW 예측 수익률)이며,
             설명변수는 US10Y 일별 변화율(Δr)과 US10Y 수준(τ)이다. 교호항(τ × Δr)을 포함하여
             금리 수준이 금리 변화의 계수를 조절하는 구조를 검정한다.
-            데이터는 KOSPI Dawn 플랫폼의 backtest 표본(1,462거래일)을 활용한다.
+            데이터는 코스피프리뷰 플랫폼의 backtest 표본(1,462거래일)을 활용한다.
           </p>
           <h3>2. 임계값 추정 절차</h3>
           <p>
@@ -388,7 +388,7 @@ export default async function Page() {
             하방 압력으로 작용할 수 있어 보수적 해석이 필요하다. 둘째, 금리가 4.5% 임계값
             근방(±0.2%)에 위치할 때는 계수 부호 방향이 불안정하므로 잔차 레이어 기여도를
             최소화하는 것이 합리적이다. 셋째, 금리가 5% 이상으로 진입하면 us10y_z를 역방향
-            (음의 계수)으로 처리하는 조건부 로직을 KOSPI Dawn 모델에 도입해야 한다.
+            (음의 계수)으로 처리하는 조건부 로직을 코스피프리뷰 모델에 도입해야 한다.
           </p>
           <p>
             향후 연구 과제로, 단기 금리(2년물)와 장기 금리(10년물) 스프레드(장단기 스프레드)를
@@ -411,7 +411,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
         <div className="paperNav">

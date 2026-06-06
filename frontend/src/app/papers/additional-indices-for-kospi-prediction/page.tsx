@@ -6,10 +6,10 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 const PAGE_TITLE =
   "코스피 시초가 예측력 향상을 위한 추가 획득 가능 지수와 신호 체계 — SOX·VIX·ADR·채권·원자재의 편입 효과 분석";
 const PAGE_DESCRIPTION =
-  "현재 KOSPI Dawn 모델에서 미활용 중인 SOX, 미국채 금리, EEM, 삼성전자 ADR, 달러인덱스 등 추가 획득 가능한 지수·신호의 예측력 기여도를 정량 분석한 연구논문입니다.";
+  "현재 코스피프리뷰 모델에서 미활용 중인 SOX, 미국채 금리, EEM, 삼성전자 ADR, 달러인덱스 등 추가 획득 가능한 지수·신호의 예측력 기여도를 정량 분석한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/additional-indices-for-kospi-prediction" },
   openGraph: {
@@ -38,7 +38,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 17</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -46,7 +46,7 @@ export default async function Page() {
         <div className="paperAbstract">
           <div className="paperAbstractTitle">요 약</div>
           <p className="paperAbstractBody">
-            본 연구는 현재 KOSPI Dawn 모델이 활용 중인 3개 변수(EWY, USD/KRW, US10Y z-score)
+            본 연구는 현재 코스피프리뷰 모델이 활용 중인 3개 변수(EWY, USD/KRW, US10Y z-score)
             외에, 추가로 획득 가능한 11개 지수 및 신호의 코스피 시초가 예측력 기여도를 정량 분석한다.
             후보 변수는 SOX(필라델피아 반도체 지수), 삼성전자 ADR, EEM(이머징마켓 ETF),
             DXY(달러인덱스), HYG/LQD 스프레드(신용위험), Gold(금), WTI Oil(원유), Bitcoin,
@@ -78,7 +78,7 @@ export default async function Page() {
           <div className="paperAbstractTitle">Abstract</div>
           <p className="paperAbstractBody">
             This study quantitatively analyzes the predictive contributions of eleven additional
-            candidate indices and signals—beyond the three variables currently employed in KOSPI Dawn
+            candidate indices and signals—beyond the three variables currently employed in 코스피프리뷰
             (EWY, USD/KRW, US10Y z-score)—for forecasting KOSPI opening prices. The candidates
             include SOX (Philadelphia Semiconductor Index), Samsung Electronics ADR, EEM (Emerging
             Markets ETF), DXY (Dollar Index), HYG/LQD credit spread, Gold, WTI Oil, Bitcoin,
@@ -113,7 +113,7 @@ export default async function Page() {
           <h2>Ⅰ. 서론</h2>
           <p>
             글로벌 금융시장의 밤 사이 움직임은 익일 코스피 시초가의 핵심 결정 요인이다.
-            KOSPI Dawn 플랫폼은 현재 EWY(한국 대표 ETF), USD/KRW 환율, US10Y z-score 세 변수를
+            코스피프리뷰 플랫폼은 현재 EWY(한국 대표 ETF), USD/KRW 환율, US10Y z-score 세 변수를
             사용하여 코스피 시초가를 예측한다. 이 세 변수만으로도 R² ≈ 0.274라는 준수한 예측력을
             달성하고 있으나, 실제 코스피 시초가 형성 과정에는 훨씬 더 많은 글로벌 신호들이 복잡하게
             얽혀 있다. 삼성전자와 SK하이닉스가 코스피 시가총액의 약 25~30%를 차지하는 현실에서,
@@ -204,7 +204,7 @@ export default async function Page() {
           <h2>Ⅲ. 데이터 및 연구방법론</h2>
           <h3>1. 데이터 출처 및 표본 기간</h3>
           <p>
-            본 연구는 KOSPI Dawn 플랫폼이 수집한 일별 데이터를 기반으로 하며, 표본 기간은
+            본 연구는 코스피프리뷰 플랫폼이 수집한 일별 데이터를 기반으로 하며, 표본 기간은
             2020년 1월부터 2025년 12월까지 총 1,462거래일이다. 종속변수는 코스피 일별
             시초가 수익률(전일 종가 대비)이며, 설명변수의 기준 시점은 한국 시간 오전 8시 30분
             이전에 확정 가능한 전일 미국 시장 마감값이다. 모든 수익률은 로그 차분을 취하여
@@ -221,7 +221,7 @@ export default async function Page() {
           </p>
           <h3>2. 기준 모델(Baseline Model)</h3>
           <p>
-            기준 모델은 현재 KOSPI Dawn 플랫폼에서 운용 중인 3변수 OLS 모형이다.
+            기준 모델은 현재 코스피프리뷰 플랫폼에서 운용 중인 3변수 OLS 모형이다.
           </p>
           <div style={{ fontFamily: "var(--font-mono)", background: "var(--surface-2)", padding: "12px 16px", borderRadius: "6px", fontSize: "0.9rem" }}>
             KOSPI_open_ret = α + β₁·EWY_ret + β₂·USDKRW_ret + β₃·US10Y_z + ε
@@ -929,7 +929,7 @@ export default async function Page() {
           {/* ── Ⅵ. 결론 및 시사점 ── */}
           <h2>Ⅵ. 결론 및 시사점</h2>
           <p>
-            본 연구는 KOSPI Dawn 모델의 현행 3변수 체계(EWY, USD/KRW, US10Y z-score) 외에
+            본 연구는 코스피프리뷰 모델의 현행 3변수 체계(EWY, USD/KRW, US10Y z-score) 외에
             추가 획득 가능한 11개 지수·신호의 코스피 시초가 예측력 기여도를 정량 분석했다.
             핵심 결론은 다음과 같다.
           </p>
@@ -964,7 +964,7 @@ export default async function Page() {
             신용 위험 조정 계수를 활성화한다.
           </p>
           <p>
-            본 연구의 한계로, 실증 분석에 사용한 데이터가 KOSPI Dawn 플랫폼의 자체 수집
+            본 연구의 한계로, 실증 분석에 사용한 데이터가 코스피프리뷰 플랫폼의 자체 수집
             데이터로서 표본 기간(2020~2025년)이 코로나19 충격, 금리 급등 사이클, AI 붐을
             포함하는 특수한 시기에 집중되어 있다. 향후 연구에서는 2010~2019년 데이터를
             추가하여 구조적 레짐 변화에 대한 로버스트성을 검증하고, SOX와 삼성전자 ADR의
@@ -990,7 +990,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
         <div className="paperNav">

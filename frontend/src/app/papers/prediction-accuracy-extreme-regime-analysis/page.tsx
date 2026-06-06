@@ -4,12 +4,12 @@ import { getDataFreshness } from "@/lib/data";
 import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const PAGE_TITLE =
-  "KOSPI Dawn 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건과 사전 탐지 지표";
+  "코스피프리뷰 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건과 사전 탐지 지표";
 const PAGE_DESCRIPTION =
-  "KOSPI Dawn 모델이 가장 정확하거나 가장 부정확했던 기간의 공통 조건을 분석하고, 고오차·저오차 구간을 사전에 탐지할 수 있는 지표 조합을 실증 검토한 연구논문입니다.";
+  "코스피프리뷰 모델이 가장 정확하거나 가장 부정확했던 기간의 공통 조건을 분석하고, 고오차·저오차 구간을 사전에 탐지할 수 있는 지표 조합을 실증 검토한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/prediction-accuracy-extreme-regime-analysis" },
   openGraph: {
@@ -38,7 +38,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 19</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -46,7 +46,7 @@ export default async function Page() {
         <div className="paperAbstract">
           <div className="paperAbstractTitle">요 약</div>
           <p className="paperAbstractBody">
-            본 연구는 KOSPI Dawn 모델의 1,462거래일 백테스트 데이터를 이용하여,
+            본 연구는 코스피프리뷰 모델의 1,462거래일 백테스트 데이터를 이용하여,
             예측 정확도(MAE) 기준 상위 25% 저오차 구간과 하위 25% 고오차 구간의 공통 특성을
             체계적으로 추출하고, 이를 사전에 탐지할 수 있는 지표 조합을 실증 검토한다.
             저오차 구간(MAE &lt; 8pt)은 전체의 23%를 차지하며, VIX &lt; 18, EWY 전일 변화율
@@ -74,7 +74,7 @@ export default async function Page() {
           <p className="paperAbstractBody">
             This study systematically extracts common characteristics of the top-quartile
             low-error periods (MAE &lt; 8 pts) and bottom-quartile high-error periods
-            (MAE &gt; 30 pts) from the KOSPI Dawn model&apos;s 1,462-trading-day backtest,
+            (MAE &gt; 30 pts) from the 코스피프리뷰 model&apos;s 1,462-trading-day backtest,
             and empirically examines indicator combinations capable of detecting them in advance.
             Low-error periods account for 23% of all days and share five characteristics:
             VIX below 18, EWY daily change within ±0.5%, 30-day USD/KRW volatility below 8 KRW,
@@ -110,7 +110,7 @@ export default async function Page() {
             수준을 유지한다.
           </p>
           <p>
-            KOSPI Dawn 모델의 1,462거래일 백테스트를 면밀히 검토하면 이 패턴이 선명하게 드러난다.
+            코스피프리뷰 모델의 1,462거래일 백테스트를 면밀히 검토하면 이 패턴이 선명하게 드러난다.
             전체 평균 MAE가 약 14.2pt인 가운데, 특정 기간에는 평균 MAE가 6.7pt에 불과하고
             방향 정확도가 79.4%에 달하는 고성능 구간이 존재한다. 반면, 평균 MAE가 87.3pt에
             달하고 방향 정확도가 41.2%로 동전 던지기보다 낮은 저성능 구간도 실재한다. 동일한 모델이
@@ -193,14 +193,14 @@ export default async function Page() {
 
           <h3>1. 분석 표본</h3>
           <p>
-            본 연구의 주 분석 데이터는 KOSPI Dawn 모델의 1,462거래일 백테스트 결과다. 이 기간은
+            본 연구의 주 분석 데이터는 코스피프리뷰 모델의 1,462거래일 백테스트 결과다. 이 기간은
             약 6년(2020년~2025년)에 해당하며, 코로나19 충격(2020년 3월), 테이퍼링 우려(2021년),
             금리 인상 사이클(2022년), 회복 국면(2023~2024년), 관세 충격(2025~2026년) 등 다양한
             시장 환경을 포함한다. 보조 검증 표본으로 2026년 4월 1일~5월 15일의 실측 데이터
             (31거래일)를 활용한다.
           </p>
           <p>
-            각 거래일별로 다음 변수를 수집한다: (1) KOSPI 실제 시초가, (2) KOSPI Dawn 모델 예측값,
+            각 거래일별로 다음 변수를 수집한다: (1) KOSPI 실제 시초가, (2) 코스피프리뷰 모델 예측값,
             (3) 절대 예측 오차(MAE), (4) 방향 일치 여부(0/1), (5) 전일 EWY ETF 종가 변화율,
             (6) 당일 VIX 개장 직전 값, (7) 당일 VIX 전일 대비 변화, (8) USD/KRW 환율 30일
             롤링 변동성, (9) FOMC·CPI 발표일 더미(0/1), (10) 외국인 코스피 순매수 연속일 수,
@@ -742,7 +742,7 @@ export default async function Page() {
           {/* ===================== Ⅵ. 결론 및 시사점 ===================== */}
           <h2>Ⅵ. 결론 및 시사점</h2>
           <p>
-            본 연구는 KOSPI Dawn 모델의 1,462거래일 백테스트를 분석하여 다음 세 가지 핵심 결과를
+            본 연구는 코스피프리뷰 모델의 1,462거래일 백테스트를 분석하여 다음 세 가지 핵심 결과를
             도출했다.
           </p>
           <p>
@@ -772,7 +772,7 @@ export default async function Page() {
           </p>
           <p>
             궁극적으로, 예측 모델의 가치는 예측의 정확도만큼 예측의 불확실성을 정직하게
-            전달하는 능력에도 달려 있다. KOSPI Dawn 정확도 신호등 시스템은 이 목표를
+            전달하는 능력에도 달려 있다. 코스피프리뷰 정확도 신호등 시스템은 이 목표를
             향한 첫 번째 실용적 구현이다.
           </p>
 

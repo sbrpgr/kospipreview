@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "달러-원 환율이 1,400원대에 진입한 이후 EWY ETF와 코스피 시초가 사이의 가격 전달 계수(β)가 어떻게 변화하는지를 Rolling Ridge 추정 결과와 실측 데이터로 분석한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/krw-regime-ewy-coefficient-shift" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 12</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -102,7 +102,7 @@ export default async function Page() {
             코스피 시초가(원화 기준)에 전달되는 과정에서 환율 변동이 핵심 매개 변수로 작용한다.
           </p>
           <p>
-            KOSPI Dawn 모델은 EWY 전날 종가에서 당일 시가 사이의 수익률을 핵심 예측 변수로
+            코스피프리뷰 모델은 EWY 전날 종가에서 당일 시가 사이의 수익률을 핵심 예측 변수로
             사용한다. 이 변수의 계수(β)는 "EWY가 1포인트 변하면 코스피 시초가가 얼마나 변하는가"를
             정량화한다. 환율이 낮을 때 이 계수는 안정적으로 유지되지만, 환율이 1,400원을 초과하면
             외국인의 코스피 투자 수익 구조 자체가 변화하여 계수에 압력이 가해진다.
@@ -111,7 +111,7 @@ export default async function Page() {
             본 연구는 이 "계수 압축" 현상을 이론적으로 설명하고, Rolling Ridge 추정 결과를
             통해 실증적으로 검증한다. 또한 현재 1,500원에 근접한 환율 수준이 모델의 예측
             신뢰도에 미치는 위험을 정량화하고, 환율 임계값 기반 모니터링 체계를 제안한다.
-            이 연구는 KOSPI Dawn 모델이 극단 환율 환경에서도 어떻게 작동하는지를 이해하고자
+            이 연구는 코스피프리뷰 모델이 극단 환율 환경에서도 어떻게 작동하는지를 이해하고자
             하는 운용자와 분석가에게 실용적인 지침을 제공한다.
           </p>
 
@@ -382,7 +382,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
         <div className="paperNav">

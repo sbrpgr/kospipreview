@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "대시보드의 야간선물 단순환산과 모델 예측이 각각 무엇을 측정하고, 두 값이 크게 다를 때 어떻게 해석해야 하는지 설명합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/night-futures-vs-model-comparison" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function Page() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn 대시보드에는 세 가지 숫자가 나란히 표시된다. 2026년 5월 4일 기준으로
+            코스피프리뷰 대시보드에는 세 가지 숫자가 나란히 표시된다. 2026년 5월 4일 기준으로
             야간선물 단순환산 6,862, EWY+환율 단순환산 6,889, 모델 예측 6,903이었다.
             이 세 값이 무엇이 다르고, 차이가 클 때 어떻게 읽어야 하는지 설명한다.
           </p>

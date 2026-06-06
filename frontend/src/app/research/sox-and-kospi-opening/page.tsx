@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "필라델피아 반도체 지수(SOX)가 백테스트 feature importance 1위를 기록한 이유와 코스피에서 반도체 비중이 갖는 의미를 설명합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/sox-and-kospi-opening" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function Page() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn 백테스트에서 LightGBM feature importance 1위는 S&P 500이 아니라 SOX(필라델피아 반도체 지수)였다.
+            코스피프리뷰 백테스트에서 LightGBM feature importance 1위는 S&P 500이 아니라 SOX(필라델피아 반도체 지수)였다.
             importance 3,039로 S&P 500(2,961)을 앞섰다. 코스피와 반도체 지수의 연결고리를 데이터로 분석한다.
           </p>
         </div>

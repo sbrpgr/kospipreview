@@ -5,7 +5,7 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const POLICY_TITLE = "운영정책";
 const POLICY_DESCRIPTION =
-  "KOSPI Dawn 서비스의 운영시간, 데이터 반영, 품질관리, 장애 대응, 책임범위 정책 안내입니다.";
+  "코스피프리뷰 서비스의 운영시간, 데이터 반영, 품질관리, 장애 대응, 책임범위 정책 안내입니다.";
 
 export const metadata: Metadata = {
   title: POLICY_TITLE,
@@ -46,7 +46,7 @@ export default async function OperationsPolicyPage() {
       <main className="prose">
         <h2 className="sectionTitle">운영정책</h2>
         <p>
-          본 운영정책은 KOSPI Dawn이 예측 데이터를 어떤 원칙으로 수집·처리·제공하는지, 그리고 장애나 보안 이벤트가
+          본 운영정책은 코스피프리뷰가 예측 데이터를 어떤 원칙으로 수집·처리·제공하는지, 그리고 장애나 보안 이벤트가
           발생했을 때 어떤 방식으로 대응하는지를 명확히 안내하기 위해 작성되었습니다. 플랫폼은 매우 우수한 인공지능 기반
           서비스를 목표로 하지만, 성능만큼 운영 일관성과 안전성이 중요하다는 관점을 기준으로 정책을 운영합니다.
         </p>

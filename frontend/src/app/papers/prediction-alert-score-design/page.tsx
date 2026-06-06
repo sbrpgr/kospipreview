@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "전신호 이탈 및 예측 신뢰도 붕괴를 사전에 감지하기 위한 복합 예측 경보 점수(PAS) 설계와 2026년 4월 충격 구간에서의 사전 경보 시뮬레이션 결과를 제시한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/prediction-alert-score-design" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 10</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -90,7 +90,7 @@ export default async function Page() {
           <p>
             예측 모델을 활용하는 투자자가 직면하는 가장 어려운 문제 중 하나는 언제 모델을
             신뢰하고 언제 의심해야 하는지를 판단하는 것이다. 모델이 실패한 뒤에야 실패를 알게
-            되는 후행적 인식은 실전에서 아무 보호도 제공하지 않는다. KOSPI Dawn 모델이
+            되는 후행적 인식은 실전에서 아무 보호도 제공하지 않는다. 코스피프리뷰 모델이
             2026년 4월에 13연속 밴드 이탈을 기록한 것을 투자자는 첫 번째 이탈 이후에야 알았다.
           </p>
           <p>
@@ -122,7 +122,7 @@ export default async function Page() {
           <p>
             Giacomini &amp; White(2006)는 예측 모델의 조건부 성능 테스트 프레임워크를 제시하며,
             최근 절대오차의 이동평균(MAE30d 등)이 모델 성능의 현재 상태를 반영하는
-            실시간 지표로 활용될 수 있음을 논증했다. 이는 KOSPI Dawn의 MAE30d가 단순한
+            실시간 지표로 활용될 수 있음을 논증했다. 이는 코스피프리뷰의 MAE30d가 단순한
             성과 보고 지표가 아니라 위험 경보 지표로 재해석될 수 있음을 시사한다.
           </p>
 
@@ -371,7 +371,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
 

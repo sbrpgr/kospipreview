@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "현재 고정 너비로 설정된 코스피 시초가 예측 밴드를 MAE30d에 연동하여 동적으로 조정하면 충격 레짐에서 적중률이 얼마나 회복되는지를 시뮬레이션한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/dynamic-band-width-mae30d-adjustment" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 15</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -46,7 +46,7 @@ export default async function Page() {
           <p className="paperAbstractBody">
             본 연구는 코스피 시초가 예측 밴드의 너비를 최근 30일 평균절대오차(MAE30d)에
             연동하여 동적으로 조정하는 체계를 설계하고, 충격 레짐에서의 적중률 개선 효과를
-            시뮬레이션한다. 현재 KOSPI Dawn 모델의 예측 밴드는 백테스트 기준 62.58포인트
+            시뮬레이션한다. 현재 코스피프리뷰 모델의 예측 밴드는 백테스트 기준 62.58포인트
             (약 ±31포인트)로 설정되어 있으며, 이는 정상 레짐(백테스트 MAE 12.24포인트)에
             최적화된 고정 너비다. 2026년 4월 충격 레짐에서 MAE30d는 31.97포인트로 상승했고,
             이 기간 밴드 적중률은 0%로 붕괴되었다(연속 13일 밴드 이탈). 이 붕괴의 근본 원인은
@@ -69,7 +69,7 @@ export default async function Page() {
           <p className="paperAbstractBody">
             This study designs a system for dynamically adjusting KOSPI opening price prediction
             band width by linking it to the 30-day moving average absolute error (MAE30d), and
-            simulates the improvement in hit rates during shock regimes. The current KOSPI Dawn
+            simulates the improvement in hit rates during shock regimes. The current 코스피프리뷰
             model uses a fixed band width of approximately 62.58 points (±31 points), calibrated
             to normal-regime backtest performance (MAE 12.24 points). During the April 2026 shock
             regime, MAE30d rose to 31.97 points and the band hit rate collapsed to 0% (13
@@ -95,7 +95,7 @@ export default async function Page() {
           <p>
             예측 밴드는 통계 모델이 제공하는 신뢰 구간의 실용적 표현이다. 밴드가 너무 좁으면
             충격 구간에서 지속적으로 이탈하여 신뢰도를 잃고, 너무 넓으면 방향성 정보 외에
-            크기에 대한 정보 가치가 희석된다. KOSPI Dawn의 현재 고정 밴드는 정상 레짐(백테스트
+            크기에 대한 정보 가치가 희석된다. 코스피프리뷰의 현재 고정 밴드는 정상 레짐(백테스트
             75.26% 적중률)에 최적화되어 있어, 충격 레짐에서 구조적으로 실패한다.
           </p>
           <p>
@@ -416,7 +416,7 @@ export default async function Page() {
           <p>
             투자 활용 관점에서 핵심 시사점은 세 가지다. 첫째, MAE30d가 25포인트를 초과하는
             순간부터 현재 표시되는 밴드보다 넓은 구간을 실제 불확실성 범위로 인식해야 한다.
-            KOSPI Dawn 사용자는 MAE30d 수치를 매일 확인하여 레짐 상태를 파악하는 습관이 필요하다.
+            코스피프리뷰 사용자는 MAE30d 수치를 매일 확인하여 레짐 상태를 파악하는 습관이 필요하다.
             둘째, MAE30d가 30포인트를 초과하는 충격 레짐에서는 밴드를 2~3배 넓혀 해석하는
             것이 현실적 불확실성을 정직하게 반영하는 방법이다. 셋째, 400포인트를 초과하는 극단
             이탈은 어떤 합리적 밴드도 수용 불가능한 구조적 한계이므로, 이런 날에는 밴드 적중
@@ -445,7 +445,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
         <div className="paperNav">

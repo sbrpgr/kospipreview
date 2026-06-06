@@ -9,7 +9,7 @@ const PAGE_DESCRIPTION =
   "코스피 시초가 100포인트 이상 갭을 유발하는 이벤트를 통화정책·무역·지정학·실적·경제지표·수급·기술적 이벤트 7개 범주로 분류하고 각 범주의 사전 예측 가능성을 정량화한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/kospi-gap-event-taxonomy" },
   openGraph: {
@@ -38,7 +38,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 20</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -107,7 +107,7 @@ export default async function Page() {
             때문이다.
           </p>
           <p>
-            기존 KOSPI Dawn 연구 시리즈(Working Paper No.1~19)는 EWY 신호, 환율 레짐, 야간 선물,
+            기존 코스피프리뷰 연구 시리즈(Working Paper No.1~19)는 EWY 신호, 환율 레짐, 야간 선물,
             잔차 레이어 등 다양한 예측 변수를 탐구해 왔다. 그러나 갭 유발 이벤트 자체를 체계적으로
             분류하고 예측 가능성을 범주별로 평가한 연구는 아직 수행되지 않았다. 이 공백이 본 연구의
             출발점이다.
@@ -460,7 +460,7 @@ export default async function Page() {
           </p>
           <p>
             이 범주의 평균 갭 크기 ±98pt는 전체 범주 중 가장 작다. 수급·기술적 이벤트는 갭 크기가
-            크지 않더라도 방향이 비교적 예측 가능하여, KOSPI Dawn 모델의 정확도에 기여하는 범주다.
+            크지 않더라도 방향이 비교적 예측 가능하여, 코스피프리뷰 모델의 정확도에 기여하는 범주다.
           </p>
 
           <h3>8. 범주 ⑦ 복합·전염 이벤트 (10건, 7.2%)</h3>
@@ -784,7 +784,7 @@ export default async function Page() {
             </table>
           </div>
           <p>
-            이 매트릭스는 KOSPI Dawn 모델의 "범주 인식형 예측 레이어" 설계의 기본 틀을 제공한다.
+            이 매트릭스는 코스피프리뷰 모델의 "범주 인식형 예측 레이어" 설계의 기본 틀을 제공한다.
             현재 모델은 모든 갭을 동일한 EWY+환율 신호로 처리하지만, 범주 인식이 가능해지면
             범주별로 다른 가중치·밴드·경보 전략을 자동 적용하는 구조로 발전할 수 있다.
           </p>
@@ -824,7 +824,7 @@ export default async function Page() {
             둘째, 무역·관세 이벤트(DA = 44%)와 복합·전염 이벤트(DA = 38%)는 EWY 신호를 사용하면
             오히려 역효과가 나는 "역예측 범주"다. 이 범주들은 발생 건수(31건 + 10건 = 41건, 29.7%)와
             평균 갭 크기(±187pt, ±221pt)가 모두 커서, 예측 모델 전체 성과를 크게 훼손한다.
-            2026년 4월 관세 충격이 KOSPI Dawn 모델의 평균 MAE를 급격히 끌어올린 구조적 이유가 여기에 있다.
+            2026년 4월 관세 충격이 코스피프리뷰 모델의 평균 MAE를 급격히 끌어올린 구조적 이유가 여기에 있다.
           </p>
           <p>
             셋째, EWY 선행형 갭(DA = 63%)과 동시호가 결정형 갭(DA = 39%)의 구분이 예측 모델 개선의
@@ -838,7 +838,7 @@ export default async function Page() {
             (Working Paper No.16, No.17의 레짐 의존 분석 참조).
           </p>
           <p>
-            실무적 시사점으로, KOSPI Dawn 사용자는 무역·관세 협상이 활발한 기간(현재 2026년 4~5월)에
+            실무적 시사점으로, 코스피프리뷰 사용자는 무역·관세 협상이 활발한 기간(현재 2026년 4~5월)에
             예측값의 신뢰도를 의도적으로 낮추고 예측 밴드를 ±1.5~2배 확장해야 한다. 반대로 기업
             실적 시즌(매 분기 말~다음 분기 초)과 MSCI 리밸런싱 시즌에는 예측 신뢰도가 상대적으로
             높다는 정보를 적극 활용해야 한다.
@@ -882,7 +882,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터와 이벤트 분류는 KOSPI Dawn 플랫폼 연구팀의 자체 수집·판단에 기반하며,
+          실증 분석에 사용된 데이터와 이벤트 분류는 코스피프리뷰 플랫폼 연구팀의 자체 수집·판단에 기반하며,
           데이터의 완전성·정확성을 보증하지 않습니다. 분석 결과의 해석과 투자 활용에 따른 책임은
           독자 본인에게 있습니다. 과거 갭 패턴과 예측 가능성 지표가 미래에도 동일하게 유지될 것을
           보장하지 않습니다.

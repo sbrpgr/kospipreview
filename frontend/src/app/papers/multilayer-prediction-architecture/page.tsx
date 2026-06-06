@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "코스피 시초가 예측을 위한 4계층 모델 아키텍처의 설계 원리와 각 레이어의 기여 구조를 실증 데이터와 함께 체계적으로 기술한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/multilayer-prediction-architecture" },
   openGraph: {
@@ -37,14 +37,14 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 7</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
         <div className="paperAbstract">
           <div className="paperAbstractTitle">요 약</div>
           <p className="paperAbstractBody">
-            본 연구는 KOSPI Dawn 플랫폼에서 코스피 시초가를 예측하기 위해 구축된
+            본 연구는 코스피프리뷰 플랫폼에서 코스피 시초가를 예측하기 위해 구축된
             EWY Synthetic K200 Ridge 아키텍처의 설계 원리, 각 레이어의 구조와 기여도,
             그리고 레이어 간 상호작용 메커니즘을 체계적으로 기술한다. 이 모델은 단일 회귀가 아닌
             4개 계층으로 구성된다. 제1계층(Core EWY+FX)은 EWY 로그수익률(계수 0.364)과
@@ -68,7 +68,7 @@ export default async function Page() {
           <p className="paperAbstractBody">
             This study systematically describes the design principles, layer-by-layer structure,
             and inter-layer interaction mechanisms of the EWY Synthetic K200 Ridge architecture
-            used in the KOSPI Dawn platform for predicting KOSPI opening prices. The model
+            used in the 코스피프리뷰 platform for predicting KOSPI opening prices. The model
             consists of four layers rather than a single regression. Layer 1 (Core EWY+FX)
             estimates a synthetic KOSPI200 return using Rolling Ridge regression on EWY log
             returns (coefficient 0.364) and USD/KRW exchange rates (coefficient 0.200), achieving
@@ -98,7 +98,7 @@ export default async function Page() {
             방지하는 것이 예측 모델 설계의 핵심 과제다.
           </p>
           <p>
-            본 연구는 KOSPI Dawn 플랫폼이 채택한 4계층 아키텍처의 설계 철학을 기술한다.
+            본 연구는 코스피프리뷰 플랫폼이 채택한 4계층 아키텍처의 설계 철학을 기술한다.
             각 레이어가 왜 독립적으로 설계되었는지, 레이어 간 정보 흐름이 어떻게 구성되는지,
             그리고 각 레이어의 실증적 기여가 무엇인지를 현재 파라미터 수치와 함께 규명한다.
           </p>
@@ -308,7 +308,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
 

@@ -5,7 +5,7 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const PRIVACY_TITLE = "개인정보처리방침";
 const PRIVACY_DESCRIPTION =
-  "KOSPI Dawn 서비스의 개인정보 처리 기준, 로그 정책, 보관 원칙, 사용자 권리 안내입니다.";
+  "코스피프리뷰 서비스의 개인정보 처리 기준, 로그 정책, 보관 원칙, 사용자 권리 안내입니다.";
 
 export const metadata: Metadata = {
   title: PRIVACY_TITLE,
@@ -42,7 +42,7 @@ export default async function PrivacyPage() {
       <main className="prose">
         <h2 className="sectionTitle">개인정보처리방침</h2>
         <p>
-          KOSPI Dawn은 금융 데이터 조회 및 예측 정보를 제공하는 웹서비스로서, 사용자의 개인정보를 최소한으로 처리하는
+          코스피프리뷰는 금융 데이터 조회 및 예측 정보를 제공하는 웹서비스로서, 사용자의 개인정보를 최소한으로 처리하는
           원칙을 채택하고 있습니다. 본 방침은 어떤 정보가 어떤 이유로 처리되는지, 그리고 사용자에게 어떤 권리가 있는지
           명확히 안내하기 위해 작성되었습니다. 서비스 운영자는 필요 최소 범위를 넘어선 정보 수집을 지양하며, 보안·안정성·
           법적 준수의 균형을 기준으로 운영 정책을 유지합니다.

@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "2026년 4~5월 24거래일 실측 기록을 분석하여 EWY 신호가 이틀 연속 반대 방향으로 크게 벗어나는 오차 역전 패턴을 발견하고, 그 메커니즘과 예측 가능성 함의를 분석한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/ewy-signal-reversal-error-pattern" },
   openGraph: {
@@ -37,14 +37,14 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 23</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 6월 · kospipreview.com</p>
         </div>
 
         <div className="paperAbstract">
           <div className="paperAbstractTitle">요 약</div>
           <p className="paperAbstractBody">
-            본 연구는 KOSPI Dawn 플랫폼의 2026년 4월 9일~5월 15일 실측 기록(24거래일)을
+            본 연구는 코스피프리뷰 플랫폼의 2026년 4월 9일~5월 15일 실측 기록(24거래일)을
             분석하여 예측 오차가 이틀 연속 반대 방향으로 크게 발생하는 '연속 방향 역전 패턴'을
             발견하고, 그 구조적 메커니즘을 규명한다. 4월 23~24일 사례에서 4월 23일 EWY가
             코스피 실제 시초가보다 400포인트 과대 신호를 보낸 다음 날, 4월 24일 EWY는
@@ -65,7 +65,7 @@ export default async function Page() {
         <div className="paperAbstract" style={{ marginTop: "16px" }}>
           <div className="paperAbstractTitle">Abstract</div>
           <p className="paperAbstractBody">
-            This study analyzes actual records from KOSPI Dawn platform covering April 9 to
+            This study analyzes actual records from 코스피프리뷰 platform covering April 9 to
             May 15, 2026 (24 trading days) and identifies a "consecutive directional error
             reversal pattern" in which prediction errors occur in opposite directions on two
             consecutive days with large magnitudes. In the April 23–24 case, EWY provided
@@ -92,7 +92,7 @@ export default async function Page() {
           <p>
             예측 모델의 오차를 단일 날짜 단위로 분석하면 "큰 오차 날"과 "작은 오차 날"의
             구분에 그친다. 그러나 연속된 거래일의 오차 방향을 함께 관찰하면 단발성 오차와는
-            질적으로 다른 구조적 패턴이 드러난다. 본 연구는 KOSPI Dawn 플랫폼이 2026년 4월
+            질적으로 다른 구조적 패턴이 드러난다. 본 연구는 코스피프리뷰 플랫폼이 2026년 4월
             9일부터 5월 15일까지 추적한 24거래일의 실측 예측 기록에서 '연속 방향 역전 패턴'—
             전일 과대 예측 다음 날 과소 예측, 또는 그 역—이 반복적으로 나타나는 현상을
             발견하고 그 메커니즘을 분석한다.
@@ -142,7 +142,7 @@ export default async function Page() {
           <h2>Ⅲ. 데이터 및 연구 방법론</h2>
           <h3>1. 데이터</h3>
           <p>
-            분석 대상은 KOSPI Dawn 플랫폼의 history.json에 기록된 2026년 4월 9일~5월 15일
+            분석 대상은 코스피프리뷰 플랫폼의 history.json에 기록된 2026년 4월 9일~5월 15일
             24거래일 실측 데이터다. 각 거래일별로 Ridge 모델 예측치(modelPrediction),
             EWY+환율 단순환산치(ewyFxSimpleOpen), 야간선물 단순환산치(nightFuturesSimpleOpen),
             실제 시초가(actualOpen)가 기록되어 있다. 야간선물은 전 기간에 걸쳐 null이었으며
@@ -448,11 +448,11 @@ export default async function Page() {
 
           <div className="paperReferences">
             <div className="paperReferencesTitle">참고문헌</div>
-            <p className="paperReferenceItem">KOSPI Dawn 퀀트 연구팀 (2026). 야간 K200 선물 신호의 구조적 공백과 EWY 대체 신호의 한계. <em>Working Paper No. 8</em>. kospipreview.com.</p>
-            <p className="paperReferenceItem">KOSPI Dawn 퀀트 연구팀 (2026). 다중 예측 신호 수렴도 지수(CSI)의 시초가 예측 불확실성 대용변수 활용 연구. <em>Working Paper No. 3</em>. kospipreview.com.</p>
-            <p className="paperReferenceItem">KOSPI Dawn 퀀트 연구팀 (2026). 시장 레짐 전환이 코스피 시초가 예측 정확도에 미치는 구조적 영향. <em>Working Paper No. 2</em>. kospipreview.com.</p>
-            <p className="paperReferenceItem">KOSPI Dawn 퀀트 연구팀 (2026). 코스피 개장 갭 형성의 비대칭성과 통계 모델의 하방 리스크 과소추정 문제. <em>Working Paper No. 4</em>. kospipreview.com.</p>
-            <p className="paperReferenceItem">KOSPI Dawn 퀀트 연구팀 (2026). KOSPI Dawn 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건. <em>Working Paper No. 19</em>. kospipreview.com.</p>
+            <p className="paperReferenceItem">코스피프리뷰 퀀트 연구팀 (2026). 야간 K200 선물 신호의 구조적 공백과 EWY 대체 신호의 한계. <em>Working Paper No. 8</em>. kospipreview.com.</p>
+            <p className="paperReferenceItem">코스피프리뷰 퀀트 연구팀 (2026). 다중 예측 신호 수렴도 지수(CSI)의 시초가 예측 불확실성 대용변수 활용 연구. <em>Working Paper No. 3</em>. kospipreview.com.</p>
+            <p className="paperReferenceItem">코스피프리뷰 퀀트 연구팀 (2026). 시장 레짐 전환이 코스피 시초가 예측 정확도에 미치는 구조적 영향. <em>Working Paper No. 2</em>. kospipreview.com.</p>
+            <p className="paperReferenceItem">코스피프리뷰 퀀트 연구팀 (2026). 코스피 개장 갭 형성의 비대칭성과 통계 모델의 하방 리스크 과소추정 문제. <em>Working Paper No. 4</em>. kospipreview.com.</p>
+            <p className="paperReferenceItem">코스피프리뷰 퀀트 연구팀 (2026). 코스피프리뷰 예측 정확도 극단 구간 분석 — 최고·최저 정확도 레짐의 공통 조건. <em>Working Paper No. 19</em>. kospipreview.com.</p>
             <p className="paperReferenceItem">Barberis, N., Shleifer, A., &amp; Vishny, R. (1998). A model of investor sentiment. <em>Journal of Financial Economics</em>, 49(3), 307–343.</p>
             <p className="paperReferenceItem">De Bondt, W. F. M., &amp; Thaler, R. (1985). Does the stock market overreact? <em>Journal of Finance</em>, 40(3), 793–805.</p>
             <p className="paperReferenceItem">Jegadeesh, N., &amp; Titman, S. (1993). Returns to buying winners and selling losers. <em>Journal of Finance</em>, 48(1), 65–91.</p>

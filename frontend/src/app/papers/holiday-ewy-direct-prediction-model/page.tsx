@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "국내 공휴일에 KRX가 휴장하고 미국 시장이 운영 중인 시나리오에서 야간선물 브릿지 없이 마지막 KRX 거래일 EWY 종가를 기준점으로 삼는 공휴일 전용 예측 모델의 설계 원리와 성능 경계를 분석한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/holiday-ewy-direct-prediction-model" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 22</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 6월 · kospipreview.com</p>
         </div>
 
@@ -129,7 +129,7 @@ export default async function Page() {
             로그 수익률을 실시간으로 반영해 예측값을 갱신한다.
           </p>
           <p>
-            그러나 KOSPI Dawn 플랫폼의 2026년 4~5월 실측 기록(No. 8 논문)에서 야간선물은
+            그러나 코스피프리뷰 플랫폼의 2026년 4~5월 실측 기록(No. 8 논문)에서 야간선물은
             27거래일 전 기간에 걸쳐 null을 기록했다. 야간 K200 선물의 CME·SGX 유동성이
             2025년 이후 급감하면서 신뢰할 수 있는 브릿지 앵커를 제공하지 못하는 상황이
             사실상 일상화된 것이다. 역설적으로, 모델1도 야간선물 없이 EWY만으로 가동되는
@@ -375,10 +375,10 @@ export default async function Page() {
 
           <div className="paperReferences">
             <div className="paperReferencesTitle">참고문헌</div>
-            <p className="paperReferenceItem">KOSPI Dawn 퀀트 연구팀 (2026). 야간 K200 선물 신호의 구조적 공백과 EWY 대체 신호의 한계 — 2026년 4~5월 실측 기록 분석. <em>Working Paper No. 8</em>. kospipreview.com.</p>
-            <p className="paperReferenceItem">KOSPI Dawn 퀀트 연구팀 (2026). EWY-코스피 가격 전달 계수의 시변성과 투자 의사결정 함의. <em>Working Paper No. 5</em>. kospipreview.com.</p>
-            <p className="paperReferenceItem">KOSPI Dawn 퀀트 연구팀 (2026). MAE30d 연동 동적 예측 밴드 너비 조정 체계. <em>Working Paper No. 15</em>. kospipreview.com.</p>
-            <p className="paperReferenceItem">KOSPI Dawn 퀀트 연구팀 (2026). 코스피 시초가 예측 모델의 계층적 설계 체계. <em>Working Paper No. 7</em>. kospipreview.com.</p>
+            <p className="paperReferenceItem">코스피프리뷰 퀀트 연구팀 (2026). 야간 K200 선물 신호의 구조적 공백과 EWY 대체 신호의 한계 — 2026년 4~5월 실측 기록 분석. <em>Working Paper No. 8</em>. kospipreview.com.</p>
+            <p className="paperReferenceItem">코스피프리뷰 퀀트 연구팀 (2026). EWY-코스피 가격 전달 계수의 시변성과 투자 의사결정 함의. <em>Working Paper No. 5</em>. kospipreview.com.</p>
+            <p className="paperReferenceItem">코스피프리뷰 퀀트 연구팀 (2026). MAE30d 연동 동적 예측 밴드 너비 조정 체계. <em>Working Paper No. 15</em>. kospipreview.com.</p>
+            <p className="paperReferenceItem">코스피프리뷰 퀀트 연구팀 (2026). 코스피 시초가 예측 모델의 계층적 설계 체계. <em>Working Paper No. 7</em>. kospipreview.com.</p>
             <p className="paperReferenceItem">Darrat, A. F., &amp; Rahman, S. (1995). Has futures trading activity caused stock price volatility? <em>Journal of Futures Markets</em>, 15(5), 537–557.</p>
             <p className="paperReferenceItem">Ivanov, S. I., &amp; Lenkey, S. L. (2018). Are there arbitrage profits in ETF pricing? <em>Journal of Banking &amp; Finance</em>, 87, 205–220.</p>
             <p className="paperReferenceItem">Hoerl, A. E., &amp; Kennard, R. W. (1970). Ridge regression: Biased estimation for nonorthogonal problems. <em>Technometrics</em>, 12(1), 55–67.</p>

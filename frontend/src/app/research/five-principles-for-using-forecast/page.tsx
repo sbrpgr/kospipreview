@@ -5,10 +5,10 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const PAGE_TITLE = "예측 모델을 참고할 때 반드시 알아야 할 다섯 가지";
 const PAGE_DESCRIPTION =
-  "KOSPI Dawn 예측값을 올바르게 활용하고 잘못 사용하지 않기 위한 다섯 가지 원칙을 정리합니다.";
+  "코스피프리뷰 예측값을 올바르게 활용하고 잘못 사용하지 않기 위한 다섯 가지 원칙을 정리합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/five-principles-for-using-forecast" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function Page() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            KOSPI Dawn은 코스피 시초가를 예측하는 퀀트 리서치 플랫폼이다.
+            코스피프리뷰는 코스피 시초가를 예측하는 퀀트 리서치 플랫폼이다.
             예측값을 잘못 해석하거나 과도하게 신뢰하면 예상치 못한 결과를 낳는다.
             이 리서치 아티클들을 통해 쌓은 데이터와 사례를 바탕으로,
             예측을 올바르게 참고하는 다섯 가지 원칙을 정리한다.
@@ -90,7 +90,7 @@ export default async function Page() {
 
         <h3>4. 세 숫자 중 하나만 보지 마라</h3>
         <p>
-          KOSPI Dawn은 야간선물 단순환산, EWY+환율 단순환산, 모델 예측 세 값을 함께 제공한다.
+          코스피프리뷰는 야간선물 단순환산, EWY+환율 단순환산, 모델 예측 세 값을 함께 제공한다.
           이 세 값을 비교하면 신호의 일치도와 불확실성을 판단할 수 있다.
           세 값이 50포인트 이내에서 수렴(2026-05-04: 6,862~6,903, 범위 41포인트)하면
           서로 다른 경로의 정보가 같은 방향을 가리키는 것이고,
@@ -105,14 +105,14 @@ export default async function Page() {
 
         <h3>5. 예측값은 진입 타이밍이 아니라 방향과 범위 참고용이다</h3>
         <p>
-          KOSPI Dawn의 예측은 "내일 코스피가 6,900포인트에 정확히 시작할 것"을 주장하지 않는다.
+          코스피프리뷰의 예측은 "내일 코스피가 6,900포인트에 정확히 시작할 것"을 주장하지 않는다.
           "현재 해외 지표 흐름에 근거하면 6,870~6,930 범위에서 개장할 가능성이 높다"는
           방향과 범위에 대한 연구 추정이다. 이를 특정 가격에서의 진입·청산 시그널로
           사용하는 것은 이 플랫폼의 설계 목적을 벗어난 활용이다.
         </p>
         <p>
           방향 적중률 76.53%는 6년치 데이터의 통계적 결과다. 특정 날이 그 76% 안에 드는지
-          25% 밖에 드는지는 사전에 알 수 없다. KOSPI Dawn은 미래를 보장하는 답안지가 아니라,
+          25% 밖에 드는지는 사전에 알 수 없다. 코스피프리뷰는 미래를 보장하는 답안지가 아니라,
           불확실한 시장을 구조적으로 읽기 위한 연구 도구다.
           이 도구를 올바르게 활용하는 것은 전적으로 사용자의 판단에 달려 있다.
         </p>

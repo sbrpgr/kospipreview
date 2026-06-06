@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "2026년 4월 관세 쇼크 구간에서 코스피 시초가 예측 모델이 13거래일 연속 밴드를 벗어난 이유를 실측 데이터로 분석합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/model-in-volatile-markets" },
   openGraph: {
@@ -40,7 +40,7 @@ export default async function ModelInVolatileMarketsPage() {
           </div>
           <h2 className="sectionTitle">{PAGE_TITLE}</h2>
           <p className="researchArticleLead">
-            2026년 4월, KOSPI Dawn 모델은 13거래일 연속으로 예측 밴드를 벗어났다.
+            2026년 4월, 코스피프리뷰 모델은 13거래일 연속으로 예측 밴드를 벗어났다.
             같은 모델이 1,462행 백테스트에서 75% 밴드 적중률을 기록한 것과 대비해,
             무엇이 달랐는지 실측 데이터를 통해 분석한다.
           </p>
@@ -49,7 +49,7 @@ export default async function ModelInVolatileMarketsPage() {
         <h3>1. 4월 9일: 첫 번째 충격</h3>
         <p>
           4월 9일 새벽, 트럼프 행정부의 상호관세 발효 소식이 아시아 시장 전반을 강타했다.
-          KOSPI Dawn 모델의 당일 예측값은 6,090포인트였다. 실제 시초가는 5,826포인트로 열렸다.
+          코스피프리뷰 모델의 당일 예측값은 6,090포인트였다. 실제 시초가는 5,826포인트로 열렸다.
           오차는 264포인트, 전일 대비 약 4.5% 하방 충격이었다. 모델 예측 밴드의 하단(6,053포인트)보다도
           227포인트 아래로 시장이 열린 것이다.
         </p>
@@ -112,7 +112,7 @@ export default async function ModelInVolatileMarketsPage() {
 
         <h3>4. 왜 통계 모델은 이런 구간에 취약한가</h3>
         <p>
-          KOSPI Dawn 모델은 EWY와 달러-원 환율을 핵심 신호로 사용하고, S&P 500, SOX, VIX 등을
+          코스피프리뷰 모델은 EWY와 달러-원 환율을 핵심 신호로 사용하고, S&P 500, SOX, VIX 등을
           보조 신호로 활용한다. 이 신호들은 정상적인 시장 레짐에서는 코스피 시초가 변화의 방향과
           대략적인 크기를 설명한다. 그러나 모든 신호가 동시에 전례 없는 크기로 움직이는 구간에서는
           계수의 선형 적용 자체가 한계에 부딪힌다.
@@ -161,7 +161,7 @@ export default async function ModelInVolatileMarketsPage() {
           </li>
         </ul>
         <p>
-          KOSPI Dawn은 이 기간의 실측 기록을 그대로 공개한다.
+          코스피프리뷰는 이 기간의 실측 기록을 그대로 공개한다.
           모델이 틀린 날을 숨기지 않는 것이 이 플랫폼의 운영 원칙 중 하나다.
           예측이 맞은 날만 골라 보여주는 것은 통계적으로 의미 없는 주장이기 때문이다.
         </p>

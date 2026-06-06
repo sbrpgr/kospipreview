@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "코스피 폐장 이후 익일 개장까지 17.5시간 동안 시초가를 추적할 수 있는 다중 프록시 지표 체계를 설계하고, 각 지표의 정보 기여도를 실증적으로 평가한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/kospi-24h-tracking-indicators" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 9</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -47,7 +47,7 @@ export default async function Page() {
             본 연구는 코스피가 15:30 KST에 폐장하고 익일 09:00 KST에 개장하기까지
             17.5시간의 정보 공백 구간에서 시초가 방향과 크기를 실시간으로 추적할 수 있는
             다중 프록시 지표 체계를 설계하고 각 지표의 정보 기여도를 실증적으로 평가한다.
-            KOSPI Dawn 플랫폼의 실시간 수집 데이터(EWY, USD/KRW, WTI, Gold, S&amp;P500,
+            코스피프리뷰 플랫폼의 실시간 수집 데이터(EWY, USD/KRW, WTI, Gold, S&amp;P500,
             NASDAQ, SOX, 미국 10년물 금리)를 분석하여 17.5시간을 세 구간으로 분해한다.
             제1구간(15:30~17:00 KST)은 미국 프리마켓 이전으로 직접 추적 가능한 신호가
             없는 완전 공백 구간이다. 제2구간(17:00~16:00 KST 익일)은 EWY 주도 구간으로
@@ -70,7 +70,7 @@ export default async function Page() {
             direction and magnitude in real time during the 17.5-hour information gap between
             the KOSPI close (15:30 KST) and the following day's opening (09:00 KST), and
             empirically evaluates the information contribution of each indicator. Using real-time
-            data collected by the KOSPI Dawn platform (EWY, USD/KRW, WTI, Gold, S&amp;P500,
+            data collected by the 코스피프리뷰 platform (EWY, USD/KRW, WTI, Gold, S&amp;P500,
             NASDAQ, SOX, and U.S. 10-year yield), we decompose the 17.5-hour gap into three
             phases. Phase 1 (15:30–17:00 KST) is a complete blank with no directly observable
             signals. Phase 2 (17:00 KST–16:00 KST next day) is EWY-dominated, with R²=0.274.
@@ -164,7 +164,7 @@ export default async function Page() {
 
           <h3>2. 각 지표의 코스피 설명력 측정</h3>
           <p>
-            KOSPI Dawn 플랫폼의 backtest_diagnostics.json과 실측 기록을 이용하여
+            코스피프리뷰 플랫폼의 backtest_diagnostics.json과 실측 기록을 이용하여
             각 지표의 단독 설명력(R²)과 EWY 포함 모델 대비 한계 기여(partial R²)를 측정한다.
           </p>
 
@@ -276,7 +276,7 @@ export default async function Page() {
 
         <div className="paperDisclaimer">
           본 논문은 연구 목적으로 작성된 Working Paper이며, 특정 자산에 대한 투자를 권유하지 않습니다.
-          실증 분석에 사용된 데이터는 KOSPI Dawn 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
+          실증 분석에 사용된 데이터는 코스피프리뷰 플랫폼의 자체 수집 데이터로, 분석 결과의 해석과
           투자 활용에 따른 책임은 독자 본인에게 있습니다.
         </div>
 

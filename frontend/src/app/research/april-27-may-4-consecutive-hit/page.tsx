@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "13일 연속 밴드 이탈 이후 5거래일 중 4적중으로 모델 성능이 회복된 구간의 시장 조건을 데이터로 분석합니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/research/april-27-may-4-consecutive-hit" },
   openGraph: {

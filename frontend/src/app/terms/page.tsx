@@ -5,7 +5,7 @@ import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const TERMS_TITLE = "이용약관";
 const TERMS_DESCRIPTION =
-  "KOSPI Dawn 서비스의 무료 이용 원칙, 허용 범위, 금지 행위, 책임 제한에 관한 이용약관 안내입니다.";
+  "코스피프리뷰 서비스의 무료 이용 원칙, 허용 범위, 금지 행위, 책임 제한에 관한 이용약관 안내입니다.";
 
 export const metadata: Metadata = {
   title: TERMS_TITLE,
@@ -42,7 +42,7 @@ export default async function TermsPage() {
       <main className="prose">
         <h2 className="sectionTitle">이용약관</h2>
         <p>
-          본 약관은 KOSPI Dawn 서비스의 이용 조건과 기본 원칙을 안내하기 위해 작성되었습니다. 본 서비스는 공개형
+          본 약관은 코스피프리뷰 서비스의 이용 조건과 기본 원칙을 안내하기 위해 작성되었습니다. 본 서비스는 공개형
           연구·검증 플랫폼으로 운영되며, 사용자는 별도의 회원가입이나 유료 결제 없이 자유롭게 열람하고 참고할 수 있습니다.
           다만 무료 공개 서비스라고 해서 무제한 책임이나 무제한 권리를 의미하는 것은 아니므로, 서비스의 성격과 책임 범위를
           아래 기준에 따라 이해해 주시기 바랍니다.
@@ -50,7 +50,7 @@ export default async function TermsPage() {
 
         <h3>1. 서비스의 성격</h3>
         <p>
-          KOSPI Dawn은 다음 거래일 코스피 시초가를 연구하고 검증하기 위한 데이터 기반 플랫폼입니다. 화면에 표시되는 시장
+          코스피프리뷰는 다음 거래일 코스피 시초가를 연구하고 검증하기 위한 데이터 기반 플랫폼입니다. 화면에 표시되는 시장
           지표, 모델 예측값, 최근 실측 기록, 야간선물 단순환산은 모두 연구·비교 목적의 참고 자료이며, 특정 상품의 매수·매도
           또는 투자 수익을 보장하는 자문 서비스가 아닙니다.
         </p>

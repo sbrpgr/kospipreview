@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "Rolling Ridge 추정을 통해 EWY-코스피 전달 계수(β)의 시변성을 분석하고, R² 및 MAE30d를 실시간 모델 신뢰도 지표로 활용하는 동적 투자 활용 체계를 제안한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/ewy-time-varying-coefficient" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 5</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 

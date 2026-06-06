@@ -8,7 +8,7 @@ const PAGE_DESCRIPTION =
   "코스피 시초가 갭의 상·하방 비대칭성을 실측 데이터로 확인하고, 통계 모델이 이산적 정치 충격에 의한 극단 갭을 구조적으로 과소추정하는 메커니즘과 투자적 함의를 분석한 연구논문입니다.";
 
 export const metadata: Metadata = {
-  title: `${PAGE_TITLE} | ${SITE_NAME}`,
+  title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/papers/opening-gap-asymmetry" },
   openGraph: {
@@ -37,7 +37,7 @@ export default async function Page() {
         <div className="paperMeta">
           <div className="paperSeriesLabel">Working Paper No. 4</div>
           <h1 className="paperTitle">{PAGE_TITLE}</h1>
-          <p className="paperAuthor">KOSPI Dawn 퀀트 연구팀</p>
+          <p className="paperAuthor">코스피프리뷰 퀀트 연구팀</p>
           <p className="paperDate">2026년 5월 · kospipreview.com</p>
         </div>
 
@@ -129,7 +129,7 @@ export default async function Page() {
           <h2>Ⅲ. 데이터 및 분석방법</h2>
           <p>
             분석 대상은 2026년 4월 9일부터 5월 4일까지 17거래일의 실측 코스피 시초가 기록과
-            KOSPI Dawn 모델 예측값이다. 각 거래일의 예측 오차는 (실제 시초가 - 모델 예측)으로
+            코스피프리뷰 모델 예측값이다. 각 거래일의 예측 오차는 (실제 시초가 - 모델 예측)으로
             정의한다. 양(+)의 오차는 실제가 예측보다 높았음(모델 과소추정), 음(−)의 오차는
             실제가 예측보다 낮았음(모델 과대추정)을 나타낸다.
           </p>
