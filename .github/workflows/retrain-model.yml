@@ -120,6 +120,12 @@ jobs:
               print("removed invalid skipped Model2 placeholder files before publish")
           PY
 
+      - name: Guard live JSON publish
+        run: |
+          python ./scripts/guard_live_json_publish.py \
+            --data-dir frontend/public/data \
+            --seed-dir .live-data-seed/bucket
+
       - name: Publish generated JSON to Cloud Storage
         run: |
           gcloud storage cp \

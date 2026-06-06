@@ -241,13 +241,17 @@ Responsible for:
 - static fallback JSON;
 - Cloud Storage JSON publish.
 
-It must not deploy Firebase Hosting during routine scheduled runs.
+It must not deploy Firebase Hosting during routine scheduled runs. Before
+publishing JSON, it must run `scripts/guard_live_json_publish.py` so a rebuild
+cannot shrink the current live trend or publish a Model2 artifact that violates
+the independent no-night-futures contract.
 
 ### `refresh-night-futures`
 
 Manual fallback JSON refresh only.
 
 Use it only when Cloud Run live refresh is degraded.
+It uses the same pre-publish JSON guard as `retrain-model`.
 
 ## Recovery Checklist
 

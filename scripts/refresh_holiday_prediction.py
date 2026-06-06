@@ -1226,7 +1226,7 @@ def run() -> int:
         },
         "model": {
             "engine": MODEL2_ENGINE,
-            "inputPolicy": "Hybrid EWY/KRW fair-value core plus bounded composite adjustment; no night-futures signal after one-time bootstrap",
+            "inputPolicy": "Hybrid EWY/KRW fair-value core plus bounded composite adjustment; no night-futures input",
             "coreAxis": "direct_blend * raw_ewy_krw_axis + learned_blend * rolling_ewy_fx_correction",
             "rawEwyKrwAxis": "ewy_log_return_pct + krw_adjusted_log_return_pct",
             "compositeAdjustmentCapPct": COMPOSITE_ADJUSTMENT_CAP_PCT,

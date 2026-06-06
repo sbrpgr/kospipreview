@@ -55,6 +55,11 @@ If work resumes later, read these documents in order:
   JSON refresh workflows must remove empty bundled Model2 placeholders when the
   independent model skipped outside the U.S. live/pre-market window so
   `holiday_prediction*.json` is not overwritten with null values.
+  JSON refresh workflows must then run
+  `scripts/guard_live_json_publish.py` before any Cloud Storage upload. The
+  guard must fail the workflow if same-target `live_prediction_series.json`
+  would shrink the bucket trend, or if `holiday_prediction.json` violates the
+  independent Model2 no-night-futures invariants.
 - Independent Model 2 JSON ownership:
   Cloud Run serves and seeds `holiday_prediction.json`,
   `holiday_prediction_series.json`, and `holiday_history.json`, but Cloud Run
