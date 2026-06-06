@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-06-07
+
+- Homepage top ad banner added.
+  - UI: inserted a three-column `140px`-high banner between the global header and the homepage forecast hero.
+  - Left slot: Coupang Partners carousel widget, `id=995011`, `trackingCode=AF1258921`, `320x140`.
+  - Center/right slots: reserved ad inquiry blocks with `광고문의 ytbtheguy@gmail.com`.
+  - Files changed:
+    - `frontend/src/components/home-top-ad-banner.tsx`
+    - `frontend/src/components/live-dashboard.tsx`
+    - `frontend/src/app/globals.css`
+  - Verification:
+    - `npm run build` passed.
+    - `git diff --check` passed.
+    - Production HTML at `https://kospipreview.com/` returned `200 OK` and included `homeTopAdBanner`, `쿠팡 파트너스 광고`, `광고문의`, and `ytbtheguy@gmail.com`.
+    - Production live prediction trend API returned `899` records matching `predictionDateIso=2026-06-08`.
+  - Deployment:
+    - commit: `1a839cb7 Add home top ad banner`
+    - workflow: `deploy-hosting`
+    - run: `27069768423`
+    - result: success
+  - Cost guardrail: Cloud Run and Cloud Build were not used; this was a frontend-only Firebase Hosting deployment.
+  - Work spec: `docs/HOME_TOP_AD_BANNER_WORK_SPEC_2026-06-07.md`
+
 ## 2026-06-04
 
 - Ko-fi support button added to the global header.

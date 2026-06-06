@@ -16,6 +16,7 @@ If work resumes later, read these documents in order:
 8. `docs/CHANGELOG.md`
 9. `docs/HISTORY_DATA_GAP_INCIDENT_2026-05-22.md`
 10. `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
+11. `docs/HOME_TOP_AD_BANNER_WORK_SPEC_2026-06-07.md`
 
 ## Current Production Summary
 
@@ -30,6 +31,9 @@ If work resumes later, read these documents in order:
 - Cloud Run deploy workflow: GitHub Actions `cloudrun-deploy`
 - Fallback-only JSON refresh workflow: GitHub Actions `refresh-night-futures`
 - Header support button: Ko-fi link `https://ko-fi.com/sbgkp` shown as `커피 한 잔 후원하기` to the right of `문의`
+- Home top ad banner: three-column `320x140` style placement between the global header and homepage forecast hero.
+  The left slot uses Coupang Partners widget `id=995011`, `trackingCode=AF1258921`; the center and right slots show
+  `광고문의 ytbtheguy@gmail.com`.
 - YouTube news source archive: root `news/YYYY-MM-DD/HHMMSS/`
 - YouTube news public sync: `frontend/scripts/sync-news.mjs`
 - YouTube news dynamic API: `/api/news/youtube-news.json`, `/api/news/reports/**`
@@ -234,25 +238,27 @@ All times are Asia/Seoul.
 - Algorithm: `docs/ALGORITHM.md`
 - Data sources: `docs/DATA_SOURCES.md`
 - Intraday indicator series: `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
+- Home top ad banner: `docs/HOME_TOP_AD_BANNER_WORK_SPEC_2026-06-07.md`
 - Model spec: `docs/MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`
 - Security / runbook: `docs/SECURITY_OPERATIONS_RUNBOOK.md`
 - Firebase / Cloudflare / GA4 / AdSense guide: `docs/FIREBASE_CLOUDFLARE_GA4_ADSENSE_2026.md`
 
 ## Latest Frontend Deployment Verification
 
-Last verified on 2026-06-04 KST:
+Last verified on 2026-06-07 KST:
 
-- Change: global header Ko-fi support button.
-- Header placement: immediately to the right of `문의`.
-- Button label: `커피 한 잔 후원하기`.
-- Button URL: `https://ko-fi.com/sbgkp`.
-- Commit: `84715cbe feat: add ko-fi support button`.
+- Change: homepage top three-column ad banner.
+- Placement: immediately below `SiteHeader` and above the homepage forecast hero.
+- Left slot: Coupang Partners carousel widget, `id=995011`, `trackingCode=AF1258921`, `320x140`.
+- Center/right slots: `광고문의 ytbtheguy@gmail.com`.
+- Commit: `1a839cb7 Add home top ad banner`.
 - Workflow: GitHub Actions `deploy-hosting`.
-- Run: `https://github.com/sbrpgr/kospipreview/actions/runs/26905076868`.
+- Run: `https://github.com/sbrpgr/kospipreview/actions/runs/27069768423`.
 - Result: success.
 - Production check:
-  - `https://kospipreview.com/?v=ko-fi-support-84715cbe` returned `200 OK`;
-  - rendered HTML included `supportButton`, `https://ko-fi.com/sbgkp`, and `커피 한 잔 후원하기`.
+  - `https://kospipreview.com/` returned `200 OK`;
+  - rendered HTML included `homeTopAdBanner`, `쿠팡 파트너스 광고`, `광고문의`, and `ytbtheguy@gmail.com`;
+  - live prediction trend API still returned `899` records matching `predictionDateIso=2026-06-08`.
 - Cost guardrail: Cloud Run and Cloud Build were not used.
 
 ## Latest Verified Production State

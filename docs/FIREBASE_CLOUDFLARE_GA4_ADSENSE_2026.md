@@ -68,6 +68,25 @@ NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxxxxxxxxxxxxxx
 - `Content-Type: text/plain; charset=utf-8`
 - `Cache-Control: no-cache, no-store, must-revalidate`
 
+### 3-4. 홈 상단 수동 광고 배너
+
+현재 홈 화면에는 글로벌 네비게이션과 `코스피 시초가 전망` 히어로 사이에 3분할 수동 광고 배너가 있습니다.
+
+- 왼쪽 슬롯: 쿠팡 파트너스 carousel 광고
+  - script: `https://ads-partners.coupang.com/g.js`
+  - id: `995011`
+  - trackingCode: `AF1258921`
+  - size: `320x140`
+- 가운데/오른쪽 슬롯: `광고문의 ytbtheguy@gmail.com`
+- 구현 파일:
+  - `frontend/src/components/home-top-ad-banner.tsx`
+  - `frontend/src/components/live-dashboard.tsx`
+  - `frontend/src/app/globals.css`
+- 작업명세: `docs/HOME_TOP_AD_BANNER_WORK_SPEC_2026-06-07.md`
+
+이 배너는 예측 데이터 fetch, `/api/live/**` rewrite, Cloud Run refresh, Scheduler cadence와 분리되어야 합니다.
+광고 스크립트 또는 iframe 로딩 실패가 대시보드 렌더링 실패로 이어지면 안 됩니다.
+
 ## 4. 개인정보/동의 관리 (필수)
 
 - EU 트래픽이 있으면 AdSense의 Privacy & Messaging에서 TCF 배너 구성
