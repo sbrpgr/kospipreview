@@ -2,6 +2,13 @@
 
 ## 2026-06-07
 
+- Header support button label changed.
+  - UI: changed `커피 한 잔 후원하기` to `연구 후원하기`.
+  - Link remains `https://ko-fi.com/sbgkp`, opened in a new tab with `noopener noreferrer`.
+  - Files changed:
+    - `frontend/src/components/site-header.tsx`
+    - `docs/OPERATIONS_INDEX.md`
+
 - Homepage top ad banner added.
   - UI: inserted a three-column `140px`-high banner between the global header and the homepage forecast hero.
   - Left slot: Coupang Partners carousel widget, `id=995011`, `trackingCode=AF1258921`, `320x140`.

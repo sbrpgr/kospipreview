@@ -92,7 +92,7 @@ export function SiteHeader({
           target="_blank"
           rel="noopener noreferrer"
         >
-          커피 한 잔 후원하기
+          연구 후원하기
         </a>
       </nav>
     </header>

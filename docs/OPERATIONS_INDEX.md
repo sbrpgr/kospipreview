@@ -30,7 +30,7 @@ If work resumes later, read these documents in order:
 - Hosting-only deploy workflow: GitHub Actions `deploy-hosting`
 - Cloud Run deploy workflow: GitHub Actions `cloudrun-deploy`
 - Fallback-only JSON refresh workflow: GitHub Actions `refresh-night-futures`
-- Header support button: Ko-fi link `https://ko-fi.com/sbgkp` shown as `커피 한 잔 후원하기` to the right of `문의`
+- Header support button: Ko-fi link `https://ko-fi.com/sbgkp` shown as `연구 후원하기` to the right of `문의`
 - Home top ad banner: three-column `320x140` style placement between the global header and homepage forecast hero.
   The left slot uses Coupang Partners widget `id=995011`, `trackingCode=AF1258921`; the center and right slots show
   `광고문의 ytbtheguy@gmail.com`.
