@@ -22,6 +22,7 @@ const rawGaMeasurementId =
 const gaMeasurementId = rawGaMeasurementId.startsWith("G-") ? rawGaMeasurementId : "";
 const adsenseMetaAccount = ADSENSE_PUBLISHER_ID;
 const adsenseScriptSrc = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`;
+const naverSiteVerification = "4cf2bb0efaba05dc02e7941d4d478629980186d2";
 
 const canonicalHostRedirectScript = `
   (function () {
@@ -100,6 +101,7 @@ export const metadata: Metadata = {
     : undefined,
   other: {
     "google-adsense-account": adsenseMetaAccount,
+    "naver-site-verification": naverSiteVerification,
     "contact:email": CONTACT_EMAIL,
   },
   openGraph: {
