@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AccuracyTable } from "@/components/accuracy-table";
 import { ModelDiagnostics } from "@/components/model-diagnostics";
 import { SiteHeader } from "@/components/site-header";
-import { getBacktestDiagnosticsData, getDataFreshness, getHistoryData, getPredictionData } from "@/lib/data";
+import { getBacktestDiagnosticsData, getDataFreshness, getHistoryData, getHolidayHistoryData, getPredictionData } from "@/lib/data";
 import { SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 
 const HISTORY_TITLE = "최근 예측 기록";
@@ -31,11 +31,12 @@ export const metadata: Metadata = {
 };
 
 export default async function HistoryPage() {
-  const [history, prediction, diagnostics, freshness] = await Promise.all([
+  const [history, prediction, diagnostics, freshness, holidayHistory] = await Promise.all([
     getHistoryData(),
     getPredictionData(),
     getBacktestDiagnosticsData(),
     getDataFreshness(),
+    getHolidayHistoryData(),
   ]);
 
   const updatedAt = new Intl.DateTimeFormat("ko-KR", {
@@ -59,7 +60,7 @@ export default async function HistoryPage() {
       <main>
         <h2 className="sectionTitle">예측 기록 상세</h2>
         <div style={{ marginBottom: "60px" }}>
-          <AccuracyTable history={history} prediction={prediction} />
+          <AccuracyTable history={history} prediction={prediction} holidayHistory={holidayHistory} />
         </div>
         <h2 className="sectionTitle">모델 백테스트 검증 데이터</h2>
         <div className="prose">

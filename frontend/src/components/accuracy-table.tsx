@@ -141,7 +141,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData, 
   return baseRecords.sort((a, b) => compareDateDesc(a.date, b.date));
 }
 
-function computeModelMatchRatePct(actualOpen: number | null, predictedOpen: number | null): number | null {
+function computeModelAccuracyPct(actualOpen: number | null, predictedOpen: number | null): number | null {
   if (actualOpen === null || predictedOpen === null) {
     return null;
   }
@@ -162,15 +162,15 @@ function getErrorColor(error: number | null) {
   return error >= 0 ? "var(--negative)" : "var(--positive)";
 }
 
-function getMatchRateColor(matchRatePct: number | null) {
-  if (matchRatePct === null) {
+function getAccuracyColor(accuracyPct: number | null) {
+  if (accuracyPct === null) {
     return "var(--text-secondary)";
   }
 
-  if (matchRatePct >= 99.7) {
+  if (accuracyPct >= 99.7) {
     return "var(--positive)";
   }
-  if (matchRatePct >= 99.2) {
+  if (accuracyPct >= 99.2) {
     return "var(--accent)";
   }
   return "var(--negative)";
@@ -207,11 +207,21 @@ export function AccuracyTable({ history, prediction, holidayHistory }: AccuracyT
             <th>모델 오차</th>
             <th>모델2 오차</th>
             <th style={{ textAlign: "center" }}>
-              모델 일치율(%){" "}
+              모델 정확도{" "}
               <span
                 className="tableHintIcon"
                 title="모델 예측치가 실제 시초가와 얼마나 가깝게 맞았는지 보여줍니다. 실제 시초가 대비 절대 오차율을 100에서 뺀 값입니다."
-                aria-label="모델 일치율 설명"
+                aria-label="모델 정확도 설명"
+              >
+                ?
+              </span>
+            </th>
+            <th style={{ textAlign: "center" }}>
+              모델2 정확도{" "}
+              <span
+                className="tableHintIcon"
+                title="모델2 예측치가 실제 시초가와 얼마나 가깝게 맞았는지 보여줍니다. 실제 시초가 대비 절대 오차율을 100에서 뺀 값입니다."
+                aria-label="모델2 정확도 설명"
               >
                 ?
               </span>
@@ -232,7 +242,8 @@ export function AccuracyTable({ history, prediction, holidayHistory }: AccuracyT
             const ewyFxError = actualOpenValue !== null && ewyFxSimple !== null ? actualOpenValue - ewyFxSimple : null;
             const modelError = actualOpenValue !== null && modelPrediction !== null ? actualOpenValue - modelPrediction : null;
             const model2Error = actualOpenValue !== null && model2Prediction !== null ? actualOpenValue - model2Prediction : null;
-            const modelMatchRatePct = computeModelMatchRatePct(actualOpenValue, modelPrediction);
+            const modelAccuracyPct = computeModelAccuracyPct(actualOpenValue, modelPrediction);
+            const model2AccuracyPct = computeModelAccuracyPct(actualOpenValue, model2Prediction);
 
             return (
               <tr key={record.date} className={record.isPredictionTarget ? "isPredictionTarget" : undefined}>
@@ -293,10 +304,19 @@ export function AccuracyTable({ history, prediction, holidayHistory }: AccuracyT
                   style={{
                     textAlign: "center",
                     fontWeight: 800,
-                    color: getMatchRateColor(modelMatchRatePct),
+                    color: getAccuracyColor(modelAccuracyPct),
                   }}
                 >
-                  {modelMatchRatePct === null ? "-" : `${modelMatchRatePct.toFixed(2)}%`}
+                  {modelAccuracyPct === null ? "-" : `${modelAccuracyPct.toFixed(2)}%`}
+                </td>
+                <td
+                  style={{
+                    textAlign: "center",
+                    fontWeight: 800,
+                    color: getAccuracyColor(model2AccuracyPct),
+                  }}
+                >
+                  {model2AccuracyPct === null ? "-" : `${model2AccuracyPct.toFixed(2)}%`}
                 </td>
               </tr>
             );
