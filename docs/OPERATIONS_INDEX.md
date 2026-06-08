@@ -17,6 +17,7 @@ If work resumes later, read these documents in order:
 9. `docs/HISTORY_DATA_GAP_INCIDENT_2026-05-22.md`
 10. `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
 11. `docs/HOME_TOP_AD_BANNER_WORK_SPEC_2026-06-07.md`
+12. `docs/MODEL2_CLOCK_SYNC_WORK_SPEC_2026-06-09.md`
 
 ## Current Production Summary
 
@@ -30,6 +31,7 @@ If work resumes later, read these documents in order:
 - Hosting-only deploy workflow: GitHub Actions `deploy-hosting`
 - Cloud Run deploy workflow: GitHub Actions `cloudrun-deploy`
 - Fallback-only JSON refresh workflow: GitHub Actions `refresh-night-futures`
+- Independent Model2 JSON workflow: GitHub Actions `refresh-holiday-prediction`
 - Header support button: Ko-fi link `https://ko-fi.com/sbgkp` shown as `연구 후원하기` to the right of `문의`
 - Home top ad banner: three-column `320x140` style placement between the global header and homepage forecast hero.
   The left slot uses Coupang Partners widget `id=995011`, `trackingCode=AF1258921`; the center and right slots show
@@ -199,6 +201,7 @@ All times are Asia/Seoul.
 ## Important Code
 
 - `scripts/refresh_night_futures.py`
+- `scripts/refresh_holiday_prediction.py`
 - `scripts/backtest_and_generate.py`
 - `cloudrun/live_data_service.py`
 - `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
@@ -254,6 +257,7 @@ All times are Asia/Seoul.
 - Data sources: `docs/DATA_SOURCES.md`
 - Intraday indicator series: `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
 - Home top ad banner: `docs/HOME_TOP_AD_BANNER_WORK_SPEC_2026-06-07.md`
+- Model2 EWY/FX clock sync: `docs/MODEL2_CLOCK_SYNC_WORK_SPEC_2026-06-09.md`
 - Model spec: `docs/MODEL_EWY_SYNTHETIC_K200_2026-04-10.md`
 - Security / runbook: `docs/SECURITY_OPERATIONS_RUNBOOK.md`
 - Firebase / Cloudflare / GA4 / AdSense guide: `docs/FIREBASE_CLOUDFLARE_GA4_ADSENSE_2026.md`

@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-06-09
+
+- Model2 EWY/FX reference-clock sync repair added.
+  - Background: Model2 could stay on a KOSPI-close reference after a late manual repair while the primary model had
+    already synchronized its EWY+FX display clock.
+  - Workflow: added `clock_sync` dispatch input to `refresh-holiday-prediction`.
+  - Behavior: `clock_sync=on` anchors Model2 to the primary payload's `ewyFxSimplePoint` for the same prediction
+    date, resets Model2 baseline prices to the current EWY/KRW snapshot, and records `clockSyncUsed: true`.
+  - Safety: Model2 still keeps `usesOtherModelPrediction: false`, `nightFuturesUsed: false`, and
+    `nightFuturesReadThisRun: false`; it does not copy primary `pointPrediction`.
+  - Files changed:
+    - `.github/workflows/refresh-holiday-prediction.yml`
+    - `scripts/refresh_holiday_prediction.py`
+    - `docs/ALGORITHM.md`
+    - `docs/CLOUD_RUN_LIVE_REFRESH.md`
+    - `docs/OPERATIONS_INDEX.md`
+    - `docs/MODEL2_CLOCK_SYNC_WORK_SPEC_2026-06-09.md`
+  - Verification:
+    - `python -m py_compile scripts/refresh_holiday_prediction.py scripts/guard_live_json_publish.py` passed.
+    - Production Model2 moved from the misaligned `7,718.119` value to `7,862.5118` after clock sync.
+    - Live JSON recorded `baselineSource: primary_ewy_fx_simple_clock_sync` and `clockSyncUsed: true`.
+  - Deployment:
+    - commit: `504ee5fc Add model2 EWY FX clock sync repair`
+    - workflow: `refresh-holiday-prediction`
+    - run: `27145266257`
+    - inputs: `force=on`, `clear_stale=off`, `clock_sync=on`
+    - result: success
+  - Cost guardrail: Cloud Run, Cloud Build, and Firebase Hosting were not used for the clock-sync JSON repair.
+  - Work spec: `docs/MODEL2_CLOCK_SYNC_WORK_SPEC_2026-06-09.md`
+
 ## 2026-06-07
 
 - Header support button label changed.
