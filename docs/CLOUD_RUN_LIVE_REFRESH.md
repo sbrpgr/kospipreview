@@ -55,7 +55,10 @@ be valid. For manual reference-clock repair, run
 `refresh-holiday-prediction` with `force=on` and `clock_sync=on`; this anchors
 Model 2 to the primary payload's `ewyFxSimplePoint` for the same prediction
 date and records `clockSyncUsed: true` without using the primary
-`pointPrediction`.
+`pointPrediction`. Clock-synced Model 2 payloads should also record
+`ewyFxReferencePoint` so the homepage can compensate short-lived Model 2 JSON
+staleness from the latest primary EWY/FX simple point without changing Cloud
+Run refresh uploads.
 
 ## Refresh Cadence And Performance
 

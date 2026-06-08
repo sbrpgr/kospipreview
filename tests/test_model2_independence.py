@@ -172,6 +172,26 @@ class Model2IndependenceTests(unittest.TestCase):
             existing_model2_payload,
         )
 
+    def test_forced_run_preserves_clock_sync_baseline(self):
+        existing_model2_payload = {
+            "calculationMode": model2.MODEL2_MODE,
+            "baselineDate": "2026-06-08",
+            "baselinePoint": 7853.59,
+            "baselineSource": model2.EWY_FX_CLOCK_SYNC_SOURCE,
+            "baselinePrices": {"ewy": 185.52, "krw": 1526.73},
+            "clockSyncUsed": True,
+            "clockSyncPoint": 7853.59,
+        }
+
+        self.assertIs(
+            model2._baseline_payload_for_run(existing_model2_payload, force_refresh=True),
+            existing_model2_payload,
+        )
+        self.assertIs(
+            model2._baseline_payload_for_run(existing_model2_payload, force_refresh=True, clock_sync=True),
+            existing_model2_payload,
+        )
+
     def test_stale_yahoo_bootstrap_date_migrates_without_new_night_read(self):
         existing_model2_payload = {
             "calculationMode": model2.MODEL2_MODE,

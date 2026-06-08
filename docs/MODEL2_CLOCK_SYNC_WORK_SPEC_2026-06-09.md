@@ -40,10 +40,21 @@ When `clock_sync=on` is used:
 
 The clock sync target is the primary EWY+FX simple point, not the primary `pointPrediction`.
 
+After a clock-sync baseline exists, forced Model2 reissues must preserve that baseline unless `clock_sync=on` is
+explicitly requested again. A forced run must not silently fall back to `kospi_close`, because that reintroduces the
+reference-clock gap.
+
+The homepage display also applies a live EWY+FX stale-compensation layer for clock-synced Model2 values. Model2 JSON
+records `ewyFxReferencePoint` at generation time, and the frontend adds only the latest primary `ewyFxSimplePoint`
+movement after that reference point. This prevents stale Model2 cards when GitHub scheduled runs lag, while avoiding
+double-counting after a normal Model2 JSON refresh.
+
 ## Files
 
 - `.github/workflows/refresh-holiday-prediction.yml`
 - `scripts/refresh_holiday_prediction.py`
+- `frontend/src/components/live-dashboard.tsx`
+- `frontend/src/lib/data.ts`
 - `docs/ALGORITHM.md`
 - `docs/CLOUD_RUN_LIVE_REFRESH.md`
 - `docs/OPERATIONS_INDEX.md`
@@ -69,6 +80,8 @@ materially diverges from EWY/KRW, a gap can still be valid.
 - Keep `nightFuturesUsed: false`.
 - Keep `nightFuturesReadThisRun: false`.
 - Keep Model2 frontend display gated by matching `predictionDateIso`.
+- If frontend stale compensation is used, calculate the drift from `ewyFxReferencePoint` first and fall back to
+  `clockSyncPoint` only for older JSON payloads.
 - Do not deploy Cloud Run or run Cloud Build for this repair.
 - Publish only `holiday_prediction.json`, `holiday_prediction_series.json`, and `holiday_history.json` through the
   Model2 JSON workflow.
@@ -81,6 +94,9 @@ Local verification:
 - A local clock-sync simulation set `baselineSource` to `primary_ewy_fx_simple_clock_sync`, set
   `clockSyncUsed: true`, matched `clockSyncPoint` to primary `ewyFxSimplePoint`, and produced a Model2 point in
   the same live reference range.
+- `python -m unittest tests.test_model2_independence` passed, including the guard that forced runs preserve an
+  existing clock-sync baseline.
+- `npm run build` passed after adding the homepage live EWY+FX stale-compensation display.
 - `git diff --check` passed for the script, workflow, and operations docs.
 
 Production verification:

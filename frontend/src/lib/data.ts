@@ -173,6 +173,11 @@ export async function getHolidayPredictionData() {
     prevCloseDate?: string;
     pointPrediction?: number | null;
     predictedChangePct?: number | null;
+    clockSyncUsed?: boolean;
+    clockSyncPoint?: number | null;
+    clockSyncSource?: string | null;
+    ewyFxReferencePoint?: number | null;
+    ewyFxReferenceGeneratedAt?: string | null;
     rangeLow?: number | null;
     rangeHigh?: number | null;
     ewyBaselineDate?: string;

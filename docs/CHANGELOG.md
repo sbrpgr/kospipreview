@@ -10,9 +10,17 @@
     date, resets Model2 baseline prices to the current EWY/KRW snapshot, and records `clockSyncUsed: true`.
   - Safety: Model2 still keeps `usesOtherModelPrediction: false`, `nightFuturesUsed: false`, and
     `nightFuturesReadThisRun: false`; it does not copy primary `pointPrediction`.
+  - Follow-up hardening:
+    - forced Model2 reissues now preserve an existing EWY/FX clock-sync baseline instead of silently falling back to
+      `kospi_close`;
+    - homepage Model2 display now compensates stale clock-synced JSON by applying the latest primary
+      `ewyFxSimplePoint` drift since Model2's `ewyFxReferencePoint`.
   - Files changed:
     - `.github/workflows/refresh-holiday-prediction.yml`
     - `scripts/refresh_holiday_prediction.py`
+    - `frontend/src/components/live-dashboard.tsx`
+    - `frontend/src/lib/data.ts`
+    - `tests/test_model2_independence.py`
     - `docs/ALGORITHM.md`
     - `docs/CLOUD_RUN_LIVE_REFRESH.md`
     - `docs/OPERATIONS_INDEX.md`

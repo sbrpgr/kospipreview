@@ -1266,8 +1266,12 @@ def update_history(payload: dict[str, Any], prediction_target: str) -> None:
     )
 
 
-def _baseline_payload_for_run(existing_payload: dict[str, Any], *, force_refresh: bool) -> dict[str, Any]:
-    if force_refresh:
+def _baseline_payload_for_run(existing_payload: dict[str, Any], *, force_refresh: bool, clock_sync: bool = False) -> dict[str, Any]:
+    if (
+        force_refresh
+        and not clock_sync
+        and existing_payload.get("baselineSource") != EWY_FX_CLOCK_SYNC_SOURCE
+    ):
         return {}
     return existing_payload
 
@@ -1312,7 +1316,11 @@ def run() -> int:
         return 1
 
     try:
-        baseline_existing_payload = _baseline_payload_for_run(existing_payload, force_refresh=force_refresh)
+        baseline_existing_payload = _baseline_payload_for_run(
+            existing_payload,
+            force_refresh=force_refresh,
+            clock_sync=clock_sync,
+        )
         baseline = resolve_model2_baseline(
             baseline_existing_payload,
             last_session,
@@ -1340,6 +1348,7 @@ def run() -> int:
 
     prev_close = _positive_float(last_session.get("close")) or baseline["baselinePoint"]
     predicted_change_pct = ((result["pointPrediction"] / prev_close) - 1.0) * 100.0
+    ewy_fx_reference_point = _positive_float(primary_snapshot.get("ewyFxSimplePoint"))
 
     payload = {
         "generatedAt": now_utc.isoformat(),
@@ -1361,6 +1370,8 @@ def run() -> int:
         "clockSyncPoint": _round_or_none(baseline.get("clockSyncPoint"), 4),
         "clockSyncPrimaryPredictionDateIso": baseline.get("clockSyncPrimaryPredictionDateIso"),
         "clockSyncPrimaryGeneratedAt": baseline.get("clockSyncPrimaryGeneratedAt"),
+        "ewyFxReferencePoint": _round_or_none(ewy_fx_reference_point, 4),
+        "ewyFxReferenceGeneratedAt": primary_snapshot.get("generatedAt"),
         "predictionDate": target_label,
         "predictionDateIso": target_iso,
         "prevClose": round(prev_close, 4),
@@ -1416,6 +1427,7 @@ def run() -> int:
                 "used": bool(baseline.get("clockSyncUsed")),
                 "source": baseline.get("clockSyncSource"),
                 "point": _round_or_none(baseline.get("clockSyncPoint"), 4),
+                "ewyFxReferencePoint": _round_or_none(ewy_fx_reference_point, 4),
                 "syncedAt": baseline.get("clockSyncAt"),
                 "primaryPredictionDateIso": baseline.get("clockSyncPrimaryPredictionDateIso"),
                 "primaryGeneratedAt": baseline.get("clockSyncPrimaryGeneratedAt"),

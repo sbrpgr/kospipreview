@@ -90,7 +90,9 @@ If work resumes later, read these documents in order:
   only when Model2 must be manually aligned to the primary payload's
   `ewyFxSimplePoint` reference clock for the same prediction date; this must
   record `clockSyncUsed: true` and must not copy the primary model
-  `pointPrediction`.
+  `pointPrediction`. After a clock-sync baseline exists, `force=on` reissues
+  must preserve that baseline unless another explicit `clock_sync=on` repair is
+  requested.
 - Model2 production invariants:
   normal and forced production Model2 refreshes must publish
   `independentModel: true`, `usesOtherModelPrediction: false`,
@@ -105,7 +107,10 @@ If work resumes later, read these documents in order:
   raw return, while still keeping `usesOtherModelPrediction: false`. A large
   live gap from Model1 can be valid when Model1 is anchored by a materially
   different night-futures bridge; do not force Model2 to Model1's
-  `pointPrediction`.
+  `pointPrediction`. The homepage may compensate a stale clock-synced Model2
+  card by adding the latest primary `ewyFxSimplePoint` drift since
+  `ewyFxReferencePoint`; fallback to `clockSyncPoint` is only for older Model2
+  JSON without the reference field.
 - Live prediction trend repair:
   if `live_prediction_series.json` is shortened or overwritten, use
   `recover-live-prediction-series` with the target `kst_date` and

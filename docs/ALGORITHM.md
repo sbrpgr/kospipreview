@@ -165,6 +165,12 @@ This is a reference-clock sync, not a copy of the primary model prediction; the
 payload must record `clockSyncUsed: true` and still keep
 `usesOtherModelPrediction: false`.
 
+Clock-synced Model 2 payloads also record `ewyFxReferencePoint`, the primary
+`ewyFxSimplePoint` observed when that Model 2 JSON was generated. The homepage
+may use that field to compensate short-lived Model 2 JSON staleness by adding
+only the later EWY/FX drift. This display compensation must not use the primary
+`pointPrediction`.
+
 Model 2 is expected to stay directionally comparable with the primary model
 when EWY/KRW and night-futures signals agree. It is not expected to match the
 primary model point-for-point when the primary model's live night-futures

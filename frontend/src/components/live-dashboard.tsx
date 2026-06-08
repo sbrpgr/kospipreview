@@ -296,6 +296,32 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function getLiveSyncedModel2Point(
+  model2Point: number | null,
+  holidayPrediction: HolidayPredictionData | null,
+  ewyFxSimplePoint: number | null,
+) {
+  if (
+    model2Point === null ||
+    !holidayPrediction?.clockSyncUsed ||
+    !isFiniteNumber(ewyFxSimplePoint)
+  ) {
+    return model2Point;
+  }
+
+  const referencePoint = isFiniteNumber(holidayPrediction.ewyFxReferencePoint)
+    ? holidayPrediction.ewyFxReferencePoint
+    : isFiniteNumber(holidayPrediction.clockSyncPoint)
+      ? holidayPrediction.clockSyncPoint
+      : null;
+
+  if (referencePoint === null) {
+    return model2Point;
+  }
+
+  return model2Point + (ewyFxSimplePoint - referencePoint);
+}
+
 function getDashboardVersion(
   prediction: PredictionData,
   indicators: IndicatorData,
@@ -677,15 +703,45 @@ export function LiveDashboard({
     hasLiveSnapshot &&
     typeof holidayPrediction?.predictionDateIso === "string" &&
     holidayPrediction.predictionDateIso === prediction.predictionDateIso;
-  const model2Point =
+  const rawModel2Point =
     isActiveModel2Target && isFiniteNumber(holidayPrediction?.pointPrediction) ? holidayPrediction!.pointPrediction! : null;
+  const model2Point = getLiveSyncedModel2Point(rawModel2Point, holidayPrediction, ewyFxSimplePoint);
   const model2ChangePct =
-    isActiveModel2Target && isFiniteNumber(holidayPrediction?.predictedChangePct)
-      ? holidayPrediction!.predictedChangePct!
+    isActiveModel2Target && model2Point !== null && isFiniteNumber(prediction.prevClose) && prediction.prevClose > 0
+      ? (model2Point / prediction.prevClose - 1) * 100
+      : isActiveModel2Target && isFiniteNumber(holidayPrediction?.predictedChangePct)
+        ? holidayPrediction!.predictedChangePct!
       : null;
   const isModel2Ready = model2Point !== null && model2ChangePct !== null;
-  const activeHolidaySeries =
-    holidaySeries?.predictionDateIso === prediction.predictionDateIso ? holidaySeries : null;
+  const activeHolidaySeries = (() => {
+    if (!isActiveModel2Target) {
+      return null;
+    }
+
+    const matchingHolidaySeries = holidaySeries?.predictionDateIso === prediction.predictionDateIso ? holidaySeries : null;
+    const records = matchingHolidaySeries?.records ?? [];
+    if (model2Point === null || typeof prediction.generatedAt !== "string") {
+      return matchingHolidaySeries;
+    }
+
+    const minuteKey = prediction.generatedAt.slice(0, 16);
+    const syncedRecord = {
+      predictionDateIso: prediction.predictionDateIso ?? "",
+      predictionDate: prediction.predictionDate,
+      observedAt: prediction.generatedAt,
+      pointPrediction: model2Point,
+      predictedChangePct: model2ChangePct,
+    };
+
+    return {
+      generatedAt: matchingHolidaySeries?.generatedAt ?? holidayPrediction?.generatedAt,
+      predictionDateIso: prediction.predictionDateIso,
+      records: [
+        ...records.filter((record) => record.observedAt.slice(0, 16) !== minuteKey),
+        syncedRecord,
+      ],
+    };
+  })();
 
   return (
     <div className="pageContainer">
