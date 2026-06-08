@@ -893,7 +893,12 @@ export function LiveDashboard({
           최근 실측 기록
         </h2>
         {hasLiveSnapshot ? (
-          <AccuracyTable history={history} prediction={prediction} holidayHistory={holidayHistory} />
+          <AccuracyTable
+            history={history}
+            prediction={prediction}
+            holidayHistory={holidayHistory}
+            currentModel2Prediction={model2Point}
+          />
         ) : (
           <div className="card sectionLoadingCard">
             <div className="sectionLoadingText">최근 실측 기록을 동기화하는 중입니다.</div>

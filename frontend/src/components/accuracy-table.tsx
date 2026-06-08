@@ -9,6 +9,7 @@ type AccuracyTableProps = {
   history: HistoryData;
   prediction?: PredictionData;
   holidayHistory?: HolidayHistoryData | null;
+  currentModel2Prediction?: number | null;
 };
 
 type DisplayRecord = {
@@ -63,8 +64,14 @@ function compareDateDesc(left: string, right: string) {
   return right.localeCompare(left);
 }
 
-function buildDisplayRecords(history: HistoryData, prediction?: PredictionData, holidayHistory?: HolidayHistoryData | null): DisplayRecord[] {
+function buildDisplayRecords(
+  history: HistoryData,
+  prediction?: PredictionData,
+  holidayHistory?: HolidayHistoryData | null,
+  currentModel2Prediction?: number | null,
+): DisplayRecord[] {
   const predictionDateIso = parsePredictionDateIso(prediction);
+  const currentModel2Point = isFiniteNumber(currentModel2Prediction) ? currentModel2Prediction : null;
 
   // Build model2 lookup from holiday history
   const model2ByDate = new Map<string, number>();
@@ -118,7 +125,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData, 
       ewyFxSimpleOpen: isFiniteNumber(prediction.ewyFxSimplePoint)
         ? prediction.ewyFxSimplePoint
         : existing.ewyFxSimpleOpen,
-      model2Prediction: model2ByDate.get(predictionDateIso) ?? existing.model2Prediction,
+      model2Prediction: currentModel2Point ?? model2ByDate.get(predictionDateIso) ?? existing.model2Prediction,
       dayFuturesClose: existing.dayFuturesClose,
       nightFuturesClose: existing.nightFuturesClose,
       isPredictionTarget: true,
@@ -129,7 +136,7 @@ function buildDisplayRecords(history: HistoryData, prediction?: PredictionData, 
       modelPrediction: isFiniteNumber(prediction.pointPrediction) ? prediction.pointPrediction : null,
       nightFuturesSimpleOpen: isFiniteNumber(prediction.nightFuturesSimplePoint) ? prediction.nightFuturesSimplePoint : null,
       ewyFxSimpleOpen: isFiniteNumber(prediction.ewyFxSimplePoint) ? prediction.ewyFxSimplePoint : null,
-      model2Prediction: model2ByDate.get(predictionDateIso) ?? null,
+      model2Prediction: currentModel2Point ?? model2ByDate.get(predictionDateIso) ?? null,
       actualOpen: null,
       actualClose: null,
       dayFuturesClose: null,
@@ -176,8 +183,11 @@ function getAccuracyColor(accuracyPct: number | null) {
   return "var(--negative)";
 }
 
-export function AccuracyTable({ history, prediction, holidayHistory }: AccuracyTableProps) {
-  const records = useMemo(() => buildDisplayRecords(history, prediction, holidayHistory), [history, prediction, holidayHistory]);
+export function AccuracyTable({ history, prediction, holidayHistory, currentModel2Prediction }: AccuracyTableProps) {
+  const records = useMemo(
+    () => buildDisplayRecords(history, prediction, holidayHistory, currentModel2Prediction),
+    [history, prediction, holidayHistory, currentModel2Prediction],
+  );
   const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
   const [page, setPage] = useState(1);
 

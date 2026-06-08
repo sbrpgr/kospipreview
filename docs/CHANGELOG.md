@@ -21,6 +21,11 @@
     - a clock-synced baseline no longer receives a second residual/intercept offset at the sync instant, so Model2
       starts from the aligned reference and only tracks later EWY/KRW drift;
     - legacy `primary_ewy_fx_simple_clock_sync` baselines remain accepted for forced reissues.
+  - Display hardening:
+    - current-target recent-records rows now prefer the frontend-compensated Model2 value instead of stale
+      `holiday_history.json` raw `model2Prediction`;
+    - manual production refresh `27154865782` updated raw Model2 from the stale `7,953.4739` value to `7,908.0317`
+      after the GitHub schedule lagged behind the primary live refresh.
   - Files changed:
     - `.github/workflows/refresh-holiday-prediction.yml`
     - `scripts/refresh_holiday_prediction.py`

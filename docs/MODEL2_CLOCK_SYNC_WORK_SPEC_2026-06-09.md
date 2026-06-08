@@ -52,6 +52,10 @@ records `ewyFxReferencePoint` at generation time, and the frontend adds only the
 movement after that reference point. This prevents stale Model2 cards when GitHub scheduled runs lag, while avoiding
 double-counting after a normal Model2 JSON refresh.
 
+The current prediction target in the recent-records accuracy table must also use the same frontend-compensated
+Model2 value. Do not let `holiday_history.json` raw `model2Prediction` override the live card value for a target
+without an actual open.
+
 ## Files
 
 - `.github/workflows/refresh-holiday-prediction.yml`
@@ -87,6 +91,8 @@ materially diverges from EWY/KRW after the sync point, a gap can still be valid.
 - Keep Model2 frontend display gated by matching `predictionDateIso`.
 - If frontend stale compensation is used, calculate the drift from `ewyFxReferencePoint` first and fall back to
   `clockSyncPoint` only for older JSON payloads.
+- For the current prediction target, the accuracy table must prefer the live compensated Model2 value over
+  `holiday_history.json` raw history.
 - Do not deploy Cloud Run or run Cloud Build for this repair.
 - Publish only `holiday_prediction.json`, `holiday_prediction_series.json`, and `holiday_history.json` through the
   Model2 JSON workflow.
