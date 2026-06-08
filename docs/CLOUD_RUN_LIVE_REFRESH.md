@@ -47,7 +47,11 @@ script exits with `skip:`, the workflow must not re-publish the seeded
 workflow's `clear_stale=on` dispatch input to clear stale Model 2 JSON from
 Cloud Storage without deploying Cloud Run. The frontend must only display
 Model 2 when `holiday_prediction.json` `predictionDateIso` matches the main
-`prediction.json` `predictionDateIso`.
+`prediction.json` `predictionDateIso`. Model 2 applies the same EWY/FX
+trend-follow floor from its own EWY/KRW signal and raw return, but it must not
+copy the primary model's `pointPrediction`. When the primary model is anchored
+by a materially different night-futures bridge, a visible gap from Model 2 can
+be valid.
 
 ## Refresh Cadence And Performance
 

@@ -95,6 +95,11 @@ If work resumes later, read these documents in order:
   seeded `holiday_prediction*.json` or `holiday_history.json` files again.
   The frontend must only display Model2 when `holiday_prediction.json`
   `predictionDateIso` matches the main `prediction.json` `predictionDateIso`.
+  Model2 applies the EWY/FX trend-follow floor from its own EWY/KRW signal and
+  raw return, while still keeping `usesOtherModelPrediction: false`. A large
+  live gap from Model1 can be valid when Model1 is anchored by a materially
+  different night-futures bridge; do not force Model2 to Model1's
+  `pointPrediction`.
 - Live prediction trend repair:
   if `live_prediction_series.json` is shortened or overwritten, use
   `recover-live-prediction-series` with the target `kst_date` and

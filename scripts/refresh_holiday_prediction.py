@@ -10,6 +10,9 @@ Operational rule:
   and may be enabled only for an explicit legacy migration test/run.
 - After a valid Model 2 payload exists, the stored baseline is reused until a
   new KRX close is available; then the baseline resets to the KOSPI close.
+- Model 2 applies the same EWY/FX trend-follow floor as the primary model from
+  its own EWY/KRW signal and raw return; it never copies another model's
+  prediction.
 """
 
 from __future__ import annotations
@@ -41,13 +44,14 @@ YAHOO_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 )
+PUBLIC_JSON_USER_AGENT = YAHOO_USER_AGENT
 HOLIDAY_PREDICTION_PATH = OUTPUT_DIR / "holiday_prediction.json"
 HOLIDAY_SERIES_PATH = OUTPUT_DIR / "holiday_prediction_series.json"
 HOLIDAY_HISTORY_PATH = OUTPUT_DIR / "holiday_history.json"
 
 MODEL2_MODE = "model2_no_night_futures_composite"
 MODEL2_ENGINE = "EWYFXHybridCompositeNoNightFutures"
-MODEL2_VERSION = "model2-independent-ewyfx-hybrid-composite-v4"
+MODEL2_VERSION = "model2-independent-ewyfx-hybrid-composite-v5"
 BOOTSTRAP_SOURCE = "one_time_night_futures_simple_point"
 KOSPI_CLOSE_SOURCE = "kospi_close"
 
@@ -91,6 +95,11 @@ LEGACY_DIRECT_AXIS_BLEND_HIGH_MOVE_FALLBACK = 0.78
 DIRECT_AXIS_BLEND_HIGH_MOVE_TRIGGER_PCT_FALLBACK = 2.0
 DIRECT_AXIS_BLEND_LOW_CONFIDENCE_R2_FALLBACK = 0.20
 DIRECT_AXIS_BLEND_MIN_SAMPLES_FALLBACK = 40.0
+EWY_FX_TREND_FOLLOW_TRIGGER_PCT = 0.45
+EWY_FX_TREND_FOLLOW_MIN_SHARE = 0.70
+EWY_FX_TREND_FOLLOW_HIGH_TRIGGER_PCT = 2.0
+EWY_FX_TREND_FOLLOW_HIGH_MIN_SHARE = 0.78
+EWY_FX_TREND_FOLLOW_MAX_ADJUST_PCT = 1.75
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -104,8 +113,17 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _fetch_json(url: str, *, timeout: float = 4.0) -> dict[str, Any]:
+    request = Request(
+        url,
+        headers={
+            "User-Agent": PUBLIC_JSON_USER_AGENT,
+            "Accept": "application/json,text/javascript,*/*;q=0.1",
+            "Cache-Control": "no-cache",
+        },
+        method="GET",
+    )
     try:
-        with urlopen(url, timeout=timeout) as response:
+        with urlopen(request, timeout=timeout) as response:
             data = json.loads(response.read().decode("utf-8"))
             return data if isinstance(data, dict) else {}
     except (OSError, TimeoutError, URLError, json.JSONDecodeError) as exc:
@@ -1024,6 +1042,76 @@ def calculate_model2(
     }
 
 
+def log_return_pct_to_simple_return_pct(value: float | None) -> float | None:
+    if value is None:
+        return None
+    return float((math.exp(float(value) / 100.0) - 1.0) * 100.0)
+
+
+def compute_ewy_fx_simple_log_return(signal_returns: dict[str, float]) -> float | None:
+    ewy_change = _to_float(signal_returns.get("ewy"))
+    krw_change = _to_float(signal_returns.get("krw"))
+    if ewy_change is None or krw_change is None:
+        return None
+    return ewy_change + krw_change
+
+
+def apply_ewy_fx_trend_follow_floor(
+    result: dict[str, Any],
+    signal_returns: dict[str, float],
+    baseline_point: float,
+) -> dict[str, Any]:
+    adjusted = dict(result)
+    base_return_pct = _to_float(result.get("baseReturnPct"))
+    signal_return = compute_ewy_fx_simple_log_return(signal_returns)
+    half_band = _to_float(result.get("bandHalfWidth")) or 0.0
+    adjusted["preTrendReturnPct"] = base_return_pct
+    adjusted["finalReturnPct"] = base_return_pct
+    adjusted["postModelAdjustmentPct"] = 0.0
+    adjusted["trendFollowApplied"] = False
+    adjusted["trendFollowSignalPct"] = log_return_pct_to_simple_return_pct(signal_return)
+    adjusted["trendFollowMinPct"] = None
+    adjusted["trendFollowAdjustmentPct"] = 0.0
+
+    if base_return_pct is None or signal_return is None:
+        return adjusted
+
+    signal_magnitude = abs(signal_return)
+    if signal_magnitude < EWY_FX_TREND_FOLLOW_TRIGGER_PCT:
+        return adjusted
+
+    direction = 1.0 if signal_return > 0 else -1.0
+    min_share = EWY_FX_TREND_FOLLOW_MIN_SHARE
+    if signal_magnitude >= EWY_FX_TREND_FOLLOW_HIGH_TRIGGER_PCT:
+        min_share = EWY_FX_TREND_FOLLOW_HIGH_MIN_SHARE
+
+    min_return = direction * signal_magnitude * min_share
+    projected_adjustment = min_return - base_return_pct
+    adjusted["trendFollowMinPct"] = log_return_pct_to_simple_return_pct(min_return)
+
+    if direction > 0 and projected_adjustment <= 0:
+        return adjusted
+    if direction < 0 and projected_adjustment >= 0:
+        return adjusted
+
+    adjustment = _clamp(
+        projected_adjustment,
+        -EWY_FX_TREND_FOLLOW_MAX_ADJUST_PCT,
+        EWY_FX_TREND_FOLLOW_MAX_ADJUST_PCT,
+    )
+    final_return_pct = base_return_pct + adjustment
+    point_prediction = baseline_point * math.exp(final_return_pct / 100.0)
+
+    adjusted["pointPrediction"] = point_prediction
+    adjusted["rangeLow"] = point_prediction - half_band
+    adjusted["rangeHigh"] = point_prediction + half_band
+    adjusted["finalReturnPct"] = final_return_pct
+    adjusted["postModelAdjustmentPct"] = log_return_pct_to_simple_return_pct(adjustment) or 0.0
+    adjusted["trendFollowApplied"] = True
+    adjusted["trendFollowAdjustmentPct"] = log_return_pct_to_simple_return_pct(adjustment) or 0.0
+    return adjusted
+
+
 def resolve_prediction_target(now_kst: datetime, baseline_date: date) -> date:
     if now_kst.time() < KRX_OPEN_TIME:
         return next_weekday(baseline_date)
@@ -1051,6 +1139,10 @@ def update_series(payload: dict[str, Any], now_utc: datetime, prediction_target:
             "krwLogReturnPct": payload.get("krwLogPct"),
             "corePct": payload.get("corePct"),
             "residualPct": payload.get("residualPct"),
+            "baseReturnPct": payload.get("baseReturnPct"),
+            "finalReturnPct": payload.get("finalReturnPct"),
+            "trendFollowApplied": payload.get("trendFollowApplied"),
+            "trendFollowAdjustmentPct": payload.get("trendFollowAdjustmentPct"),
             "baselineDate": payload.get("baselineDate"),
             "baselineSource": payload.get("baselineSource"),
         }
@@ -1090,6 +1182,10 @@ def update_history(payload: dict[str, Any], prediction_target: str) -> None:
             "rangeHigh": payload.get("rangeHigh"),
             "prevClose": payload.get("prevClose"),
             "predictedChangePct": payload.get("predictedChangePct"),
+            "baseReturnPct": payload.get("baseReturnPct"),
+            "finalReturnPct": payload.get("finalReturnPct"),
+            "trendFollowApplied": payload.get("trendFollowApplied"),
+            "trendFollowAdjustmentPct": payload.get("trendFollowAdjustmentPct"),
             "baselineDate": payload.get("baselineDate"),
             "baselineSource": payload.get("baselineSource"),
             "predictionGeneratedAt": payload.get("generatedAt"),
@@ -1170,6 +1266,7 @@ def run() -> int:
     target_date = resolve_prediction_target(now_kst, baseline_date)
     target_iso = target_date.isoformat()
     target_label = format_date_label(target_date)
+    result = apply_ewy_fx_trend_follow_floor(result, returns, baseline["baselinePoint"])
 
     prev_close = _positive_float(last_session.get("close")) or baseline["baselinePoint"]
     predicted_change_pct = ((result["pointPrediction"] / prev_close) - 1.0) * 100.0
@@ -1215,6 +1312,13 @@ def run() -> int:
         "k200MappedPct": _round_or_none(result["k200MappedPct"], 6),
         "kospiMappedPct": round(result["kospiMappedPct"], 6),
         "baseReturnPct": round(result["baseReturnPct"], 6),
+        "preTrendReturnPct": _round_or_none(result.get("preTrendReturnPct"), 6),
+        "finalReturnPct": _round_or_none(result.get("finalReturnPct"), 6),
+        "postModelAdjustmentPct": _round_or_none(result.get("postModelAdjustmentPct"), 6),
+        "trendFollowApplied": bool(result.get("trendFollowApplied")),
+        "trendFollowSignalPct": _round_or_none(result.get("trendFollowSignalPct"), 6),
+        "trendFollowMinPct": _round_or_none(result.get("trendFollowMinPct"), 6),
+        "trendFollowAdjustmentPct": _round_or_none(result.get("trendFollowAdjustmentPct"), 6),
         "predictedChangePct": round(predicted_change_pct, 6),
         "pointPrediction": round(result["pointPrediction"], 4),
         "rangeLow": round(result["rangeLow"], 4),
@@ -1231,6 +1335,17 @@ def run() -> int:
             "rawEwyKrwAxis": "ewy_log_return_pct + krw_adjusted_log_return_pct",
             "compositeAdjustmentCapPct": COMPOSITE_ADJUSTMENT_CAP_PCT,
             "residualFeatureClamp": RESIDUAL_FEATURE_CLAMP,
+            "trendFollowFloor": {
+                "triggerPct": EWY_FX_TREND_FOLLOW_TRIGGER_PCT,
+                "minShare": EWY_FX_TREND_FOLLOW_MIN_SHARE,
+                "highTriggerPct": EWY_FX_TREND_FOLLOW_HIGH_TRIGGER_PCT,
+                "highMinShare": EWY_FX_TREND_FOLLOW_HIGH_MIN_SHARE,
+                "maxAdjustmentPct": EWY_FX_TREND_FOLLOW_MAX_ADJUST_PCT,
+                "applied": bool(result.get("trendFollowApplied")),
+                "signalPct": _round_or_none(result.get("trendFollowSignalPct"), 6),
+                "minPct": _round_or_none(result.get("trendFollowMinPct"), 6),
+                "adjustmentPct": _round_or_none(result.get("trendFollowAdjustmentPct"), 6),
+            },
             "coreCoefficients": result["coreCoefficients"],
             "mapping": result["mapping"],
             "residualWeight": result["residualWeight"],

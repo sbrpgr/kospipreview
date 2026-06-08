@@ -146,11 +146,20 @@ Runtime invariants:
 - `model.engine` must remain `EWYFXHybridCompositeNoNightFutures`;
 - the direct-vs-learned EWY/FX blend must come from diagnostics and may be
   raised automatically only by the documented high-move or low-confidence
-  rules.
+  rules;
+- the EWY/FX trend-follow floor is applied independently from Model 2's own
+  EWY/KRW signal and raw return. Model 2 must not copy the primary model's
+  `pointPrediction`.
 
 The historical one-time night-futures bootstrap path is kept only as an
 explicit legacy migration/test path and is disabled by default. It must not be
 used for current production Model 2 refreshes.
+
+Model 2 is expected to stay directionally comparable with the primary model
+when EWY/KRW and night-futures signals agree. It is not expected to match the
+primary model point-for-point when the primary model's live night-futures
+bridge materially diverges from EWY/KRW, because that bridge is the dependency
+Model 2 removes.
 
 ## EWY + FX Trend Follow Floor
 
