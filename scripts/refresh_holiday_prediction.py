@@ -1123,6 +1123,10 @@ def run() -> int:
         "yes",
         "on",
     }
+    if now_kst.weekday() >= 5:
+        print("skip: KST weekend is not a Model 2 active session")
+        return 0
+
     if not force_refresh and not is_us_market_active(now_utc):
         print("skip: outside US live/pre-market window")
         return 0

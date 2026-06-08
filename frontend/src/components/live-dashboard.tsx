@@ -673,9 +673,19 @@ export function LiveDashboard({
     modelRangeLow !== null &&
     modelRangeHigh !== null;
 
-  const model2Point = isFiniteNumber(holidayPrediction?.pointPrediction) ? holidayPrediction!.pointPrediction! : null;
-  const model2ChangePct = isFiniteNumber(holidayPrediction?.predictedChangePct) ? holidayPrediction!.predictedChangePct! : null;
+  const isActiveModel2Target =
+    hasLiveSnapshot &&
+    typeof holidayPrediction?.predictionDateIso === "string" &&
+    holidayPrediction.predictionDateIso === prediction.predictionDateIso;
+  const model2Point =
+    isActiveModel2Target && isFiniteNumber(holidayPrediction?.pointPrediction) ? holidayPrediction!.pointPrediction! : null;
+  const model2ChangePct =
+    isActiveModel2Target && isFiniteNumber(holidayPrediction?.predictedChangePct)
+      ? holidayPrediction!.predictedChangePct!
+      : null;
   const isModel2Ready = model2Point !== null && model2ChangePct !== null;
+  const activeHolidaySeries =
+    holidaySeries?.predictionDateIso === prediction.predictionDateIso ? holidaySeries : null;
 
   return (
     <div className="pageContainer">
@@ -776,7 +786,7 @@ export function LiveDashboard({
           <div className="heroFootnote">{statusMessage}</div>
         </section>
 
-        <PredictionTrendChart prediction={prediction} series={livePredictionSeries} holidaySeries={holidaySeries} />
+        <PredictionTrendChart prediction={prediction} series={livePredictionSeries} holidaySeries={activeHolidaySeries} />
 
         <div className="sectionTitleRow">
           <h2 className="sectionTitle">시장 지표 (야후 파이낸스)</h2>

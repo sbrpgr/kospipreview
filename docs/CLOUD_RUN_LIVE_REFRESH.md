@@ -41,7 +41,11 @@ They are produced by the `refresh-holiday-prediction` workflow so minute-level
 night-futures refreshes cannot overwrite the independent EWY/FX model output.
 Model 2 production refreshes must keep `nightFuturesUsed` and
 `nightFuturesReadThisRun` false; the legacy night-futures bootstrap path is
-disabled by default and is not part of routine operation.
+disabled by default and is not part of routine operation. When the Model 2
+script exits with `skip:`, the workflow must not re-publish the seeded
+`holiday_prediction*.json` or `holiday_history.json` files. Use the
+workflow's `clear_stale=on` dispatch input to clear stale Model 2 JSON from
+Cloud Storage without deploying Cloud Run.
 
 ## Refresh Cadence And Performance
 

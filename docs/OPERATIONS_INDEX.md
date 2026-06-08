@@ -82,13 +82,17 @@ If work resumes later, read these documents in order:
   the `refresh-holiday-prediction` workflow has a `force=on` dispatch input for
   repairing or reissuing Model2 JSON outside the U.S. live/pre-market window.
   It still uses only EWY, USD/KRW, KRX sync baselines, and diagnostics; it does
-  not enable night-futures input.
+  not enable night-futures input. The same workflow also has `clear_stale=on`
+  for manually clearing stale Model2 JSON from Cloud Storage when an invalid or
+  outdated Model2 artifact should no longer be displayed.
 - Model2 production invariants:
   normal and forced production Model2 refreshes must publish
   `independentModel: true`, `usesOtherModelPrediction: false`,
   `nightFuturesUsed: false`, and `nightFuturesReadThisRun: false`. The
   historical one-time night-futures bootstrap path is disabled by default and
-  exists only for explicit legacy migration tests, not routine operation.
+  exists only for explicit legacy migration tests, not routine operation. If the
+  Model2 script exits with a `skip:` result, the workflow must not publish the
+  seeded `holiday_prediction*.json` or `holiday_history.json` files again.
 - Live prediction trend repair:
   if `live_prediction_series.json` is shortened or overwritten, use
   `recover-live-prediction-series` with the target `kst_date` and

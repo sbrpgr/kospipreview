@@ -10,6 +10,10 @@ on:
         description: "Force Model2 refresh outside the U.S. live/pre-market window"
         required: false
         default: "off"
+      clear_stale:
+        description: "Clear current Model2 JSON instead of calculating a new prediction"
+        required: false
+        default: "off"
   schedule:
     # Every 5 minutes on weekdays; script exits early only when US market data is inactive.
     - cron: "*/5 * * * 1-5"
@@ -69,12 +73,97 @@ jobs:
             fi
           done
 
+      - name: Clear stale model2 JSON
+        id: clear_model2
+        if: ${{ github.event.inputs.clear_stale == 'on' }}
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          data_dir = Path("frontend/public/data")
+          data_dir.mkdir(parents=True, exist_ok=True)
+          now = datetime.now(timezone.utc).isoformat()
+
+          (data_dir / "holiday_prediction.json").write_text(
+              json.dumps(
+                  {
+                      "generatedAt": now,
+                      "schemaVersion": 3,
+                      "calculationMode": "model2_no_night_futures_composite",
+                      "independentModel": True,
+                      "usesOtherModelPrediction": False,
+                      "nightFuturesUsed": False,
+                      "nightFuturesReadThisRun": False,
+                      "status": "cleared",
+                      "clearReason": "manual_stale_model2_clear",
+                      "predictionDate": None,
+                      "predictionDateIso": None,
+                      "pointPrediction": None,
+                      "predictedChangePct": None,
+                      "rangeLow": None,
+                      "rangeHigh": None,
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          (data_dir / "holiday_prediction_series.json").write_text(
+              json.dumps(
+                  {
+                      "generatedAt": now,
+                      "model": "model2",
+                      "calculationMode": "model2_no_night_futures_composite",
+                      "status": "cleared",
+                      "clearReason": "manual_stale_model2_clear",
+                      "predictionDateIso": None,
+                      "records": [],
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          (data_dir / "holiday_history.json").write_text(
+              json.dumps(
+                  {
+                      "generatedAt": now,
+                      "model": "model2",
+                      "calculationMode": "model2_no_night_futures_composite",
+                      "status": "cleared",
+                      "clearReason": "manual_stale_model2_clear",
+                      "records": [],
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          print("cleared stale Model2 JSON files")
+          PY
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+
       - name: Run independent model2 prediction
+        id: model2
+        if: ${{ github.event.inputs.clear_stale != 'on' }}
         env:
           FORCE_MODEL2_REFRESH: ${{ github.event.inputs.force || 'off' }}
-        run: python ./scripts/refresh_holiday_prediction.py
+        run: |
+          set -o pipefail
+          python ./scripts/refresh_holiday_prediction.py | tee .model2-refresh.log
+          if grep -q "^wrote Model 2 independent prediction" .model2-refresh.log; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Drop invalid skipped model2 placeholders
+        if: ${{ github.event.inputs.clear_stale != 'on' }}
         run: |
           python - <<'PY'
           import json
@@ -96,6 +185,7 @@ jobs:
           PY
 
       - name: Publish model2 JSON to Cloud Storage
+        if: ${{ steps.model2.outputs.should_publish == 'true' || steps.clear_model2.outputs.should_publish == 'true' }}
         run: |
           for f in holiday_prediction.json holiday_prediction_series.json holiday_history.json; do
             if [ -f "frontend/public/data/$f" ]; then
