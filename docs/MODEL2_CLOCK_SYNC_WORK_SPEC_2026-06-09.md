@@ -106,21 +106,26 @@ Local verification:
 
 Production verification:
 
-- Commit: `504ee5fc Add model2 EWY FX clock sync repair`
+- Commit: `b92040a1 Fix model2 clock sync anchor drift`
 - Workflow: GitHub Actions `refresh-holiday-prediction`
-- Run: `27145266257`
+- Run: `27148551837`
 - Dispatch inputs: `force=on`, `clear_stale=off`, `clock_sync=on`
 - Result: success
-- Published Model2 value: `7,862.5118` (`+5.051858%`)
-- Previous stale/reference-misaligned Model2 value: `7,718.119`
-- Primary model value at verification: `7,876.16` (`+5.23%`)
+- Published raw Model2 value: `7,877.67` (`+5.25%`)
+- Frontend-compensated Model2 display value at verification: `7,872.30` (`+5.183%`)
+- Primary model value at verification: `7,877.77` (`+5.26%`)
+- Display gap after repair: `-5.47pt`
 - Model2 JSON recorded:
-  - `baselineSource: primary_ewy_fx_simple_clock_sync`
+  - `baselineSource: primary_model_prediction_clock_sync`
   - `clockSyncUsed: true`
+  - `clockSyncAnchorKind: primary_point_prediction`
+  - `model.clockSync.trackingApplied: true`
+  - `rawResidualPct: 0.0`
+  - `residualPct: 0.0`
   - `nightFuturesUsed: false`
   - `usesOtherModelPrediction: false`
 
 ## Cost Guardrail
 
-This repair used the Model2 Cloud Storage JSON workflow only. Cloud Run, Cloud Build, and Firebase Hosting were not
-required for the clock-sync JSON repair.
+This repair used the Model2 Cloud Storage JSON workflow and a hosting-only frontend deploy. Cloud Run and Cloud Build
+were not used.

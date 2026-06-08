@@ -35,13 +35,19 @@
     - `python -m py_compile scripts/refresh_holiday_prediction.py scripts/guard_live_json_publish.py` passed.
     - Production Model2 moved from the misaligned `7,718.119` value to `7,862.5118` after clock sync.
     - Live JSON recorded `baselineSource: primary_ewy_fx_simple_clock_sync` and `clockSyncUsed: true`.
+    - Follow-up production repair moved Model2 to `7,872.30` frontend-compensated display versus primary model
+      `7,877.77`, with `baselineSource: primary_model_prediction_clock_sync`, `clockSyncAnchorKind:
+      primary_point_prediction`, `trackingApplied: true`, and zero residual offset at the sync instant.
   - Deployment:
     - commit: `504ee5fc Add model2 EWY FX clock sync repair`
     - workflow: `refresh-holiday-prediction`
     - run: `27145266257`
     - inputs: `force=on`, `clear_stale=off`, `clock_sync=on`
     - result: success
-  - Cost guardrail: Cloud Run, Cloud Build, and Firebase Hosting were not used for the clock-sync JSON repair.
+    - follow-up commit: `b92040a1 Fix model2 clock sync anchor drift`
+    - follow-up workflows: `deploy-hosting` run `27148551770`, `refresh-holiday-prediction` run `27148551837`
+    - follow-up result: success
+  - Cost guardrail: Cloud Run and Cloud Build were not used; final frontend sync used hosting-only deploy.
   - Work spec: `docs/MODEL2_CLOCK_SYNC_WORK_SPEC_2026-06-09.md`
 
 ## 2026-06-07
