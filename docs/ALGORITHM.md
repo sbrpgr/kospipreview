@@ -126,8 +126,9 @@ Allowed inputs:
 - the latest synchronized KOSPI close baseline from the KRX operating session;
 - EWY and USD/KRW baseline/current prices;
 - an optional manual clock-sync anchor from the primary payload's
-  `ewyFxSimplePoint`, used only to align Model 2's initial EWY/FX reference
-  clock for the same prediction date;
+  `pointPrediction`, used only to align Model 2's initial live reference clock
+  for the same prediction date; if unavailable, `ewyFxSimplePoint` may be used
+  as a fallback anchor;
 - diagnostics-generated EWY/FX correction coefficients, including
   `direct_blend_weight`;
 - bounded composite indicators such as S&P 500, NASDAQ, Dow, SOX, VIX, Gold,
@@ -136,7 +137,9 @@ Allowed inputs:
 Forbidden inputs:
 
 - KOSPI 200 night futures prices, returns, or `nightFuturesSimplePoint`;
-- the primary model's `pointPrediction` or any other model prediction;
+- the primary model's `pointPrediction` or any other model prediction during
+  normal Model 2 runs; manual `clock_sync=on` may use the primary
+  `pointPrediction` once as the same-date baseline anchor;
 - manual direct-blend tuning in live refresh code.
 
 Runtime invariants:
@@ -151,25 +154,29 @@ Runtime invariants:
   raised automatically only by the documented high-move or low-confidence
   rules;
 - the EWY/FX trend-follow floor is applied independently from Model 2's own
-  EWY/KRW signal and raw return. Model 2 must not copy the primary model's
-  `pointPrediction`.
+  EWY/KRW signal and raw return. Model 2 must not continuously copy the
+  primary model's `pointPrediction`.
 
 The historical one-time night-futures bootstrap path is kept only as an
 explicit legacy migration/test path and is disabled by default. It must not be
 used for current production Model 2 refreshes.
 
 If Model 2 is started after the primary live model has already synchronized its
-EWY/FX display clock, a manual `clock_sync=on` repair can reset Model 2's
-baseline to the primary `ewyFxSimplePoint` and the current EWY/KRW prices.
-This is a reference-clock sync, not a copy of the primary model prediction; the
-payload must record `clockSyncUsed: true` and still keep
+live clock, a manual `clock_sync=on` repair can reset Model 2's baseline to the
+primary `pointPrediction` and the current EWY/KRW prices. This is a one-time
+reference-clock sync, not a continuous copy of the primary model prediction;
+the payload must record `clockSyncUsed: true` and still keep
 `usesOtherModelPrediction: false`.
+
+After a clock-sync baseline is set, Model 2 must not add a second residual,
+intercept, or composite offset at the sync instant. It tracks later EWY/KRW
+movement from the synced baseline and records `clockSyncAnchorKind` plus
+`ewyFxReferencePoint` so the frontend can compensate short-lived JSON lag.
 
 Clock-synced Model 2 payloads also record `ewyFxReferencePoint`, the primary
 `ewyFxSimplePoint` observed when that Model 2 JSON was generated. The homepage
 may use that field to compensate short-lived Model 2 JSON staleness by adding
-only the later EWY/FX drift. This display compensation must not use the primary
-`pointPrediction`.
+only the later EWY/FX drift.
 
 Model 2 is expected to stay directionally comparable with the primary model
 when EWY/KRW and night-futures signals agree. It is not expected to match the

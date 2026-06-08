@@ -177,7 +177,7 @@ class Model2IndependenceTests(unittest.TestCase):
             "calculationMode": model2.MODEL2_MODE,
             "baselineDate": "2026-06-08",
             "baselinePoint": 7853.59,
-            "baselineSource": model2.EWY_FX_CLOCK_SYNC_SOURCE,
+            "baselineSource": model2.PRIMARY_MODEL_CLOCK_SYNC_SOURCE,
             "baselinePrices": {"ewy": 185.52, "krw": 1526.73},
             "clockSyncUsed": True,
             "clockSyncPoint": 7853.59,
@@ -191,6 +191,87 @@ class Model2IndependenceTests(unittest.TestCase):
             model2._baseline_payload_for_run(existing_model2_payload, force_refresh=True, clock_sync=True),
             existing_model2_payload,
         )
+
+    def test_forced_run_preserves_legacy_ewy_fx_clock_sync_baseline(self):
+        existing_model2_payload = {
+            "calculationMode": model2.MODEL2_MODE,
+            "baselineDate": "2026-06-08",
+            "baselinePoint": 7944.81,
+            "baselineSource": model2.EWY_FX_CLOCK_SYNC_SOURCE,
+            "baselinePrices": {"ewy": 187.34, "krw": 1527.61},
+            "clockSyncUsed": True,
+            "clockSyncPoint": 7944.81,
+        }
+
+        self.assertIs(
+            model2._baseline_payload_for_run(existing_model2_payload, force_refresh=True),
+            existing_model2_payload,
+        )
+
+    def test_clock_sync_prefers_primary_model_point_for_initial_alignment(self):
+        baseline = model2.resolve_model2_baseline(
+            existing_payload={},
+            last_session={"date": "2026-06-08", "close": 7484.41},
+            current_prices=CURRENT_PRICES,
+            primary_snapshot={
+                "predictionDateIso": "2026-06-09",
+                "pointPrediction": 7913.08,
+                "ewyFxSimplePoint": 7938.6,
+                "generatedAt": "2026-06-08T15:22:05+00:00",
+            },
+            now_utc=datetime(2026, 6, 8, 15, 25, tzinfo=timezone.utc),
+            allow_clock_sync=True,
+        )
+
+        self.assertEqual(baseline["baselinePoint"], 7913.08)
+        self.assertEqual(baseline["baselineSource"], model2.PRIMARY_MODEL_CLOCK_SYNC_SOURCE)
+        self.assertEqual(baseline["clockSyncAnchorKind"], "primary_point_prediction")
+        self.assertEqual(baseline["clockSyncEwyFxReferencePoint"], 7938.6)
+        self.assertFalse(baseline["nightFuturesReadThisRun"])
+
+    def test_clock_sync_tracking_does_not_add_second_residual_offset(self):
+        diagnostics = {
+            "ewyFxCorrection": {
+                "intercept": 0.27,
+                "ewyCoef": 0.4,
+                "krwCoef": 0.2,
+                "directBlendWeight": 0.5,
+            },
+            "residualModel": {
+                "intercept": -0.02,
+                "weight": 1.0,
+                "coefficients": {},
+                "mae": 1.2,
+            },
+        }
+        returns = {
+            "ewy": 0.0,
+            "krw": 0.0,
+            "sp500": 0.0,
+            "nasdaq": 0.0,
+            "dow": 0.0,
+            "sox": 0.0,
+            "wti": 0.0,
+            "gold": 0.0,
+            "us10y": 0.0,
+        }
+        raw = model2.calculate_model2(returns, diagnostics, 7913.08)
+        self.assertIsNotNone(raw)
+        self.assertNotAlmostEqual(raw["pointPrediction"], 7913.08)
+
+        tracked = model2.apply_clock_sync_tracking(
+            raw,
+            returns,
+            {
+                "baselinePoint": 7913.08,
+                "baselineSource": model2.PRIMARY_MODEL_CLOCK_SYNC_SOURCE,
+            },
+        )
+
+        self.assertAlmostEqual(tracked["pointPrediction"], 7913.08)
+        self.assertEqual(tracked["rawResidualPct"], 0.0)
+        self.assertEqual(tracked["residualPct"], 0.0)
+        self.assertTrue(tracked["clockSyncTrackingApplied"])
 
     def test_stale_yahoo_bootstrap_date_migrates_without_new_night_read(self):
         existing_model2_payload = {

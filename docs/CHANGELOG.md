@@ -15,6 +15,12 @@
       `kospi_close`;
     - homepage Model2 display now compensates stale clock-synced JSON by applying the latest primary
       `ewyFxSimplePoint` drift since Model2's `ewyFxReferencePoint`.
+  - Follow-up correction:
+    - manual `clock_sync=on` now prefers the primary payload's same-date `pointPrediction` as the one-time baseline
+      anchor and records `clockSyncAnchorKind`;
+    - a clock-synced baseline no longer receives a second residual/intercept offset at the sync instant, so Model2
+      starts from the aligned reference and only tracks later EWY/KRW drift;
+    - legacy `primary_ewy_fx_simple_clock_sync` baselines remain accepted for forced reissues.
   - Files changed:
     - `.github/workflows/refresh-holiday-prediction.yml`
     - `scripts/refresh_holiday_prediction.py`

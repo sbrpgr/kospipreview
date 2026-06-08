@@ -176,6 +176,8 @@ export async function getHolidayPredictionData() {
     clockSyncUsed?: boolean;
     clockSyncPoint?: number | null;
     clockSyncSource?: string | null;
+    clockSyncAnchorKind?: string | null;
+    clockSyncEwyFxReferencePoint?: number | null;
     ewyFxReferencePoint?: number | null;
     ewyFxReferenceGeneratedAt?: string | null;
     rangeLow?: number | null;

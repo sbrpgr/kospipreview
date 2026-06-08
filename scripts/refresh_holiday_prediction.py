@@ -58,6 +58,8 @@ MODEL2_VERSION = "model2-independent-ewyfx-hybrid-composite-v5"
 BOOTSTRAP_SOURCE = "one_time_night_futures_simple_point"
 KOSPI_CLOSE_SOURCE = "kospi_close"
 EWY_FX_CLOCK_SYNC_SOURCE = "primary_ewy_fx_simple_clock_sync"
+PRIMARY_MODEL_CLOCK_SYNC_SOURCE = "primary_model_prediction_clock_sync"
+CLOCK_SYNC_BASELINE_SOURCES = {EWY_FX_CLOCK_SYNC_SOURCE, PRIMARY_MODEL_CLOCK_SYNC_SOURCE}
 
 BAND_MAE_MULTIPLIER = 1.5
 SERIES_MAX_ROWS = 1080
@@ -224,6 +226,10 @@ def _normalize_price_map(prices: Any) -> dict[str, float]:
 
 def _has_required_prices(prices: dict[str, float]) -> bool:
     return all(_positive_float(prices.get(key)) is not None for key in REQUIRED_BASELINE_KEYS)
+
+
+def _is_clock_sync_baseline(source: Any) -> bool:
+    return isinstance(source, str) and source in CLOCK_SYNC_BASELINE_SOURCES
 
 
 def format_date_label(value: date | str) -> str:
@@ -705,22 +711,36 @@ def resolve_model2_baseline(
     if allow_clock_sync and _has_required_prices(current_prices):
         snapshot = primary_snapshot if isinstance(primary_snapshot, dict) else {}
         primary_target_iso = str(snapshot.get("predictionDateIso") or "")
-        sync_point = _positive_float(snapshot.get("ewyFxSimplePoint"))
+        primary_model_point = _positive_float(snapshot.get("pointPrediction"))
+        ewy_fx_reference_point = _positive_float(snapshot.get("ewyFxSimplePoint"))
+        sync_point = primary_model_point or ewy_fx_reference_point
         if sync_point is not None and (not primary_target_iso or primary_target_iso == target_iso):
             sync_at = (now_utc or datetime.now(timezone.utc)).isoformat()
+            sync_source = (
+                PRIMARY_MODEL_CLOCK_SYNC_SOURCE
+                if primary_model_point is not None
+                else EWY_FX_CLOCK_SYNC_SOURCE
+            )
+            sync_anchor_kind = (
+                "primary_point_prediction"
+                if primary_model_point is not None
+                else "primary_ewy_fx_simple"
+            )
             return {
                 "baselinePoint": sync_point,
                 "baselineDate": session_date,
-                "baselineSource": EWY_FX_CLOCK_SYNC_SOURCE,
+                "baselineSource": sync_source,
                 "baselinePrices": dict(current_prices),
                 "oneTimeNightFuturesBootstrapUsed": False,
                 "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt"),
                 "nightFuturesReadThisRun": False,
-                "resetReason": "manual_primary_ewy_fx_clock_sync",
+                "resetReason": "manual_primary_clock_sync",
                 "clockSyncUsed": True,
                 "clockSyncAt": sync_at,
-                "clockSyncSource": EWY_FX_CLOCK_SYNC_SOURCE,
+                "clockSyncSource": sync_source,
                 "clockSyncPoint": sync_point,
+                "clockSyncAnchorKind": sync_anchor_kind,
+                "clockSyncEwyFxReferencePoint": ewy_fx_reference_point,
                 "clockSyncPrimaryPredictionDateIso": primary_target_iso or None,
                 "clockSyncPrimaryGeneratedAt": snapshot.get("generatedAt"),
             }
@@ -761,6 +781,8 @@ def resolve_model2_baseline(
             "clockSyncAt": existing_payload.get("clockSyncAt"),
             "clockSyncSource": existing_payload.get("clockSyncSource"),
             "clockSyncPoint": existing_payload.get("clockSyncPoint"),
+            "clockSyncAnchorKind": existing_payload.get("clockSyncAnchorKind"),
+            "clockSyncEwyFxReferencePoint": existing_payload.get("clockSyncEwyFxReferencePoint"),
             "clockSyncPrimaryPredictionDateIso": existing_payload.get("clockSyncPrimaryPredictionDateIso"),
             "clockSyncPrimaryGeneratedAt": existing_payload.get("clockSyncPrimaryGeneratedAt"),
         }
@@ -785,6 +807,8 @@ def resolve_model2_baseline(
             "clockSyncAt": existing_payload.get("clockSyncAt"),
             "clockSyncSource": existing_payload.get("clockSyncSource"),
             "clockSyncPoint": existing_payload.get("clockSyncPoint"),
+            "clockSyncAnchorKind": existing_payload.get("clockSyncAnchorKind"),
+            "clockSyncEwyFxReferencePoint": existing_payload.get("clockSyncEwyFxReferencePoint"),
             "clockSyncPrimaryPredictionDateIso": existing_payload.get("clockSyncPrimaryPredictionDateIso"),
             "clockSyncPrimaryGeneratedAt": existing_payload.get("clockSyncPrimaryGeneratedAt"),
         }
@@ -814,6 +838,8 @@ def resolve_model2_baseline(
                 "clockSyncAt": None,
                 "clockSyncSource": None,
                 "clockSyncPoint": None,
+                "clockSyncAnchorKind": None,
+                "clockSyncEwyFxReferencePoint": None,
                 "clockSyncPrimaryPredictionDateIso": None,
                 "clockSyncPrimaryGeneratedAt": None,
             }
@@ -835,6 +861,8 @@ def resolve_model2_baseline(
                 "clockSyncAt": None,
                 "clockSyncSource": None,
                 "clockSyncPoint": None,
+                "clockSyncAnchorKind": None,
+                "clockSyncEwyFxReferencePoint": None,
                 "clockSyncPrimaryPredictionDateIso": None,
                 "clockSyncPrimaryGeneratedAt": None,
             }
@@ -859,6 +887,8 @@ def resolve_model2_baseline(
         "clockSyncAt": None,
         "clockSyncSource": None,
         "clockSyncPoint": None,
+        "clockSyncAnchorKind": None,
+        "clockSyncEwyFxReferencePoint": None,
         "clockSyncPrimaryPredictionDateIso": None,
         "clockSyncPrimaryGeneratedAt": None,
     }
@@ -1101,6 +1131,64 @@ def calculate_model2(
     }
 
 
+def apply_clock_sync_tracking(
+    result: dict[str, Any],
+    signal_returns: dict[str, float],
+    baseline: dict[str, Any],
+) -> dict[str, Any]:
+    """Keep a manually synced Model 2 baseline from receiving a second model offset."""
+
+    if not _is_clock_sync_baseline(baseline.get("baselineSource")):
+        return result
+
+    baseline_point = _positive_float(baseline.get("baselinePoint"))
+    signal_return = compute_ewy_fx_simple_log_return(signal_returns)
+    if baseline_point is None or signal_return is None:
+        return result
+
+    point_prediction = baseline_point * math.exp(signal_return / 100.0)
+    half_band = _to_float(result.get("bandHalfWidth")) or 0.0
+    adjusted = dict(result)
+    adjusted.update(
+        {
+            "pointPrediction": point_prediction,
+            "ewyFxDirectPoint": point_prediction,
+            "ewyFxDirectPct": signal_return,
+            "ewyFxLearnedPoint": point_prediction,
+            "ewyFxLearnedPct": signal_return,
+            "ewyFxCorePoint": point_prediction,
+            "ewyFxCorePct": signal_return,
+            "baseReturnPct": signal_return,
+            "corePct": signal_return,
+            "rawResidualPct": 0.0,
+            "residualPct": 0.0,
+            "compositeAdjustmentPct": 0.0,
+            "k200MappedPct": None,
+            "kospiMappedPct": signal_return,
+            "rangeLow": point_prediction - half_band,
+            "rangeHigh": point_prediction + half_band,
+            "clockSyncTrackingApplied": True,
+        }
+    )
+
+    core_coefficients = dict(result.get("coreCoefficients") or {})
+    core_coefficients.update(
+        {
+            "directBlendWeight": 1.0,
+            "learnedBlendWeight": 0.0,
+            "source": "clock_sync_direct_ewy_fx_tracking",
+            "used": True,
+            "clockSyncTrackingApplied": True,
+        }
+    )
+    adjusted["coreCoefficients"] = core_coefficients
+
+    mapping = dict(result.get("mapping") or {})
+    mapping["used"] = False
+    adjusted["mapping"] = mapping
+    return adjusted
+
+
 def log_return_pct_to_simple_return_pct(value: float | None) -> float | None:
     if value is None:
         return None
@@ -1206,6 +1294,8 @@ def update_series(payload: dict[str, Any], now_utc: datetime, prediction_target:
             "baselineSource": payload.get("baselineSource"),
             "clockSyncUsed": payload.get("clockSyncUsed"),
             "clockSyncPoint": payload.get("clockSyncPoint"),
+            "clockSyncAnchorKind": payload.get("clockSyncAnchorKind"),
+            "ewyFxReferencePoint": payload.get("ewyFxReferencePoint"),
         }
     )
     records = records[-SERIES_MAX_ROWS:]
@@ -1251,6 +1341,8 @@ def update_history(payload: dict[str, Any], prediction_target: str) -> None:
             "baselineSource": payload.get("baselineSource"),
             "clockSyncUsed": payload.get("clockSyncUsed"),
             "clockSyncPoint": payload.get("clockSyncPoint"),
+            "clockSyncAnchorKind": payload.get("clockSyncAnchorKind"),
+            "ewyFxReferencePoint": payload.get("ewyFxReferencePoint"),
             "predictionGeneratedAt": payload.get("generatedAt"),
         }
     )
@@ -1270,7 +1362,7 @@ def _baseline_payload_for_run(existing_payload: dict[str, Any], *, force_refresh
     if (
         force_refresh
         and not clock_sync
-        and existing_payload.get("baselineSource") != EWY_FX_CLOCK_SYNC_SOURCE
+        and not _is_clock_sync_baseline(existing_payload.get("baselineSource"))
     ):
         return {}
     return existing_payload
@@ -1344,6 +1436,7 @@ def run() -> int:
     target_date = resolve_prediction_target(now_kst, baseline_date)
     target_iso = target_date.isoformat()
     target_label = format_date_label(target_date)
+    result = apply_clock_sync_tracking(result, returns, baseline)
     result = apply_ewy_fx_trend_follow_floor(result, returns, baseline["baselinePoint"])
 
     prev_close = _positive_float(last_session.get("close")) or baseline["baselinePoint"]
@@ -1368,6 +1461,8 @@ def run() -> int:
         "clockSyncAt": baseline.get("clockSyncAt"),
         "clockSyncSource": baseline.get("clockSyncSource"),
         "clockSyncPoint": _round_or_none(baseline.get("clockSyncPoint"), 4),
+        "clockSyncAnchorKind": baseline.get("clockSyncAnchorKind"),
+        "clockSyncEwyFxReferencePoint": _round_or_none(baseline.get("clockSyncEwyFxReferencePoint"), 4),
         "clockSyncPrimaryPredictionDateIso": baseline.get("clockSyncPrimaryPredictionDateIso"),
         "clockSyncPrimaryGeneratedAt": baseline.get("clockSyncPrimaryGeneratedAt"),
         "ewyFxReferencePoint": _round_or_none(ewy_fx_reference_point, 4),
@@ -1419,7 +1514,8 @@ def run() -> int:
             "engine": MODEL2_ENGINE,
             "inputPolicy": (
                 "Hybrid EWY/KRW fair-value core plus bounded composite adjustment; "
-                "optional EWY+FX clock-sync anchor; no night-futures input"
+                "manual clock-sync anchor tracks later EWY/FX drift without a second residual offset; "
+                "no night-futures input"
             ),
             "coreAxis": "direct_blend * raw_ewy_krw_axis + learned_blend * rolling_ewy_fx_correction",
             "rawEwyKrwAxis": "ewy_log_return_pct + krw_adjusted_log_return_pct",
@@ -1427,11 +1523,14 @@ def run() -> int:
                 "used": bool(baseline.get("clockSyncUsed")),
                 "source": baseline.get("clockSyncSource"),
                 "point": _round_or_none(baseline.get("clockSyncPoint"), 4),
+                "anchorKind": baseline.get("clockSyncAnchorKind"),
+                "ewyFxBaselinePoint": _round_or_none(baseline.get("clockSyncEwyFxReferencePoint"), 4),
                 "ewyFxReferencePoint": _round_or_none(ewy_fx_reference_point, 4),
                 "syncedAt": baseline.get("clockSyncAt"),
                 "primaryPredictionDateIso": baseline.get("clockSyncPrimaryPredictionDateIso"),
                 "primaryGeneratedAt": baseline.get("clockSyncPrimaryGeneratedAt"),
-                "usesPrimaryPointPrediction": False,
+                "usesPrimaryPointPrediction": baseline.get("baselineSource") == PRIMARY_MODEL_CLOCK_SYNC_SOURCE,
+                "trackingApplied": bool(result.get("clockSyncTrackingApplied")),
             },
             "compositeAdjustmentCapPct": COMPOSITE_ADJUSTMENT_CAP_PCT,
             "residualFeatureClamp": RESIDUAL_FEATURE_CLAMP,

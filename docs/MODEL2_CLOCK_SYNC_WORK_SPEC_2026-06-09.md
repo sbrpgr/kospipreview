@@ -5,8 +5,8 @@ Date: 2026-06-09 KST
 ## Scope
 
 Add a manual reference-clock sync path for independent Model2 so an already-running primary live model and Model2
-can start from the same EWY/FX display reference when Model2 is repaired or reissued after the primary model has
-already synchronized its live clock.
+can start from the same live model reference when Model2 is repaired or reissued after the primary model has already
+synchronized its live clock.
 
 This is a Model2 JSON generation and operations workflow change. It must not change the primary prediction model,
 Cloud Run refresh behavior, Cloud Scheduler cadence, frontend rendering, or Firebase Hosting rewrites.
@@ -25,20 +25,23 @@ The specific production symptom was:
 
 ## Implemented Behavior
 
-`refresh-holiday-prediction` now supports a manual `clock_sync=on` dispatch input.
+`refresh-holiday-prediction` supports a manual `clock_sync=on` dispatch input.
 
 When `clock_sync=on` is used:
 
-- Model2 baseline point is reset to the primary payload's `ewyFxSimplePoint` for the same `predictionDateIso`;
+- Model2 baseline point is reset to the primary payload's `pointPrediction` for the same `predictionDateIso` when
+  it is available;
+- if the primary model point is unavailable, Model2 falls back to the primary payload's `ewyFxSimplePoint`;
 - Model2 baseline prices are reset to the current EWY/KRW and composite prices at that sync timestamp;
-- Model2 continues to calculate its own point prediction from EWY/KRW, diagnostics, residual features, and its
-  trend-follow floor;
-- Model2 records `clockSyncUsed: true`, `clockSyncSource: primary_ewy_fx_simple_clock_sync`, and
-  `clockSyncPoint`;
+- after a clock-sync baseline, Model2 tracks later EWY/KRW movement from the synced baseline without adding a second
+  residual/intercept offset at the sync instant;
+- Model2 records `clockSyncUsed: true`, `clockSyncSource`, `clockSyncPoint`, `clockSyncAnchorKind`, and
+  `ewyFxReferencePoint`;
 - Model2 still publishes `usesOtherModelPrediction: false`, `nightFuturesUsed: false`, and
   `nightFuturesReadThisRun: false`.
 
-The clock sync target is the primary EWY+FX simple point, not the primary `pointPrediction`.
+The clock sync target is a one-time baseline alignment. It must not become a continuous copy of the primary model
+prediction.
 
 After a clock-sync baseline exists, forced Model2 reissues must preserve that baseline unless `clock_sync=on` is
 explicitly requested again. A forced run must not silently fall back to `kospi_close`, because that reintroduces the
@@ -62,18 +65,20 @@ double-counting after a normal Model2 JSON refresh.
 
 ## Manual Repair Command
 
-Use this only when Model2 needs a one-time reference-clock alignment to the primary EWY+FX simple point:
+Use this only when Model2 needs a one-time reference-clock alignment to the primary live model point:
 
 ```bash
 gh workflow run refresh-holiday-prediction.yml --ref main -f force=on -f clear_stale=off -f clock_sync=on
 ```
 
-Do not use this to force Model2 to match the primary model prediction. If the primary model's night-futures bridge
-materially diverges from EWY/KRW, a gap can still be valid.
+Do not use this as a recurring copy of the primary model prediction. If the primary model's night-futures bridge
+materially diverges from EWY/KRW after the sync point, a gap can still be valid.
 
 ## Safety Constraints
 
-- Do not copy primary `pointPrediction` into Model2.
+- Do not copy primary `pointPrediction` into normal Model2 runs.
+- Manual `clock_sync=on` may use primary `pointPrediction` once as the baseline clock anchor for the same
+  `predictionDateIso`.
 - Do not read or use night-futures prices in normal or clock-sync Model2 runs.
 - Keep `independentModel: true`.
 - Keep `usesOtherModelPrediction: false`.

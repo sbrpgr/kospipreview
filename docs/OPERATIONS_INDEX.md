@@ -87,12 +87,13 @@ If work resumes later, read these documents in order:
   not enable night-futures input. The same workflow also has `clear_stale=on`
   for manually clearing stale Model2 JSON from Cloud Storage when an invalid or
   outdated Model2 artifact should no longer be displayed. Use `clock_sync=on`
-  only when Model2 must be manually aligned to the primary payload's
-  `ewyFxSimplePoint` reference clock for the same prediction date; this must
-  record `clockSyncUsed: true` and must not copy the primary model
-  `pointPrediction`. After a clock-sync baseline exists, `force=on` reissues
-  must preserve that baseline unless another explicit `clock_sync=on` repair is
-  requested.
+  only when Model2 must be manually aligned to the primary live model reference
+  clock for the same prediction date. The repair uses primary
+  `pointPrediction` once as the baseline anchor when available, falls back to
+  `ewyFxSimplePoint` only if needed, records `clockSyncUsed: true`, and keeps
+  night-futures input disabled. After a clock-sync baseline exists, `force=on`
+  reissues must preserve that baseline unless another explicit `clock_sync=on`
+  repair is requested.
 - Model2 production invariants:
   normal and forced production Model2 refreshes must publish
   `independentModel: true`, `usesOtherModelPrediction: false`,
@@ -104,13 +105,14 @@ If work resumes later, read these documents in order:
   The frontend must only display Model2 when `holiday_prediction.json`
   `predictionDateIso` matches the main `prediction.json` `predictionDateIso`.
   Model2 applies the EWY/FX trend-follow floor from its own EWY/KRW signal and
-  raw return, while still keeping `usesOtherModelPrediction: false`. A large
-  live gap from Model1 can be valid when Model1 is anchored by a materially
-  different night-futures bridge; do not force Model2 to Model1's
-  `pointPrediction`. The homepage may compensate a stale clock-synced Model2
-  card by adding the latest primary `ewyFxSimplePoint` drift since
-  `ewyFxReferencePoint`; fallback to `clockSyncPoint` is only for older Model2
-  JSON without the reference field.
+  raw return, while still keeping `usesOtherModelPrediction: false`. A manual
+  clock-sync baseline must not receive a second residual/intercept offset at
+  the sync instant; it tracks later EWY/KRW movement from that synced baseline.
+  A large live gap from Model1 can be valid only when Model1 later moves on a
+  materially different bridge basis. The homepage may compensate a stale
+  clock-synced Model2 card by adding the latest primary `ewyFxSimplePoint`
+  drift since `ewyFxReferencePoint`; fallback to `clockSyncPoint` is only for
+  older Model2 JSON without the reference field.
 - Live prediction trend repair:
   if `live_prediction_series.json` is shortened or overwritten, use
   `recover-live-prediction-series` with the target `kst_date` and
