@@ -13,6 +13,9 @@ Operational rule:
 - Model 2 applies the same EWY/FX trend-follow floor as the primary model from
   its own EWY/KRW signal and raw return; it never copies another model's
   prediction.
+- A manual clock-sync repair may anchor Model 2 to the primary payload's
+  EWY+FX simple point, then reset Model 2's own EWY/KRW baseline prices to the
+  same timestamp.
 """
 
 from __future__ import annotations
@@ -54,6 +57,7 @@ MODEL2_ENGINE = "EWYFXHybridCompositeNoNightFutures"
 MODEL2_VERSION = "model2-independent-ewyfx-hybrid-composite-v5"
 BOOTSTRAP_SOURCE = "one_time_night_futures_simple_point"
 KOSPI_CLOSE_SOURCE = "kospi_close"
+EWY_FX_CLOCK_SYNC_SOURCE = "primary_ewy_fx_simple_clock_sync"
 
 BAND_MAE_MULTIPLIER = 1.5
 SERIES_MAX_ROWS = 1080
@@ -673,6 +677,7 @@ def resolve_model2_baseline(
     *,
     now_utc: datetime | None = None,
     allow_one_time_night_bootstrap: bool = False,
+    allow_clock_sync: bool = False,
 ) -> dict[str, Any]:
     """Resolve the Model 2 baseline without normal night-futures dependency."""
 
@@ -695,6 +700,30 @@ def resolve_model2_baseline(
         and now_kst.time() < KRX_OPEN_TIME
         and now_kst.date() == next_weekday(session_date_obj)
     )
+    target_iso = resolve_prediction_target(now_kst, session_date_obj).isoformat() if session_date_obj else ""
+
+    if allow_clock_sync and _has_required_prices(current_prices):
+        snapshot = primary_snapshot if isinstance(primary_snapshot, dict) else {}
+        primary_target_iso = str(snapshot.get("predictionDateIso") or "")
+        sync_point = _positive_float(snapshot.get("ewyFxSimplePoint"))
+        if sync_point is not None and (not primary_target_iso or primary_target_iso == target_iso):
+            sync_at = (now_utc or datetime.now(timezone.utc)).isoformat()
+            return {
+                "baselinePoint": sync_point,
+                "baselineDate": session_date,
+                "baselineSource": EWY_FX_CLOCK_SYNC_SOURCE,
+                "baselinePrices": dict(current_prices),
+                "oneTimeNightFuturesBootstrapUsed": False,
+                "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt"),
+                "nightFuturesReadThisRun": False,
+                "resetReason": "manual_primary_ewy_fx_clock_sync",
+                "clockSyncUsed": True,
+                "clockSyncAt": sync_at,
+                "clockSyncSource": EWY_FX_CLOCK_SYNC_SOURCE,
+                "clockSyncPoint": sync_point,
+                "clockSyncPrimaryPredictionDateIso": primary_target_iso or None,
+                "clockSyncPrimaryGeneratedAt": snapshot.get("generatedAt"),
+            }
 
     if (
         existing_is_model2
@@ -728,6 +757,12 @@ def resolve_model2_baseline(
             "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt"),
             "nightFuturesReadThisRun": False,
             "resetReason": reset_reason,
+            "clockSyncUsed": bool(existing_payload.get("clockSyncUsed")),
+            "clockSyncAt": existing_payload.get("clockSyncAt"),
+            "clockSyncSource": existing_payload.get("clockSyncSource"),
+            "clockSyncPoint": existing_payload.get("clockSyncPoint"),
+            "clockSyncPrimaryPredictionDateIso": existing_payload.get("clockSyncPrimaryPredictionDateIso"),
+            "clockSyncPrimaryGeneratedAt": existing_payload.get("clockSyncPrimaryGeneratedAt"),
         }
 
     if (
@@ -746,6 +781,12 @@ def resolve_model2_baseline(
             "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt"),
             "nightFuturesReadThisRun": False,
             "resetReason": "migrate_bootstrap_baseline_to_shared_kospi_session",
+            "clockSyncUsed": bool(existing_payload.get("clockSyncUsed")),
+            "clockSyncAt": existing_payload.get("clockSyncAt"),
+            "clockSyncSource": existing_payload.get("clockSyncSource"),
+            "clockSyncPoint": existing_payload.get("clockSyncPoint"),
+            "clockSyncPrimaryPredictionDateIso": existing_payload.get("clockSyncPrimaryPredictionDateIso"),
+            "clockSyncPrimaryGeneratedAt": existing_payload.get("clockSyncPrimaryGeneratedAt"),
         }
 
     if (
@@ -769,6 +810,12 @@ def resolve_model2_baseline(
                 or (now_utc or datetime.now(timezone.utc)).isoformat(),
                 "nightFuturesReadThisRun": True,
                 "resetReason": "repair_preopen_bootstrap_after_kospi_reset",
+                "clockSyncUsed": False,
+                "clockSyncAt": None,
+                "clockSyncSource": None,
+                "clockSyncPoint": None,
+                "clockSyncPrimaryPredictionDateIso": None,
+                "clockSyncPrimaryGeneratedAt": None,
             }
 
     if allow_one_time_night_bootstrap and not existing_is_model2 and _has_required_prices(current_prices):
@@ -784,6 +831,12 @@ def resolve_model2_baseline(
                 "oneTimeNightFuturesBootstrapAt": (now_utc or datetime.now(timezone.utc)).isoformat(),
                 "nightFuturesReadThisRun": True,
                 "resetReason": "legacy_payload_bootstrap",
+                "clockSyncUsed": False,
+                "clockSyncAt": None,
+                "clockSyncSource": None,
+                "clockSyncPoint": None,
+                "clockSyncPrimaryPredictionDateIso": None,
+                "clockSyncPrimaryGeneratedAt": None,
             }
 
     session_prices = get_session_close_prices(session_date)
@@ -802,6 +855,12 @@ def resolve_model2_baseline(
         "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt"),
         "nightFuturesReadThisRun": False,
         "resetReason": "new_krx_session_close" if existing_is_model2 else "fresh_kospi_close",
+        "clockSyncUsed": False,
+        "clockSyncAt": None,
+        "clockSyncSource": None,
+        "clockSyncPoint": None,
+        "clockSyncPrimaryPredictionDateIso": None,
+        "clockSyncPrimaryGeneratedAt": None,
     }
 
 
@@ -1145,6 +1204,8 @@ def update_series(payload: dict[str, Any], now_utc: datetime, prediction_target:
             "trendFollowAdjustmentPct": payload.get("trendFollowAdjustmentPct"),
             "baselineDate": payload.get("baselineDate"),
             "baselineSource": payload.get("baselineSource"),
+            "clockSyncUsed": payload.get("clockSyncUsed"),
+            "clockSyncPoint": payload.get("clockSyncPoint"),
         }
     )
     records = records[-SERIES_MAX_ROWS:]
@@ -1188,6 +1249,8 @@ def update_history(payload: dict[str, Any], prediction_target: str) -> None:
             "trendFollowAdjustmentPct": payload.get("trendFollowAdjustmentPct"),
             "baselineDate": payload.get("baselineDate"),
             "baselineSource": payload.get("baselineSource"),
+            "clockSyncUsed": payload.get("clockSyncUsed"),
+            "clockSyncPoint": payload.get("clockSyncPoint"),
             "predictionGeneratedAt": payload.get("generatedAt"),
         }
     )
@@ -1214,6 +1277,12 @@ def run() -> int:
     now_kst = now_utc.astimezone(timezone(timedelta(hours=9)))
 
     force_refresh = str(os.environ.get("FORCE_MODEL2_REFRESH", "")).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    clock_sync = str(os.environ.get("MODEL2_CLOCK_SYNC", "")).strip().lower() in {
         "1",
         "true",
         "yes",
@@ -1251,6 +1320,7 @@ def run() -> int:
             primary_snapshot,
             now_utc=now_utc,
             allow_one_time_night_bootstrap=not force_refresh,
+            allow_clock_sync=clock_sync,
         )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -1285,6 +1355,12 @@ def run() -> int:
         "forcedRefresh": force_refresh,
         "oneTimeNightFuturesBootstrapUsed": bool(baseline.get("oneTimeNightFuturesBootstrapUsed")),
         "oneTimeNightFuturesBootstrapAt": baseline.get("oneTimeNightFuturesBootstrapAt"),
+        "clockSyncUsed": bool(baseline.get("clockSyncUsed")),
+        "clockSyncAt": baseline.get("clockSyncAt"),
+        "clockSyncSource": baseline.get("clockSyncSource"),
+        "clockSyncPoint": _round_or_none(baseline.get("clockSyncPoint"), 4),
+        "clockSyncPrimaryPredictionDateIso": baseline.get("clockSyncPrimaryPredictionDateIso"),
+        "clockSyncPrimaryGeneratedAt": baseline.get("clockSyncPrimaryGeneratedAt"),
         "predictionDate": target_label,
         "predictionDateIso": target_iso,
         "prevClose": round(prev_close, 4),
@@ -1330,9 +1406,21 @@ def run() -> int:
         },
         "model": {
             "engine": MODEL2_ENGINE,
-            "inputPolicy": "Hybrid EWY/KRW fair-value core plus bounded composite adjustment; no night-futures input",
+            "inputPolicy": (
+                "Hybrid EWY/KRW fair-value core plus bounded composite adjustment; "
+                "optional EWY+FX clock-sync anchor; no night-futures input"
+            ),
             "coreAxis": "direct_blend * raw_ewy_krw_axis + learned_blend * rolling_ewy_fx_correction",
             "rawEwyKrwAxis": "ewy_log_return_pct + krw_adjusted_log_return_pct",
+            "clockSync": {
+                "used": bool(baseline.get("clockSyncUsed")),
+                "source": baseline.get("clockSyncSource"),
+                "point": _round_or_none(baseline.get("clockSyncPoint"), 4),
+                "syncedAt": baseline.get("clockSyncAt"),
+                "primaryPredictionDateIso": baseline.get("clockSyncPrimaryPredictionDateIso"),
+                "primaryGeneratedAt": baseline.get("clockSyncPrimaryGeneratedAt"),
+                "usesPrimaryPointPrediction": False,
+            },
             "compositeAdjustmentCapPct": COMPOSITE_ADJUSTMENT_CAP_PCT,
             "residualFeatureClamp": RESIDUAL_FEATURE_CLAMP,
             "trendFollowFloor": {

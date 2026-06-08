@@ -14,6 +14,10 @@ on:
         description: "Clear current Model2 JSON instead of calculating a new prediction"
         required: false
         default: "off"
+      clock_sync:
+        description: "Sync Model2 baseline to the primary EWY+FX simple point"
+        required: false
+        default: "off"
   schedule:
     # Every 5 minutes on weekdays; script exits early unless KRX no-open status and U.S. market timing are valid.
     - cron: "*/5 * * * 1-5"
@@ -159,6 +163,7 @@ jobs:
         if: ${{ github.event.inputs.clear_stale != 'on' }}
         env:
           FORCE_MODEL2_REFRESH: ${{ github.event.inputs.force || 'off' }}
+          MODEL2_CLOCK_SYNC: ${{ github.event.inputs.clock_sync || 'off' }}
         run: |
           set -o pipefail
           python ./scripts/refresh_holiday_prediction.py | tee .model2-refresh.log

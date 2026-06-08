@@ -51,7 +51,11 @@ Model 2 when `holiday_prediction.json` `predictionDateIso` matches the main
 trend-follow floor from its own EWY/KRW signal and raw return, but it must not
 copy the primary model's `pointPrediction`. When the primary model is anchored
 by a materially different night-futures bridge, a visible gap from Model 2 can
-be valid.
+be valid. For manual reference-clock repair, run
+`refresh-holiday-prediction` with `force=on` and `clock_sync=on`; this anchors
+Model 2 to the primary payload's `ewyFxSimplePoint` for the same prediction
+date and records `clockSyncUsed: true` without using the primary
+`pointPrediction`.
 
 ## Refresh Cadence And Performance
 

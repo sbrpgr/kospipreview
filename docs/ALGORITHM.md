@@ -125,6 +125,9 @@ Allowed inputs:
 
 - the latest synchronized KOSPI close baseline from the KRX operating session;
 - EWY and USD/KRW baseline/current prices;
+- an optional manual clock-sync anchor from the primary payload's
+  `ewyFxSimplePoint`, used only to align Model 2's initial EWY/FX reference
+  clock for the same prediction date;
 - diagnostics-generated EWY/FX correction coefficients, including
   `direct_blend_weight`;
 - bounded composite indicators such as S&P 500, NASDAQ, Dow, SOX, VIX, Gold,
@@ -154,6 +157,13 @@ Runtime invariants:
 The historical one-time night-futures bootstrap path is kept only as an
 explicit legacy migration/test path and is disabled by default. It must not be
 used for current production Model 2 refreshes.
+
+If Model 2 is started after the primary live model has already synchronized its
+EWY/FX display clock, a manual `clock_sync=on` repair can reset Model 2's
+baseline to the primary `ewyFxSimplePoint` and the current EWY/KRW prices.
+This is a reference-clock sync, not a copy of the primary model prediction; the
+payload must record `clockSyncUsed: true` and still keep
+`usesOtherModelPrediction: false`.
 
 Model 2 is expected to stay directionally comparable with the primary model
 when EWY/KRW and night-futures signals agree. It is not expected to match the

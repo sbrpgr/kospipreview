@@ -84,7 +84,11 @@ If work resumes later, read these documents in order:
   It still uses only EWY, USD/KRW, KRX sync baselines, and diagnostics; it does
   not enable night-futures input. The same workflow also has `clear_stale=on`
   for manually clearing stale Model2 JSON from Cloud Storage when an invalid or
-  outdated Model2 artifact should no longer be displayed.
+  outdated Model2 artifact should no longer be displayed. Use `clock_sync=on`
+  only when Model2 must be manually aligned to the primary payload's
+  `ewyFxSimplePoint` reference clock for the same prediction date; this must
+  record `clockSyncUsed: true` and must not copy the primary model
+  `pointPrediction`.
 - Model2 production invariants:
   normal and forced production Model2 refreshes must publish
   `independentModel: true`, `usesOtherModelPrediction: false`,
