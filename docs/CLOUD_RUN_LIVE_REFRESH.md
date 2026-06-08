@@ -45,9 +45,9 @@ disabled by default and is not part of routine operation. When the Model 2
 script exits with `skip:`, the workflow must not re-publish the seeded
 `holiday_prediction*.json` or `holiday_history.json` files. Use the
 workflow's `clear_stale=on` dispatch input to clear stale Model 2 JSON from
-Cloud Storage without deploying Cloud Run. Model 2 also skips KST weekends,
-pre-open periods before holiday status is confirmed, and normal KRX trading
-days where a KRX session is available.
+Cloud Storage without deploying Cloud Run. The frontend must only display
+Model 2 when `holiday_prediction.json` `predictionDateIso` matches the main
+`prediction.json` `predictionDateIso`.
 
 ## Refresh Cadence And Performance
 

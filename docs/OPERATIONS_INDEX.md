@@ -93,8 +93,8 @@ If work resumes later, read these documents in order:
   exists only for explicit legacy migration tests, not routine operation. If the
   Model2 script exits with a `skip:` result, the workflow must not publish the
   seeded `holiday_prediction*.json` or `holiday_history.json` files again.
-  Model2 must also skip KST weekends, pre-open periods before holiday status is
-  confirmed, and normal KRX trading days where a KRX session is available.
+  The frontend must only display Model2 when `holiday_prediction.json`
+  `predictionDateIso` matches the main `prediction.json` `predictionDateIso`.
 - Live prediction trend repair:
   if `live_prediction_series.json` is shortened or overwritten, use
   `recover-live-prediction-series` with the target `kst_date` and

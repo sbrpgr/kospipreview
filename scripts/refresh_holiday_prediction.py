@@ -1123,18 +1123,6 @@ def run() -> int:
         "yes",
         "on",
     }
-    if now_kst.weekday() >= 5:
-        print("skip: KST weekend is not a Model 2 active session")
-        return 0
-
-    if now_kst.time() < KRX_OPEN_TIME:
-        print("skip: before KRX open; Model 2 holiday status is not confirmed")
-        return 0
-
-    if not is_krx_holiday(now_kst):
-        print("skip: KRX session is available; Model 2 only runs on no-KRX-open sessions")
-        return 0
-
     if not force_refresh and not is_us_market_active(now_utc):
         print("skip: outside US live/pre-market window")
         return 0
