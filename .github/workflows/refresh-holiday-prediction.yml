@@ -65,10 +65,16 @@ jobs:
               "frontend/public/data/$f" \
               --quiet; then
               if [ "$f" = "backtest_diagnostics.json" ]; then
-                curl -fsSL \
+                if curl -fsSL \
                   "https://kospipreview.com/api/live/backtest_diagnostics.json" \
-                  -o "frontend/public/data/$f"
-                python -m json.tool "frontend/public/data/$f" >/dev/null
+                  -o "frontend/public/data/$f"; then
+                  python -m json.tool "frontend/public/data/$f" >/dev/null
+                else
+                  echo "::warning::Using bundled backtest_diagnostics.json fallback"
+                  python -m json.tool "frontend/public/data/$f" >/dev/null
+                fi
+              else
+                echo "::warning::Could not seed $f from Cloud Storage; using bundled or generated fallback if available"
               fi
             fi
           done
