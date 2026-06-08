@@ -15,7 +15,7 @@ on:
         required: false
         default: "off"
   schedule:
-    # Every 5 minutes on weekdays; script exits early only when US market data is inactive.
+    # Every 5 minutes on weekdays; script exits early unless KRX no-open status and U.S. market timing are valid.
     - cron: "*/5 * * * 1-5"
 
 concurrency:
