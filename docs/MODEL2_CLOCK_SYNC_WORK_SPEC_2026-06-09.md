@@ -89,6 +89,9 @@ materially diverges from EWY/KRW after the sync point, a gap can still be valid.
 - Keep `nightFuturesUsed: false`.
 - Keep `nightFuturesReadThisRun: false`.
 - Keep Model2 frontend display gated by matching `predictionDateIso`.
+- Keep Model2 frontend display gated by primary forecast readiness. During KRX regular hours, when the primary
+  forecast fields are intentionally blank, clock-synced Model2 must also be hidden instead of falling back to raw
+  stale JSON.
 - If frontend stale compensation is used, calculate the drift from `ewyFxReferencePoint` first and fall back to
   `clockSyncPoint` only for older JSON payloads.
 - For the current prediction target, the accuracy table must prefer the live compensated Model2 value over

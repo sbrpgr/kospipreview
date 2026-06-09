@@ -26,6 +26,9 @@
       `holiday_history.json` raw `model2Prediction`;
     - manual production refresh `27154865782` updated raw Model2 from the stale `7,953.4739` value to `7,908.0317`
       after the GitHub schedule lagged behind the primary live refresh.
+    - follow-up inspection found that KRX regular-hour primary blanks could leave clock-synced Model2 showing raw
+      stale JSON; Model2 is now gated by primary forecast readiness and returns `null` instead of raw when EWY/FX
+      compensation cannot be calculated.
   - Files changed:
     - `.github/workflows/refresh-holiday-prediction.yml`
     - `scripts/refresh_holiday_prediction.py`

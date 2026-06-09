@@ -301,12 +301,16 @@ function getLiveSyncedModel2Point(
   holidayPrediction: HolidayPredictionData | null,
   ewyFxSimplePoint: number | null,
 ) {
-  if (
-    model2Point === null ||
-    !holidayPrediction?.clockSyncUsed ||
-    !isFiniteNumber(ewyFxSimplePoint)
-  ) {
+  if (model2Point === null) {
     return model2Point;
+  }
+
+  if (!holidayPrediction?.clockSyncUsed) {
+    return model2Point;
+  }
+
+  if (!isFiniteNumber(ewyFxSimplePoint)) {
+    return null;
   }
 
   const referencePoint = isFiniteNumber(holidayPrediction.ewyFxReferencePoint)
@@ -316,7 +320,7 @@ function getLiveSyncedModel2Point(
       : null;
 
   if (referencePoint === null) {
-    return model2Point;
+    return null;
   }
 
   return model2Point + (ewyFxSimplePoint - referencePoint);
@@ -701,6 +705,7 @@ export function LiveDashboard({
 
   const isActiveModel2Target =
     hasLiveSnapshot &&
+    isModelForecastReady &&
     typeof holidayPrediction?.predictionDateIso === "string" &&
     holidayPrediction.predictionDateIso === prediction.predictionDateIso;
   const rawModel2Point =
