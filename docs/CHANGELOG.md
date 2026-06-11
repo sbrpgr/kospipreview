@@ -16,6 +16,9 @@
     after a same-session clock-sync baseline exists.
   - Workflow hardening: `backtest_diagnostics.json` fallback now validates the bundled file first and downloads to a
     temporary file before replacing it, so a public 403 or empty response cannot clobber the local artifact.
+  - Primary snapshot freshness: Model2 now refetches public `prediction.json` when the seeded local snapshot's
+    `generatedAt` is older than 120 seconds, preventing stale `ewyFxReferencePoint` from causing over- or
+    under-compensation in the homepage Model2 card.
   - Files changed:
     - `.github/workflows/refresh-holiday-prediction.yml`
     - `scripts/refresh_holiday_prediction.py`

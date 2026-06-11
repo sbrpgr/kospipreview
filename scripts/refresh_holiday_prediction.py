@@ -13,9 +13,9 @@ Operational rule:
 - Model 2 applies the same EWY/FX trend-follow floor as the primary model from
   its own EWY/KRW signal and raw return; it never copies another model's
   prediction.
-- A manual clock-sync repair may anchor Model 2 to the primary payload's
-  EWY+FX simple point, then reset Model 2's own EWY/KRW baseline prices to the
-  same timestamp.
+- A manual clock-sync repair may anchor Model 2 once to the primary payload's
+  same-date point prediction, then reset Model 2's own EWY/KRW baseline prices
+  to the same timestamp.
 """
 
 from __future__ import annotations
@@ -70,6 +70,7 @@ KRX_OPEN_TIME = time(9, 0)
 KRX_SYNC_BASELINE_TIME = time(15, 30)
 KRX_SYNC_MAX_LOOKBACK_HOURS = 36
 KRX_SYNC_MAX_FORWARD_HOURS = 12
+PRIMARY_SNAPSHOT_MAX_AGE_SECONDS = 120
 
 MODEL2_SYMBOLS = {
     "ewy": "EWY",
@@ -192,6 +193,18 @@ def _parse_iso_date(value: Any) -> date | None:
         return date.fromisoformat(value)
     except ValueError:
         return None
+
+
+def _parse_iso_datetime(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _clamp(value: float, lower: float, upper: float) -> float:
@@ -332,9 +345,15 @@ def load_primary_prediction_snapshot(now_kst: datetime) -> dict[str, Any]:
     local_snapshot = _load_json(PRIMARY_PREDICTION_PATH)
     local_session = get_primary_kospi_session_snapshot(local_snapshot)
     local_date = _parse_iso_date(local_session.get("date")) if local_session else None
+    local_generated_at = _parse_iso_datetime(local_snapshot.get("generatedAt"))
+    now_utc = now_kst.astimezone(timezone.utc)
 
     should_fetch_public = local_session is None
     if local_date is not None and local_date <= now_kst.date() - timedelta(days=2):
+        should_fetch_public = True
+    if local_generated_at is None:
+        should_fetch_public = True
+    elif now_utc - local_generated_at > timedelta(seconds=PRIMARY_SNAPSHOT_MAX_AGE_SECONDS):
         should_fetch_public = True
 
     if not should_fetch_public:
@@ -346,6 +365,13 @@ def load_primary_prediction_snapshot(now_kst: datetime) -> dict[str, Any]:
         return local_snapshot
 
     public_date = _parse_iso_date(public_session.get("date"))
+    public_generated_at = _parse_iso_datetime(public_snapshot.get("generatedAt"))
+    if (
+        local_generated_at is not None
+        and public_generated_at is not None
+        and public_generated_at < local_generated_at
+    ):
+        return local_snapshot
     if local_date is None or (public_date is not None and public_date >= local_date):
         return public_snapshot
     return local_snapshot

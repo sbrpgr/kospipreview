@@ -4,7 +4,7 @@ import json
 import math
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from scripts import refresh_holiday_prediction as model2
@@ -497,6 +497,45 @@ class Model2IndependenceTests(unittest.TestCase):
 
         self.assertEqual(snapshot["prevCloseDate"], "2026-06-04")
         self.assertEqual(snapshot["prevClose"], 8639.41)
+
+    def test_primary_snapshot_fetches_public_when_local_generated_at_is_stale(self):
+        original_primary_path = model2.PRIMARY_PREDICTION_PATH
+        original_fetch_json = model2._fetch_json
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir) / "prediction.json"
+            temp_path.write_text(
+                json.dumps(
+                    {
+                        "generatedAt": "2026-06-11T13:30:00+00:00",
+                        "prevCloseDate": "2026-06-11",
+                        "prevClose": 7763.95,
+                        "pointPrediction": 7890.0,
+                        "ewyFxSimplePoint": 7865.39,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            try:
+                model2.PRIMARY_PREDICTION_PATH = temp_path
+                model2._fetch_json = lambda url: {
+                    "generatedAt": "2026-06-11T13:36:05+00:00",
+                    "prevCloseDate": "2026-06-11",
+                    "prevClose": 7763.95,
+                    "pointPrediction": 7895.56,
+                    "ewyFxSimplePoint": 7875.13,
+                }
+
+                snapshot = model2.load_primary_prediction_snapshot(
+                    datetime(2026, 6, 11, 22, 36, tzinfo=timezone(timedelta(hours=9)))
+                )
+            finally:
+                model2.PRIMARY_PREDICTION_PATH = original_primary_path
+                model2._fetch_json = original_fetch_json
+
+        self.assertEqual(snapshot["generatedAt"], "2026-06-11T13:36:05+00:00")
+        self.assertEqual(snapshot["pointPrediction"], 7895.56)
+        self.assertEqual(snapshot["ewyFxSimplePoint"], 7875.13)
 
     def test_diagnostics_loader_falls_back_to_public_artifact(self):
         original_diagnostics_path = model2.DIAGNOSTICS_PATH

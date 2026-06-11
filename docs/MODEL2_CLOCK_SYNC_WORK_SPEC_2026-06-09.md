@@ -62,6 +62,9 @@ double-counting after a normal Model2 JSON refresh.
   that baseline instead of repeatedly copying the primary point;
 - this protects the new prediction-date rollover where Model2 can otherwise reset to KOSPI close and stop reacting
   through the frontend EWY/FX compensation layer.
+- Model2 refetches public `prediction.json` when the seeded local primary snapshot is older than 120 seconds, so
+  `clockSyncPrimaryGeneratedAt` and `ewyFxReferencePoint` are tied to a fresh primary reference instead of a stale
+  workflow seed.
 
 The current prediction target in the recent-records accuracy table must also use the same frontend-compensated
 Model2 value. Do not let `holiday_history.json` raw `model2Prediction` override the live card value for a target
@@ -134,6 +137,8 @@ Local verification:
 - a guard that scheduled auto sync waits for primary `pointPrediction` and does not use EWY-only fallback;
 - a workflow fallback check that `backtest_diagnostics.json` public download failures do not clobber the bundled
   artifact.
+- a primary snapshot freshness check that replaces a same-session but stale local `prediction.json` with the public
+  artifact before Model2 records `ewyFxReferencePoint`.
 
 Production verification:
 

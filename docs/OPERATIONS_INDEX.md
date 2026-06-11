@@ -101,6 +101,12 @@ If work resumes later, read these documents in order:
   must not repeat after a `primary_model_prediction_clock_sync` baseline exists
   for the same KRX session and prediction date, and it must not fall back to
   `ewyFxSimplePoint`.
+- Model2 primary snapshot freshness:
+  if the workflow-seeded `prediction.json` has a `generatedAt` older than 120
+  seconds, Model2 must refetch the public primary JSON before recording
+  `clockSyncPrimaryGeneratedAt` or `ewyFxReferencePoint`. This keeps the
+  frontend stale-compensation reference tied to the live primary clock rather
+  than a stale Cloud Storage seed.
 - Model2 production invariants:
   normal and forced production Model2 refreshes must publish
   `independentModel: true`, `usesOtherModelPrediction: false`,
