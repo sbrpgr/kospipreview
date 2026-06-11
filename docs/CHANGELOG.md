@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-06-12
+
+- Removed frontend EWY/FX drift compensation from the Model2 card.
+  - Symptom: production raw Model2 was `8264.3507` while the primary model was `8236.86`, but the homepage
+    compensation layer displayed about `8428.21` by adding the latest primary `ewyFxSimplePoint` drift on top of
+    already EWY/KRW-tracked Model2 output.
+  - Fix: the homepage now displays the live raw `holiday_prediction.json` Model2 `pointPrediction` directly.
+  - Safety: Model2 is still gated by matching `predictionDateIso` and primary forecast readiness; only the extra
+    client-side point arithmetic was removed.
+  - Files changed:
+    - `frontend/src/components/live-dashboard.tsx`
+    - `docs/ALGORITHM.md`
+    - `docs/CLOUD_RUN_LIVE_REFRESH.md`
+    - `docs/CHANGELOG.md`
+    - `docs/MODEL2_CLOCK_SYNC_WORK_SPEC_2026-06-09.md`
+    - `docs/OPERATIONS_INDEX.md`
+
 ## 2026-06-11
 
 - Model2 new-target clock-sync hardening.
@@ -17,8 +34,7 @@
   - Workflow hardening: `backtest_diagnostics.json` fallback now validates the bundled file first and downloads to a
     temporary file before replacing it, so a public 403 or empty response cannot clobber the local artifact.
   - Primary snapshot freshness: Model2 now refetches public `prediction.json` when the seeded local snapshot's
-    `generatedAt` is older than 120 seconds, preventing stale `ewyFxReferencePoint` from causing over- or
-    under-compensation in the homepage Model2 card.
+    `generatedAt` is older than 120 seconds, keeping clock-sync audit fields tied to the live primary clock.
   - Files changed:
     - `.github/workflows/refresh-holiday-prediction.yml`
     - `scripts/refresh_holiday_prediction.py`

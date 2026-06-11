@@ -57,9 +57,10 @@ Model 2 once to the primary payload's same-date `pointPrediction` when
 available, or to `ewyFxSimplePoint` only as a manual fallback. Scheduled Model 2
 runs may also auto-apply that one-time primary-point sync only when repairing a
 same-target non-clock-synced `kospi_close` baseline. Clock-synced Model 2
-payloads should also record `ewyFxReferencePoint` so the homepage can
-compensate short-lived Model 2 JSON staleness from the latest primary EWY/FX
-simple point without changing Cloud Run refresh uploads.
+payloads should also record `ewyFxReferencePoint` for diagnostics, but the
+homepage must display raw Model 2 `holiday_prediction.json` values without
+client-side EWY/FX drift compensation. Stale Model 2 values are refreshed
+through the Model 2 JSON workflow, not through Cloud Run refresh uploads.
 
 ## Refresh Cadence And Performance
 

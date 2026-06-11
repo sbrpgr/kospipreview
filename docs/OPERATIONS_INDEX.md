@@ -104,9 +104,9 @@ If work resumes later, read these documents in order:
 - Model2 primary snapshot freshness:
   if the workflow-seeded `prediction.json` has a `generatedAt` older than 120
   seconds, Model2 must refetch the public primary JSON before recording
-  `clockSyncPrimaryGeneratedAt` or `ewyFxReferencePoint`. This keeps the
-  frontend stale-compensation reference tied to the live primary clock rather
-  than a stale Cloud Storage seed.
+  `clockSyncPrimaryGeneratedAt` or `ewyFxReferencePoint`. These fields are for
+  diagnostics and audit; the frontend must not use them to add client-side
+  EWY/FX drift to Model2.
 - Model2 production invariants:
   normal and forced production Model2 refreshes must publish
   `independentModel: true`, `usesOtherModelPrediction: false`,
@@ -123,10 +123,9 @@ If work resumes later, read these documents in order:
   offset at the sync instant; it tracks later EWY/KRW movement from that synced
   baseline.
   A large live gap from Model1 can be valid only when Model1 later moves on a
-  materially different bridge basis. The homepage may compensate a stale
-  clock-synced Model2 card by adding the latest primary `ewyFxSimplePoint`
-  drift since `ewyFxReferencePoint`; fallback to `clockSyncPoint` is only for
-  older Model2 JSON without the reference field.
+  materially different bridge basis. The homepage must display the raw
+  `holiday_prediction.json` Model2 point and must not add the latest primary
+  `ewyFxSimplePoint` drift on top of it.
 - Live prediction trend repair:
   if `live_prediction_series.json` is shortened or overwritten, use
   `recover-live-prediction-series` with the target `kst_date` and

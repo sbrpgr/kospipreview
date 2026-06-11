@@ -296,34 +296,8 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function getLiveSyncedModel2Point(
-  model2Point: number | null,
-  holidayPrediction: HolidayPredictionData | null,
-  ewyFxSimplePoint: number | null,
-) {
-  if (model2Point === null) {
-    return model2Point;
-  }
-
-  if (!holidayPrediction?.clockSyncUsed) {
-    return model2Point;
-  }
-
-  if (!isFiniteNumber(ewyFxSimplePoint)) {
-    return null;
-  }
-
-  const referencePoint = isFiniteNumber(holidayPrediction.ewyFxReferencePoint)
-    ? holidayPrediction.ewyFxReferencePoint
-    : isFiniteNumber(holidayPrediction.clockSyncPoint)
-      ? holidayPrediction.clockSyncPoint
-      : null;
-
-  if (referencePoint === null) {
-    return null;
-  }
-
-  return model2Point + (ewyFxSimplePoint - referencePoint);
+function getDisplayModel2Point(model2Point: number | null) {
+  return model2Point;
 }
 
 function getDashboardVersion(
@@ -710,7 +684,7 @@ export function LiveDashboard({
     holidayPrediction.predictionDateIso === prediction.predictionDateIso;
   const rawModel2Point =
     isActiveModel2Target && isFiniteNumber(holidayPrediction?.pointPrediction) ? holidayPrediction!.pointPrediction! : null;
-  const model2Point = getLiveSyncedModel2Point(rawModel2Point, holidayPrediction, ewyFxSimplePoint);
+  const model2Point = getDisplayModel2Point(rawModel2Point);
   const model2ChangePct =
     isActiveModel2Target && model2Point !== null && isFiniteNumber(prediction.prevClose) && prediction.prevClose > 0
       ? (model2Point / prediction.prevClose - 1) * 100

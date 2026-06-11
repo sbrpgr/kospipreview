@@ -47,10 +47,10 @@ After a clock-sync baseline exists, forced Model2 reissues must preserve that ba
 explicitly requested again. A forced run must not silently fall back to `kospi_close`, because that reintroduces the
 reference-clock gap.
 
-The homepage display also applies a live EWY+FX stale-compensation layer for clock-synced Model2 values. Model2 JSON
-records `ewyFxReferencePoint` at generation time, and the frontend adds only the latest primary `ewyFxSimplePoint`
-movement after that reference point. This prevents stale Model2 cards when GitHub scheduled runs lag, while avoiding
-double-counting after a normal Model2 JSON refresh.
+The homepage displays the raw Model2 `pointPrediction` from `holiday_prediction.json`. The frontend must not add the
+latest primary `ewyFxSimplePoint` drift on top of Model2, because Model2 raw output already reflects EWY/KRW movement
+from its own baseline and an extra client-side drift layer can overreact during large EWY/FX moves. Stale Model2
+values must be handled by the Model2 JSON refresh workflow, not by client-side point arithmetic.
 
 2026-06-11 hardening:
 
@@ -60,15 +60,15 @@ double-counting after a normal Model2 JSON refresh.
   runs do not anchor to an EWY-only display value;
 - once a clock-synced baseline exists for the same target and KRX session, later scheduled or forced reissues reuse
   that baseline instead of repeatedly copying the primary point;
-- this protects the new prediction-date rollover where Model2 can otherwise reset to KOSPI close and stop reacting
-  through the frontend EWY/FX compensation layer.
+- this protects the new prediction-date rollover where Model2 can otherwise reset to KOSPI close and lose its
+  clock-synced EWY/KRW reference.
 - Model2 refetches public `prediction.json` when the seeded local primary snapshot is older than 120 seconds, so
   `clockSyncPrimaryGeneratedAt` and `ewyFxReferencePoint` are tied to a fresh primary reference instead of a stale
   workflow seed.
 
-The current prediction target in the recent-records accuracy table must also use the same frontend-compensated
-Model2 value. Do not let `holiday_history.json` raw `model2Prediction` override the live card value for a target
-without an actual open.
+The current prediction target in the recent-records accuracy table must also use the same live raw Model2 value shown
+on the card. Do not let `holiday_history.json` raw `model2Prediction` override the current `holiday_prediction.json`
+value for a target without an actual open.
 
 ## Files
 
@@ -109,10 +109,10 @@ materially diverges from EWY/KRW after the sync point, a gap can still be valid.
 - Keep Model2 frontend display gated by primary forecast readiness. During KRX regular hours, when the primary
   forecast fields are intentionally blank, clock-synced Model2 must also be hidden instead of falling back to raw
   stale JSON.
-- If frontend stale compensation is used, calculate the drift from `ewyFxReferencePoint` first and fall back to
-  `clockSyncPoint` only for older JSON payloads.
-- For the current prediction target, the accuracy table must prefer the live compensated Model2 value over
-  `holiday_history.json` raw history.
+- Do not add client-side EWY/FX drift to Model2. The displayed card value must be the live raw
+  `holiday_prediction.json` Model2 point.
+- For the current prediction target, the accuracy table must prefer the live raw Model2 value over
+  `holiday_history.json` history.
 - Do not deploy Cloud Run or run Cloud Build for this repair.
 - Publish only `holiday_prediction.json`, `holiday_prediction_series.json`, and `holiday_history.json` through the
   Model2 JSON workflow.
@@ -127,7 +127,8 @@ Local verification:
   the same live reference range.
 - `python -m unittest tests.test_model2_independence` passed, including the guard that forced runs preserve an
   existing clock-sync baseline.
-- `npm run build` passed after adding the homepage live EWY+FX stale-compensation display.
+- Historical frontend verification passed when the homepage stale-compensation layer was added; the 2026-06-12
+  follow-up removed that client-side compensation layer and `npm run build` passed again.
 - `git diff --check` passed for the script, workflow, and operations docs.
 
 2026-06-11 local verification must include:

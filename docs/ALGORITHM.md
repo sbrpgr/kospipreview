@@ -179,12 +179,13 @@ baseline already exists for the same session and target.
 After a clock-sync baseline is set, Model 2 must not add a second residual,
 intercept, or composite offset at the sync instant. It tracks later EWY/KRW
 movement from the synced baseline and records `clockSyncAnchorKind` plus
-`ewyFxReferencePoint` so the frontend can compensate short-lived JSON lag.
+`ewyFxReferencePoint` for diagnostics and audit.
 
 Clock-synced Model 2 payloads also record `ewyFxReferencePoint`, the primary
 `ewyFxSimplePoint` observed when that Model 2 JSON was generated. The homepage
-may use that field to compensate short-lived Model 2 JSON staleness by adding
-only the later EWY/FX drift.
+must not add later primary EWY/FX drift to the raw Model 2 point; doing so can
+double-move the displayed value during large EWY/FX swings. Staleness should be
+fixed by refreshing Model 2 JSON.
 
 When Model 2 runs from a workflow-seeded `prediction.json`, the seed must be
 fresh enough for that reference. If the local primary snapshot `generatedAt` is
