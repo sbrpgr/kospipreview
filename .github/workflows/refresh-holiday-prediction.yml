@@ -15,7 +15,7 @@ on:
         required: false
         default: "off"
       clock_sync:
-        description: "Sync Model2 baseline to the primary EWY+FX simple point"
+        description: "Sync Model2 baseline to the primary same-date model point"
         required: false
         default: "off"
   schedule:
@@ -69,13 +69,20 @@ jobs:
               "frontend/public/data/$f" \
               --quiet; then
               if [ "$f" = "backtest_diagnostics.json" ]; then
-                if curl -fsSL \
-                  "https://kospipreview.com/api/live/backtest_diagnostics.json" \
-                  -o "frontend/public/data/$f"; then
-                  python -m json.tool "frontend/public/data/$f" >/dev/null
-                else
+                if [ -f "frontend/public/data/$f" ] && python -m json.tool "frontend/public/data/$f" >/dev/null; then
                   echo "::warning::Using bundled backtest_diagnostics.json fallback"
-                  python -m json.tool "frontend/public/data/$f" >/dev/null
+                else
+                  tmp_file="$(mktemp)"
+                  if curl -fsSL \
+                    "https://kospipreview.com/api/live/backtest_diagnostics.json" \
+                    -o "$tmp_file" \
+                    && python -m json.tool "$tmp_file" >/dev/null; then
+                    mv "$tmp_file" "frontend/public/data/$f"
+                  else
+                    rm -f "$tmp_file"
+                    echo "::error::Could not seed a valid backtest_diagnostics.json"
+                    exit 1
+                  fi
                 fi
               else
                 echo "::warning::Could not seed $f from Cloud Storage; using bundled or generated fallback if available"

@@ -229,6 +229,121 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertEqual(baseline["clockSyncEwyFxReferencePoint"], 7938.6)
         self.assertFalse(baseline["nightFuturesReadThisRun"])
 
+    def test_auto_clock_sync_repairs_new_target_kospi_baseline_when_primary_ready(self):
+        baseline = model2.resolve_model2_baseline(
+            existing_payload={
+                "calculationMode": model2.MODEL2_MODE,
+                "predictionDateIso": "2026-06-12",
+                "baselineDate": "2026-06-11",
+                "baselinePoint": 7763.95,
+                "baselineSource": model2.KOSPI_CLOSE_SOURCE,
+                "baselinePrices": {"ewy": 185.33, "krw": 1530.16},
+            },
+            last_session={"date": "2026-06-11", "close": 7763.95},
+            current_prices=CURRENT_PRICES,
+            primary_snapshot={
+                "predictionDateIso": "2026-06-12",
+                "pointPrediction": 7893.43,
+                "ewyFxSimplePoint": 7863.7,
+                "generatedAt": "2026-06-11T13:29:05+00:00",
+            },
+            now_utc=datetime(2026, 6, 11, 13, 30, tzinfo=timezone.utc),
+            allow_auto_clock_sync=True,
+        )
+
+        self.assertEqual(baseline["baselinePoint"], 7893.43)
+        self.assertEqual(baseline["baselineSource"], model2.PRIMARY_MODEL_CLOCK_SYNC_SOURCE)
+        self.assertEqual(baseline["resetReason"], "auto_primary_clock_sync")
+        self.assertTrue(baseline["clockSyncUsed"])
+        self.assertEqual(baseline["clockSyncAnchorKind"], "primary_point_prediction")
+        self.assertEqual(baseline["clockSyncEwyFxReferencePoint"], 7863.7)
+        self.assertFalse(baseline["nightFuturesReadThisRun"])
+
+    def test_auto_clock_sync_does_not_resync_existing_clock_baseline(self):
+        baseline = model2.resolve_model2_baseline(
+            existing_payload={
+                "calculationMode": model2.MODEL2_MODE,
+                "predictionDateIso": "2026-06-12",
+                "baselineDate": "2026-06-11",
+                "baselinePoint": 7894.92,
+                "baselineSource": model2.PRIMARY_MODEL_CLOCK_SYNC_SOURCE,
+                "baselinePrices": {"ewy": 185.33, "krw": 1530.16},
+                "clockSyncUsed": True,
+                "clockSyncPoint": 7894.92,
+                "clockSyncAnchorKind": "primary_point_prediction",
+            },
+            last_session={"date": "2026-06-11", "close": 7763.95},
+            current_prices=CURRENT_PRICES,
+            primary_snapshot={
+                "predictionDateIso": "2026-06-12",
+                "pointPrediction": 7910.0,
+                "ewyFxSimplePoint": 7875.0,
+            },
+            now_utc=datetime(2026, 6, 11, 13, 35, tzinfo=timezone.utc),
+            allow_auto_clock_sync=True,
+        )
+
+        self.assertEqual(baseline["baselinePoint"], 7894.92)
+        self.assertEqual(baseline["baselineSource"], model2.PRIMARY_MODEL_CLOCK_SYNC_SOURCE)
+        self.assertEqual(baseline["resetReason"], "reuse_existing_baseline")
+        self.assertTrue(baseline["clockSyncUsed"])
+
+    def test_auto_clock_sync_waits_for_primary_model_point(self):
+        baseline = model2.resolve_model2_baseline(
+            existing_payload={
+                "calculationMode": model2.MODEL2_MODE,
+                "predictionDateIso": "2026-06-12",
+                "baselineDate": "2026-06-11",
+                "baselinePoint": 7763.95,
+                "baselineSource": model2.KOSPI_CLOSE_SOURCE,
+                "baselinePrices": {"ewy": 185.33, "krw": 1530.16},
+            },
+            last_session={"date": "2026-06-11", "close": 7763.95},
+            current_prices=CURRENT_PRICES,
+            primary_snapshot={
+                "predictionDateIso": "2026-06-12",
+                "ewyFxSimplePoint": 7863.7,
+            },
+            now_utc=datetime(2026, 6, 11, 13, 30, tzinfo=timezone.utc),
+            allow_auto_clock_sync=True,
+        )
+
+        self.assertEqual(baseline["baselinePoint"], 7763.95)
+        self.assertEqual(baseline["baselineSource"], model2.KOSPI_CLOSE_SOURCE)
+        self.assertIn(
+            baseline["resetReason"],
+            {"reuse_existing_baseline", "repair_krx_sync_baseline_prices"},
+        )
+        self.assertFalse(baseline["clockSyncUsed"])
+
+    def test_auto_clock_sync_does_not_anchor_fresh_payload_to_primary_model(self):
+        original_get_session_close_prices = model2.get_session_close_prices
+
+        try:
+            model2.get_session_close_prices = lambda session_date: {
+                "ewy": 185.33,
+                "krw": 1530.16,
+            }
+            baseline = model2.resolve_model2_baseline(
+                existing_payload={},
+                last_session={"date": "2026-06-11", "close": 7763.95},
+                current_prices=CURRENT_PRICES,
+                primary_snapshot={
+                    "predictionDateIso": "2026-06-12",
+                    "pointPrediction": 7893.43,
+                    "ewyFxSimplePoint": 7863.7,
+                },
+                now_utc=datetime(2026, 6, 11, 13, 30, tzinfo=timezone.utc),
+                allow_auto_clock_sync=True,
+            )
+        finally:
+            model2.get_session_close_prices = original_get_session_close_prices
+
+        self.assertEqual(baseline["baselinePoint"], 7763.95)
+        self.assertEqual(baseline["baselineSource"], model2.KOSPI_CLOSE_SOURCE)
+        self.assertEqual(baseline["resetReason"], "fresh_kospi_close")
+        self.assertFalse(baseline["clockSyncUsed"])
+
     def test_clock_sync_tracking_does_not_add_second_residual_offset(self):
         diagnostics = {
             "ewyFxCorrection": {

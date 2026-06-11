@@ -94,6 +94,13 @@ If work resumes later, read these documents in order:
   night-futures input disabled. After a clock-sync baseline exists, `force=on`
   reissues must preserve that baseline unless another explicit `clock_sync=on`
   repair is requested.
+- Model2 automatic clock sync:
+  scheduled Model2 runs may auto-repair a same-target `kospi_close` baseline
+  to the primary payload's `pointPrediction` once when the primary forecast is
+  ready. This is only a reference-clock alignment for the active target; it
+  must not repeat after a `primary_model_prediction_clock_sync` baseline exists
+  for the same KRX session and prediction date, and it must not fall back to
+  `ewyFxSimplePoint`.
 - Model2 production invariants:
   normal and forced production Model2 refreshes must publish
   `independentModel: true`, `usesOtherModelPrediction: false`,
@@ -106,8 +113,9 @@ If work resumes later, read these documents in order:
   `predictionDateIso` matches the main `prediction.json` `predictionDateIso`.
   Model2 applies the EWY/FX trend-follow floor from its own EWY/KRW signal and
   raw return, while still keeping `usesOtherModelPrediction: false`. A manual
-  clock-sync baseline must not receive a second residual/intercept offset at
-  the sync instant; it tracks later EWY/KRW movement from that synced baseline.
+  or automatic clock-sync baseline must not receive a second residual/intercept
+  offset at the sync instant; it tracks later EWY/KRW movement from that synced
+  baseline.
   A large live gap from Model1 can be valid only when Model1 later moves on a
   materially different bridge basis. The homepage may compensate a stale
   clock-synced Model2 card by adding the latest primary `ewyFxSimplePoint`

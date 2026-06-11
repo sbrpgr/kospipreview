@@ -52,6 +52,17 @@ records `ewyFxReferencePoint` at generation time, and the frontend adds only the
 movement after that reference point. This prevents stale Model2 cards when GitHub scheduled runs lag, while avoiding
 double-counting after a normal Model2 JSON refresh.
 
+2026-06-11 hardening:
+
+- scheduled Model2 runs now auto-apply a one-time `primary_model_prediction_clock_sync` baseline when the current
+  target has a non-clock-synced `kospi_close` baseline and the primary payload has a same-target `pointPrediction`;
+- auto clock sync does not fall back to `ewyFxSimplePoint`; it waits for the primary model point so normal scheduled
+  runs do not anchor to an EWY-only display value;
+- once a clock-synced baseline exists for the same target and KRX session, later scheduled or forced reissues reuse
+  that baseline instead of repeatedly copying the primary point;
+- this protects the new prediction-date rollover where Model2 can otherwise reset to KOSPI close and stop reacting
+  through the frontend EWY/FX compensation layer.
+
 The current prediction target in the recent-records accuracy table must also use the same frontend-compensated
 Model2 value. Do not let `holiday_history.json` raw `model2Prediction` override the live card value for a target
 without an actual open.
@@ -83,6 +94,9 @@ materially diverges from EWY/KRW after the sync point, a gap can still be valid.
 - Do not copy primary `pointPrediction` into normal Model2 runs.
 - Manual `clock_sync=on` may use primary `pointPrediction` once as the baseline clock anchor for the same
   `predictionDateIso`.
+- Scheduled Model2 runs may auto-use primary `pointPrediction` once only when repairing a non-clock-synced
+  same-target `kospi_close` baseline. They must not repeat that sync after a clock-sync baseline exists.
+- Scheduled auto clock sync must not fall back to primary `ewyFxSimplePoint`.
 - Do not read or use night-futures prices in normal or clock-sync Model2 runs.
 - Keep `independentModel: true`.
 - Keep `usesOtherModelPrediction: false`.
@@ -113,6 +127,14 @@ Local verification:
 - `npm run build` passed after adding the homepage live EWY+FX stale-compensation display.
 - `git diff --check` passed for the script, workflow, and operations docs.
 
+2026-06-11 local verification must include:
+
+- an auto clock-sync test that repairs a same-target `kospi_close` baseline to the primary model point;
+- a guard that an existing same-target clock-sync baseline is reused and not overwritten;
+- a guard that scheduled auto sync waits for primary `pointPrediction` and does not use EWY-only fallback;
+- a workflow fallback check that `backtest_diagnostics.json` public download failures do not clobber the bundled
+  artifact.
+
 Production verification:
 
 - Commit: `b92040a1 Fix model2 clock sync anchor drift`
@@ -134,7 +156,29 @@ Production verification:
   - `nightFuturesUsed: false`
   - `usesOtherModelPrediction: false`
 
+2026-06-11 production repair:
+
+- Symptom: after the target rolled to `2026-06-12`, scheduled Model2 published a same-target `kospi_close`
+  baseline value of `7,771.1705`, while the primary model was around `7,893`.
+- Immediate workflow: `refresh-holiday-prediction` run `27350199639`
+- Dispatch inputs: `force=on`, `clear_stale=off`, `clock_sync=on`
+- Result: success
+- Published raw Model2 value: `7,894.92`
+- Model2 JSON recorded:
+  - `baselineSource: primary_model_prediction_clock_sync`
+  - `baselineResetReason: manual_primary_clock_sync`
+  - `clockSyncUsed: true`
+  - `clockSyncAnchorKind: primary_point_prediction`
+  - `model.clockSync.trackingApplied: true`
+  - `rawResidualPct: 0.0`
+  - `residualPct: 0.0`
+  - `nightFuturesUsed: false`
+  - `usesOtherModelPrediction: false`
+
 ## Cost Guardrail
 
 This repair used the Model2 Cloud Storage JSON workflow and a hosting-only frontend deploy. Cloud Run and Cloud Build
 were not used.
+
+The 2026-06-11 hardening changed the Model2 JSON workflow, script, tests, and documentation only. It did not require
+Firebase Hosting, Cloud Run, or Cloud Build deployment.

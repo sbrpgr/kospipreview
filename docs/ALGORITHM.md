@@ -139,7 +139,9 @@ Forbidden inputs:
 - KOSPI 200 night futures prices, returns, or `nightFuturesSimplePoint`;
 - the primary model's `pointPrediction` or any other model prediction during
   normal Model 2 runs; manual `clock_sync=on` may use the primary
-  `pointPrediction` once as the same-date baseline anchor;
+  `pointPrediction` once as the same-date baseline anchor, and scheduled runs
+  may auto-use it once only to repair a same-target non-clock-synced
+  `kospi_close` baseline after the primary forecast is ready;
 - manual direct-blend tuning in live refresh code.
 
 Runtime invariants:
@@ -167,6 +169,12 @@ primary `pointPrediction` and the current EWY/KRW prices. This is a one-time
 reference-clock sync, not a continuous copy of the primary model prediction;
 the payload must record `clockSyncUsed: true` and still keep
 `usesOtherModelPrediction: false`.
+
+Scheduled Model 2 runs also auto-apply that same one-time baseline sync when a
+new prediction target is stuck on a same-session `kospi_close` baseline and the
+primary same-target `pointPrediction` is already available. Auto sync must not
+fall back to `ewyFxSimplePoint` and must not repeat after a clock-synced
+baseline already exists for the same session and target.
 
 After a clock-sync baseline is set, Model 2 must not add a second residual,
 intercept, or composite offset at the sync instant. It tracks later EWY/KRW

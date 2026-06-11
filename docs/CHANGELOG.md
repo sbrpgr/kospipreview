@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-06-11
+
+- Model2 new-target clock-sync hardening.
+  - Background: after the prediction target rolled to `2026-06-12`, Model2 reused a `kospi_close` baseline and
+    published `7771.1705` while the primary model was around `7893`, so the homepage Model2 card did not react to
+    the live EWY/FX reference path.
+  - Immediate repair: manually ran `refresh-holiday-prediction` with `force=on`, `clear_stale=off`,
+    `clock_sync=on` in run `27350199639`; production JSON moved back to
+    `primary_model_prediction_clock_sync` with raw Model2 `7894.92`, `clockSyncUsed: true`, and zero residual
+    offset at the sync instant.
+  - Behavior: scheduled Model2 runs can now auto-apply a one-time primary-model clock sync when a same-target
+    `kospi_close` baseline is present and the primary same-target `pointPrediction` is ready.
+  - Safety: auto sync does not fall back to `ewyFxSimplePoint`, does not read night futures, and does not repeat
+    after a same-session clock-sync baseline exists.
+  - Workflow hardening: `backtest_diagnostics.json` fallback now validates the bundled file first and downloads to a
+    temporary file before replacing it, so a public 403 or empty response cannot clobber the local artifact.
+  - Files changed:
+    - `.github/workflows/refresh-holiday-prediction.yml`
+    - `scripts/refresh_holiday_prediction.py`
+    - `tests/test_model2_independence.py`
+    - `docs/CHANGELOG.md`
+    - `docs/OPERATIONS_INDEX.md`
+    - `docs/MODEL2_CLOCK_SYNC_WORK_SPEC_2026-06-09.md`
+
 ## 2026-06-09
 
 - Model2 EWY/FX reference-clock sync repair added.

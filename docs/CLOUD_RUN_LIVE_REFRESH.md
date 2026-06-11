@@ -49,16 +49,17 @@ Cloud Storage without deploying Cloud Run. The frontend must only display
 Model 2 when `holiday_prediction.json` `predictionDateIso` matches the main
 `prediction.json` `predictionDateIso`. Model 2 applies the same EWY/FX
 trend-follow floor from its own EWY/KRW signal and raw return, but it must not
-copy the primary model's `pointPrediction`. When the primary model is anchored
-by a materially different night-futures bridge, a visible gap from Model 2 can
-be valid. For manual reference-clock repair, run
+copy the primary model's `pointPrediction` continuously. When the primary model
+is anchored by a materially different night-futures bridge, a visible gap from
+Model 2 can be valid. For manual reference-clock repair, run
 `refresh-holiday-prediction` with `force=on` and `clock_sync=on`; this anchors
-Model 2 to the primary payload's `ewyFxSimplePoint` for the same prediction
-date and records `clockSyncUsed: true` without using the primary
-`pointPrediction`. Clock-synced Model 2 payloads should also record
-`ewyFxReferencePoint` so the homepage can compensate short-lived Model 2 JSON
-staleness from the latest primary EWY/FX simple point without changing Cloud
-Run refresh uploads.
+Model 2 once to the primary payload's same-date `pointPrediction` when
+available, or to `ewyFxSimplePoint` only as a manual fallback. Scheduled Model 2
+runs may also auto-apply that one-time primary-point sync only when repairing a
+same-target non-clock-synced `kospi_close` baseline. Clock-synced Model 2
+payloads should also record `ewyFxReferencePoint` so the homepage can
+compensate short-lived Model 2 JSON staleness from the latest primary EWY/FX
+simple point without changing Cloud Run refresh uploads.
 
 ## Refresh Cadence And Performance
 

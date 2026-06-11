@@ -684,6 +684,7 @@ def resolve_model2_baseline(
     now_utc: datetime | None = None,
     allow_one_time_night_bootstrap: bool = False,
     allow_clock_sync: bool = False,
+    allow_auto_clock_sync: bool = False,
 ) -> dict[str, Any]:
     """Resolve the Model 2 baseline without normal night-futures dependency."""
 
@@ -707,15 +708,55 @@ def resolve_model2_baseline(
         and now_kst.date() == next_weekday(session_date_obj)
     )
     target_iso = resolve_prediction_target(now_kst, session_date_obj).isoformat() if session_date_obj else ""
+    snapshot = primary_snapshot if isinstance(primary_snapshot, dict) else {}
+    primary_target_iso = str(snapshot.get("predictionDateIso") or "")
+    primary_model_point = _positive_float(snapshot.get("pointPrediction"))
+    ewy_fx_reference_point = _positive_float(snapshot.get("ewyFxSimplePoint"))
+
+    existing_clock_synced_for_target = (
+        existing_is_model2
+        and bool(target_iso)
+        and existing_baseline_date == session_date
+        and existing_payload.get("predictionDateIso") == target_iso
+        and _is_clock_sync_baseline(existing_payload.get("baselineSource"))
+    )
+    existing_kospi_baseline_for_target = (
+        existing_is_model2
+        and bool(target_iso)
+        and existing_baseline_date == session_date
+        and existing_payload.get("predictionDateIso") == target_iso
+        and existing_payload.get("baselineSource") == KOSPI_CLOSE_SOURCE
+    )
+
+    def clock_sync_baseline(
+        sync_point: float,
+        sync_source: str,
+        sync_anchor_kind: str,
+        reset_reason: str,
+    ) -> dict[str, Any]:
+        sync_at = (now_utc or datetime.now(timezone.utc)).isoformat()
+        return {
+            "baselinePoint": sync_point,
+            "baselineDate": session_date,
+            "baselineSource": sync_source,
+            "baselinePrices": dict(current_prices),
+            "oneTimeNightFuturesBootstrapUsed": False,
+            "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt"),
+            "nightFuturesReadThisRun": False,
+            "resetReason": reset_reason,
+            "clockSyncUsed": True,
+            "clockSyncAt": sync_at,
+            "clockSyncSource": sync_source,
+            "clockSyncPoint": sync_point,
+            "clockSyncAnchorKind": sync_anchor_kind,
+            "clockSyncEwyFxReferencePoint": ewy_fx_reference_point,
+            "clockSyncPrimaryPredictionDateIso": primary_target_iso or None,
+            "clockSyncPrimaryGeneratedAt": snapshot.get("generatedAt"),
+        }
 
     if allow_clock_sync and _has_required_prices(current_prices):
-        snapshot = primary_snapshot if isinstance(primary_snapshot, dict) else {}
-        primary_target_iso = str(snapshot.get("predictionDateIso") or "")
-        primary_model_point = _positive_float(snapshot.get("pointPrediction"))
-        ewy_fx_reference_point = _positive_float(snapshot.get("ewyFxSimplePoint"))
         sync_point = primary_model_point or ewy_fx_reference_point
         if sync_point is not None and (not primary_target_iso or primary_target_iso == target_iso):
-            sync_at = (now_utc or datetime.now(timezone.utc)).isoformat()
             sync_source = (
                 PRIMARY_MODEL_CLOCK_SYNC_SOURCE
                 if primary_model_point is not None
@@ -726,24 +767,27 @@ def resolve_model2_baseline(
                 if primary_model_point is not None
                 else "primary_ewy_fx_simple"
             )
-            return {
-                "baselinePoint": sync_point,
-                "baselineDate": session_date,
-                "baselineSource": sync_source,
-                "baselinePrices": dict(current_prices),
-                "oneTimeNightFuturesBootstrapUsed": False,
-                "oneTimeNightFuturesBootstrapAt": existing_payload.get("oneTimeNightFuturesBootstrapAt"),
-                "nightFuturesReadThisRun": False,
-                "resetReason": "manual_primary_clock_sync",
-                "clockSyncUsed": True,
-                "clockSyncAt": sync_at,
-                "clockSyncSource": sync_source,
-                "clockSyncPoint": sync_point,
-                "clockSyncAnchorKind": sync_anchor_kind,
-                "clockSyncEwyFxReferencePoint": ewy_fx_reference_point,
-                "clockSyncPrimaryPredictionDateIso": primary_target_iso or None,
-                "clockSyncPrimaryGeneratedAt": snapshot.get("generatedAt"),
-            }
+            return clock_sync_baseline(
+                sync_point,
+                sync_source,
+                sync_anchor_kind,
+                "manual_primary_clock_sync",
+            )
+
+    if (
+        allow_auto_clock_sync
+        and existing_kospi_baseline_for_target
+        and not existing_clock_synced_for_target
+        and _has_required_prices(current_prices)
+        and primary_model_point is not None
+        and (not primary_target_iso or primary_target_iso == target_iso)
+    ):
+        return clock_sync_baseline(
+            primary_model_point,
+            PRIMARY_MODEL_CLOCK_SYNC_SOURCE,
+            "primary_point_prediction",
+            "auto_primary_clock_sync",
+        )
 
     if (
         existing_is_model2
@@ -1421,6 +1465,7 @@ def run() -> int:
             now_utc=now_utc,
             allow_one_time_night_bootstrap=not force_refresh,
             allow_clock_sync=clock_sync,
+            allow_auto_clock_sync=not clock_sync,
         )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
