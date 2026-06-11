@@ -187,6 +187,16 @@ must not add later primary EWY/FX drift to the raw Model 2 point; doing so can
 double-move the displayed value during large EWY/FX swings. Staleness should be
 fixed by refreshing Model 2 JSON.
 
+For clock-synced Model 2, the server should track the current primary EWY+FX
+reference plus the one-time sync spread:
+
+`point = current_ewy_fx_reference + (clock_sync_point - clock_sync_ewy_fx_reference)`
+
+It should not compound the entire EWY/KRW return from the synced model point,
+because that turns the initial sync spread into a growing premium in large
+EWY/FX moves. The trend-follow floor is skipped for clock-synced tracking to
+avoid a second adjustment on top of the reference spread.
+
 When Model 2 runs from a workflow-seeded `prediction.json`, the seed must be
 fresh enough for that reference. If the local primary snapshot `generatedAt` is
 older than 120 seconds, Model 2 refetches the public primary JSON before using

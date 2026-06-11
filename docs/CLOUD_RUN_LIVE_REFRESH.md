@@ -61,6 +61,9 @@ payloads should also record `ewyFxReferencePoint` for diagnostics, but the
 homepage must display raw Model 2 `holiday_prediction.json` values without
 client-side EWY/FX drift compensation. Stale Model 2 values are refreshed
 through the Model 2 JSON workflow, not through Cloud Run refresh uploads.
+When Model 2 is clock-synced, that workflow preserves the absolute sync spread
+from `clockSyncPoint - clockSyncEwyFxReferencePoint` against the current EWY/FX
+reference; it must not compound that spread as a percentage premium.
 
 ## Refresh Cadence And Performance
 

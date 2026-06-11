@@ -121,7 +121,10 @@ If work resumes later, read these documents in order:
   raw return, while still keeping `usesOtherModelPrediction: false`. A manual
   or automatic clock-sync baseline must not receive a second residual/intercept
   offset at the sync instant; it tracks later EWY/KRW movement from that synced
-  baseline.
+  baseline by preserving the one-time absolute spread between
+  `clockSyncPoint` and `clockSyncEwyFxReferencePoint`. It must not compound
+  that spread as a percentage premium, and the trend-follow floor must be
+  skipped after clock-sync tracking.
   A large live gap from Model1 can be valid only when Model1 later moves on a
   materially different bridge basis. The homepage must display the raw
   `holiday_prediction.json` Model2 point and must not add the latest primary

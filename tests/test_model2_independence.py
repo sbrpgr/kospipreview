@@ -388,6 +388,58 @@ class Model2IndependenceTests(unittest.TestCase):
         self.assertEqual(tracked["residualPct"], 0.0)
         self.assertTrue(tracked["clockSyncTrackingApplied"])
 
+    def test_clock_sync_tracking_uses_primary_ewy_fx_reference_spread(self):
+        result = {
+            "bandHalfWidth": 10.0,
+            "coreCoefficients": {},
+            "mapping": {},
+        }
+        tracked = model2.apply_clock_sync_tracking(
+            result,
+            {
+                "ewy": 6.743424,
+                "krw": 0.94867,
+            },
+            {
+                "baselinePoint": 7894.92,
+                "baselineSource": model2.PRIMARY_MODEL_CLOCK_SYNC_SOURCE,
+                "clockSyncEwyFxReferencePoint": 7872.45,
+            },
+            ewy_fx_reference_point=8331.16,
+        )
+
+        self.assertAlmostEqual(tracked["pointPrediction"], 8353.63)
+        self.assertEqual(
+            tracked["clockSyncTrackingSource"],
+            "clock_sync_primary_ewy_fx_reference_spread_tracking",
+        )
+        self.assertLess(tracked["pointPrediction"], 8400.0)
+        self.assertEqual(tracked["rawResidualPct"], 0.0)
+        self.assertEqual(tracked["residualPct"], 0.0)
+
+    def test_clock_sync_tracking_skips_trend_follow_floor(self):
+        tracked = {
+            "pointPrediction": 8353.63,
+            "rangeLow": 8343.63,
+            "rangeHigh": 8363.63,
+            "bandHalfWidth": 10.0,
+            "baseReturnPct": math.log(8353.63 / 7894.92) * 100.0,
+            "clockSyncTrackingApplied": True,
+        }
+
+        adjusted = model2.apply_ewy_fx_trend_follow_floor(
+            tracked,
+            {
+                "ewy": 6.743424,
+                "krw": 0.94867,
+            },
+            7894.92,
+        )
+
+        self.assertEqual(adjusted["pointPrediction"], 8353.63)
+        self.assertFalse(adjusted["trendFollowApplied"])
+        self.assertEqual(adjusted["trendFollowAdjustmentPct"], 0.0)
+
     def test_stale_yahoo_bootstrap_date_migrates_without_new_night_read(self):
         existing_model2_payload = {
             "calculationMode": model2.MODEL2_MODE,

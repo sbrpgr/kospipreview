@@ -52,6 +52,14 @@ latest primary `ewyFxSimplePoint` drift on top of Model2, because Model2 raw out
 from its own baseline and an extra client-side drift layer can overreact during large EWY/FX moves. Stale Model2
 values must be handled by the Model2 JSON refresh workflow, not by client-side point arithmetic.
 
+Clock-synced Model2 server tracking must preserve the one-time absolute sync spread instead of compounding the full
+EWY/KRW return from the synced model point:
+
+`point = current_ewy_fx_reference + (clock_sync_point - clock_sync_ewy_fx_reference)`
+
+This keeps Model2 directionally tied to the EWY/FX reference without turning the sync premium into a growing
+percentage premium. The trend-follow floor is skipped after clock-sync tracking to avoid a second adjustment.
+
 2026-06-11 hardening:
 
 - scheduled Model2 runs now auto-apply a one-time `primary_model_prediction_clock_sync` baseline when the current
@@ -111,6 +119,9 @@ materially diverges from EWY/KRW after the sync point, a gap can still be valid.
   stale JSON.
 - Do not add client-side EWY/FX drift to Model2. The displayed card value must be the live raw
   `holiday_prediction.json` Model2 point.
+- Clock-synced server tracking must use the current EWY/FX reference plus the one-time sync spread when
+  `clockSyncEwyFxReferencePoint` is available. It must not compound the sync spread as a percentage premium.
+- Do not apply the EWY/FX trend-follow floor after clock-sync tracking.
 - For the current prediction target, the accuracy table must prefer the live raw Model2 value over
   `holiday_history.json` history.
 - Do not deploy Cloud Run or run Cloud Build for this repair.

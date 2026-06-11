@@ -1205,6 +1205,7 @@ def apply_clock_sync_tracking(
     result: dict[str, Any],
     signal_returns: dict[str, float],
     baseline: dict[str, Any],
+    ewy_fx_reference_point: float | None = None,
 ) -> dict[str, Any]:
     """Keep a manually synced Model 2 baseline from receiving a second model offset."""
 
@@ -1216,28 +1217,42 @@ def apply_clock_sync_tracking(
     if baseline_point is None or signal_return is None:
         return result
 
-    point_prediction = baseline_point * math.exp(signal_return / 100.0)
+    sync_ewy_fx_reference_point = _positive_float(baseline.get("clockSyncEwyFxReferencePoint"))
+    current_ewy_fx_reference_point = _positive_float(ewy_fx_reference_point)
+    tracking_source = "clock_sync_direct_ewy_fx_tracking"
+    if sync_ewy_fx_reference_point is not None and current_ewy_fx_reference_point is not None:
+        sync_spread = baseline_point - sync_ewy_fx_reference_point
+        point_prediction = current_ewy_fx_reference_point + sync_spread
+        tracking_source = "clock_sync_primary_ewy_fx_reference_spread_tracking"
+    else:
+        point_prediction = baseline_point * math.exp(signal_return / 100.0)
+
+    if not math.isfinite(point_prediction) or point_prediction <= 0:
+        return result
+
+    tracking_return_pct = math.log(point_prediction / baseline_point) * 100.0
     half_band = _to_float(result.get("bandHalfWidth")) or 0.0
     adjusted = dict(result)
     adjusted.update(
         {
             "pointPrediction": point_prediction,
             "ewyFxDirectPoint": point_prediction,
-            "ewyFxDirectPct": signal_return,
+            "ewyFxDirectPct": tracking_return_pct,
             "ewyFxLearnedPoint": point_prediction,
-            "ewyFxLearnedPct": signal_return,
+            "ewyFxLearnedPct": tracking_return_pct,
             "ewyFxCorePoint": point_prediction,
-            "ewyFxCorePct": signal_return,
-            "baseReturnPct": signal_return,
-            "corePct": signal_return,
+            "ewyFxCorePct": tracking_return_pct,
+            "baseReturnPct": tracking_return_pct,
+            "corePct": tracking_return_pct,
             "rawResidualPct": 0.0,
             "residualPct": 0.0,
             "compositeAdjustmentPct": 0.0,
             "k200MappedPct": None,
-            "kospiMappedPct": signal_return,
+            "kospiMappedPct": tracking_return_pct,
             "rangeLow": point_prediction - half_band,
             "rangeHigh": point_prediction + half_band,
             "clockSyncTrackingApplied": True,
+            "clockSyncTrackingSource": tracking_source,
         }
     )
 
@@ -1246,7 +1261,7 @@ def apply_clock_sync_tracking(
         {
             "directBlendWeight": 1.0,
             "learnedBlendWeight": 0.0,
-            "source": "clock_sync_direct_ewy_fx_tracking",
+            "source": tracking_source,
             "used": True,
             "clockSyncTrackingApplied": True,
         }
@@ -1289,6 +1304,9 @@ def apply_ewy_fx_trend_follow_floor(
     adjusted["trendFollowSignalPct"] = log_return_pct_to_simple_return_pct(signal_return)
     adjusted["trendFollowMinPct"] = None
     adjusted["trendFollowAdjustmentPct"] = 0.0
+
+    if bool(result.get("clockSyncTrackingApplied")):
+        return adjusted
 
     if base_return_pct is None or signal_return is None:
         return adjusted
@@ -1507,12 +1525,12 @@ def run() -> int:
     target_date = resolve_prediction_target(now_kst, baseline_date)
     target_iso = target_date.isoformat()
     target_label = format_date_label(target_date)
-    result = apply_clock_sync_tracking(result, returns, baseline)
+    ewy_fx_reference_point = _positive_float(primary_snapshot.get("ewyFxSimplePoint"))
+    result = apply_clock_sync_tracking(result, returns, baseline, ewy_fx_reference_point)
     result = apply_ewy_fx_trend_follow_floor(result, returns, baseline["baselinePoint"])
 
     prev_close = _positive_float(last_session.get("close")) or baseline["baselinePoint"]
     predicted_change_pct = ((result["pointPrediction"] / prev_close) - 1.0) * 100.0
-    ewy_fx_reference_point = _positive_float(primary_snapshot.get("ewyFxSimplePoint"))
 
     payload = {
         "generatedAt": now_utc.isoformat(),

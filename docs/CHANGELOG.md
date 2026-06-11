@@ -7,10 +7,16 @@
     compensation layer displayed about `8428.21` by adding the latest primary `ewyFxSimplePoint` drift on top of
     already EWY/KRW-tracked Model2 output.
   - Fix: the homepage now displays the live raw `holiday_prediction.json` Model2 `pointPrediction` directly.
+  - Server hardening: clock-synced Model2 tracking now follows the current primary EWY+FX reference plus the
+    one-time sync spread, rather than compounding the full EWY/KRW return from the synced model point. This prevents
+    the sync premium from growing during large EWY/FX moves.
   - Safety: Model2 is still gated by matching `predictionDateIso` and primary forecast readiness; only the extra
-    client-side point arithmetic was removed.
+    client-side point arithmetic was removed. Clock-synced tracking also skips the trend-follow floor to avoid a
+    second upward adjustment.
   - Files changed:
     - `frontend/src/components/live-dashboard.tsx`
+    - `scripts/refresh_holiday_prediction.py`
+    - `tests/test_model2_independence.py`
     - `docs/ALGORITHM.md`
     - `docs/CLOUD_RUN_LIVE_REFRESH.md`
     - `docs/CHANGELOG.md`
