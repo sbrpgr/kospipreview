@@ -15,7 +15,7 @@ The platform uses a split architecture.
    - Cloud Run service: `kospi-live-data`
    - Cloud Scheduler job: `kospi-live-refresh`
    - Cloud Storage bucket: `kospipreview-live-data`
-   - Scheduler cadence: every minute on weekdays outside `09:00~16:59 KST`.
+   - Scheduler cadence: every two minutes on weekdays outside `09:00~16:59 KST`.
 
 3. YouTube news dynamic archive
    - Source reports are stored under the repository root `news/YYYY-MM-DD/HHMMSS/`.
@@ -85,10 +85,10 @@ Both hosts should return live API data from the Cloud Run bucket-backed path.
 2. Cloud Run seeds a temporary workspace from Cloud Storage live JSON, then repo-bundled fallback JSON when needed.
 3. `scripts/refresh_night_futures.py` refreshes indicators, prediction, history, archive, caches, and live trend data.
 4. Cloud Run uploads refreshed JSON back to Cloud Storage.
-5. Public live JSON reads use a short Cloud Run instance-local cache to absorb bursts without changing client no-store semantics.
+5. Public live JSON reads use a short Cloud Run instance-local cache and short public response caching to absorb bursts.
 6. Browser requests `/api/live/*.json`.
 7. Firebase Hosting rewrites the request to the pinned Cloud Run revision.
-8. Cloud Run reads the JSON object from Cloud Storage and returns it with `Cache-Control: no-store`.
+8. Cloud Run reads the JSON object from Cloud Storage and returns it with short-lived public cache headers.
 
 The refresh task endpoint is token protected and fails closed if
 `REFRESH_BEARER_TOKEN` is missing. Unauthenticated refresh is only allowed when
@@ -109,6 +109,11 @@ Served through `/api/live/**`:
 - `history.json`
 - `live_prediction_series.json`
 - `backtest_diagnostics.json`
+- `holiday_prediction.json`
+- `holiday_prediction_series.json`
+- `holiday_history.json`
+- bundled dashboard: `/api/live/dashboard.json`
+- bundled Model 2 dashboard: `/api/live/holiday-dashboard.json`
 
 Static frontend data served through `/data/**`:
 
@@ -125,7 +130,7 @@ Synced by the refresh worker:
 
 ## News API Files
 
-Served through `/api/news/**` (Cloud Run, no-store):
+Served through `/api/news/**` (Cloud Run, short public cache):
 
 - `youtube-news.json` from `gs://kospipreview-live-data/youtube-news/youtube-news.json`
 - `reports/**` from `gs://kospipreview-live-data/youtube-news/reports/**`

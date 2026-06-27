@@ -72,8 +72,8 @@ while limiting abusive request patterns.
 
 - Public JSON reads should be cheap and repeatable.
 - Cloud Run keeps a short per-instance server-side cache for live JSON reads.
-- Client responses still use `Cache-Control: no-store` so the dashboard remains
-  live, but bursts do not force a Cloud Storage read on every request.
+- Client responses use short public cache headers so the dashboard remains
+  near-live, but bursts do not force a Cloud Run or Cloud Storage read on every request.
 
 ### Edge posture
 
@@ -159,7 +159,7 @@ Verification:
 
 #### Live refresh path
 
-- Cloud Scheduler should call Cloud Run every minute outside `09:00~16:59 KST`
+- Cloud Scheduler should call Cloud Run every two minutes outside `09:00~16:59 KST`
 - a normal refresh should finish under `60s`; latest verified production latency after optimization was `12.1s~14.9s`
 - no full Hosting redeploy required for normal live data updates
 
@@ -204,7 +204,7 @@ Check:
 
 Expected state:
 
-- Scheduler remains enabled on weekday `* 0-8,17-23 * * 1-5` with time zone `Asia/Seoul`;
+- Scheduler remains enabled on weekday `*/2 0-8,17-23 * * 1-5` with time zone `Asia/Seoul`;
 - successful refresh requests normally complete below `60s`;
 - latest verified production latency was `12.1s~14.9s` on revision `kospi-live-data-00026-nf2`.
 
@@ -273,7 +273,7 @@ Important:
 - WAF / bot protection stays enabled
 - `kospipreview.com` is the primary host
 - `www.kospipreview.com` points to Firebase Hosting through Cloudflare proxy
-- both root and `www` must return live API data with no-store cache headers
+- both root and `www` must return live API data with short public cache headers
 - do not geo-block broad countries by default
 - consider managed challenge or rate limiting for abusive paths and automated scanners
 

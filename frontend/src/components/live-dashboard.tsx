@@ -8,7 +8,12 @@ import { NoticeContent } from "@/components/notice-content";
 import { PredictionTrendChart } from "@/components/prediction-trend-chart";
 import { SiteHeader } from "@/components/site-header";
 import { HomeTopAdBanner } from "@/components/home-top-ad-banner";
-import { getClientDataUrl, getLiveDashboardClientUrl, getStaticDataUrl } from "@/lib/data-paths";
+import {
+  getClientDataUrl,
+  getLiveDashboardClientUrl,
+  getLiveHolidayDashboardClientUrl,
+  getStaticDataUrl,
+} from "@/lib/data-paths";
 import {
   type HistoryData,
   type HolidayHistoryData,
@@ -39,6 +44,13 @@ type LiveDashboardApiPayload = {
   indicators: IndicatorData;
   history: HistoryData;
   livePredictionSeries: LivePredictionSeriesData;
+  sources?: Record<string, string>;
+};
+
+type LiveHolidayDashboardApiPayload = {
+  holidayPrediction: HolidayPredictionData;
+  holidayPredictionSeries: HolidayPredictionSeriesData;
+  holidayHistory: HolidayHistoryData;
   sources?: Record<string, string>;
 };
 
@@ -193,6 +205,7 @@ const PAPERS_HOME = [
 ] as const;
 
 const POLL_INTERVAL_MS = 60_000;
+const HOLIDAY_POLL_INTERVAL_MS = 120_000;
 const OPERATION_STATUS_INTERVAL_MS = 30_000;
 const NIGHT_OPERATION_HOURS_LABEL = "17:00~09:00(변동 가능)";
 const NIGHT_OPERATION_REOPEN_LABEL = "15:30~";
@@ -378,22 +391,10 @@ function getIndicatorsVersion(indicators: IndicatorData) {
 }
 
 async function fetchJson<T>(path: string, fallbackPath?: string) {
-  let response = await fetch(path, {
-    cache: "no-store",
-    headers: {
-      pragma: "no-cache",
-      "cache-control": "no-cache",
-    },
-  });
+  let response = await fetch(path);
 
   if (!response.ok && fallbackPath) {
-    response = await fetch(fallbackPath, {
-      cache: "no-store",
-      headers: {
-        pragma: "no-cache",
-        "cache-control": "no-cache",
-      },
-    });
+    response = await fetch(fallbackPath);
   }
 
   if (!response.ok) {
@@ -490,6 +491,19 @@ async function fetchHolidayPayload(): Promise<{
   history: HolidayHistoryData;
 } | null> {
   try {
+    const payload = await fetchJson<LiveHolidayDashboardApiPayload>(getLiveHolidayDashboardClientUrl());
+    if (payload.holidayPrediction && payload.holidayPredictionSeries && payload.holidayHistory) {
+      return {
+        prediction: payload.holidayPrediction,
+        series: payload.holidayPredictionSeries,
+        history: payload.holidayHistory,
+      };
+    }
+  } catch {
+    // Fall through to the legacy per-file fallback below.
+  }
+
+  try {
     const [prediction, series, history] = await Promise.all([
       fetchJson<HolidayPredictionData>(
         getClientDataUrl("holiday_prediction.json"),
@@ -579,7 +593,9 @@ export function LiveDashboard({
     const scheduleNextPoll = () => {
       if (!cancelled) {
         pollTimer = window.setTimeout(async () => {
-          await syncDashboard();
+          if (document.visibilityState === "visible") {
+            await syncDashboard();
+          }
           scheduleNextPoll();
         }, POLL_INTERVAL_MS);
       }
@@ -587,7 +603,12 @@ export function LiveDashboard({
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
+        if (pollTimer !== null) {
+          window.clearTimeout(pollTimer);
+          pollTimer = null;
+        }
         void syncDashboard();
+        scheduleNextPoll();
       }
     };
 
@@ -623,18 +644,36 @@ export function LiveDashboard({
     const schedule = () => {
       if (!cancelled) {
         timer = window.setTimeout(async () => {
-          await syncHoliday();
+          if (document.visibilityState === "visible") {
+            await syncHoliday();
+          }
           schedule();
-        }, POLL_INTERVAL_MS);
+        }, HOLIDAY_POLL_INTERVAL_MS);
       }
     };
 
     void syncHoliday();
     schedule();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        if (timer !== null) {
+          window.clearTimeout(timer);
+          timer = null;
+        }
+        void syncHoliday();
+        schedule();
+      }
+    };
+
+    window.addEventListener("focus", handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       cancelled = true;
       if (timer !== null) window.clearTimeout(timer);
+      window.removeEventListener("focus", handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

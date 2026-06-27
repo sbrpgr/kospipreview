@@ -8,7 +8,7 @@ env:
   SERVICE_NAME: kospi-live-data
   LIVE_DATA_BUCKET: kospipreview-live-data
   SCHEDULER_JOB_NAME: kospi-live-refresh
-  SCHEDULER_SCHEDULE: "* 0-8,17-23 * * 1-5"
+  SCHEDULER_SCHEDULE: "*/2 0-8,17-23 * * 1-5"
   SCHEDULER_TIME_ZONE: Asia/Seoul
 
 on:
@@ -71,7 +71,8 @@ jobs:
             --region "${REGION}" \
             --service-account "${CLOUD_RUN_SERVICE_ACCOUNT}" \
             --allow-unauthenticated \
-            --update-env-vars "LIVE_DATA_BUCKET=${LIVE_DATA_BUCKET},REFRESH_BEARER_TOKEN=${REFRESH_BEARER_TOKEN},LIVE_JSON_CACHE_SECONDS=10,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240,NEWS_BUCKET_NAME=${LIVE_DATA_BUCKET},NEWS_STORAGE_PREFIX=youtube-news,NEWS_INDEX_FILE_NAME=youtube-news.json,NEWS_CACHE_SECONDS=15" \
+            --update-env-vars "LIVE_DATA_BUCKET=${LIVE_DATA_BUCKET},REFRESH_BEARER_TOKEN=${REFRESH_BEARER_TOKEN},LIVE_JSON_CACHE_SECONDS=60,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240,NEWS_BUCKET_NAME=${LIVE_DATA_BUCKET},NEWS_STORAGE_PREFIX=youtube-news,NEWS_INDEX_FILE_NAME=youtube-news.json,NEWS_CACHE_SECONDS=300" \
+            --min-instances 0 \
             --quiet
 
       - name: Configure Cloud Scheduler live refresh window

@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-06-27
+
+- Cloud Run cost reduction pass.
+  - Frontend live/news data URLs now use time-bucket cache keys instead of per-request `Date.now()` cache busting.
+  - Live dashboard polling skips hidden browser tabs and resyncs on focus/visibility return.
+  - Added `/api/live/holiday-dashboard.json` so Model 2 prediction, series, and history can be fetched in one request; legacy per-file reads remain as fallback.
+  - Cloud Run live JSON responses now use short public cache headers for successful responses and keep error responses on `no-store`.
+  - Cloud Run instance-local live JSON cache increased to 60 seconds; news index cache increased to 300 seconds.
+  - Cloud Scheduler cadence changed from every minute to every two minutes outside `09:00~16:59 KST`.
+  - Cloud Run deploy now explicitly sets `--min-instances 0`.
+  - External reusable platform insight note added under `C:\Users\sprbx\Desktop\ViveCoding\1.개발자원\API 플랫폼 구축 및 운영 스킬`.
+  - Files changed:
+    - `.github/workflows/cloudrun-deploy.yml`
+    - `.github/workflows/deploy-production.yml`
+    - `cloudrun/live_data_service.py`
+    - `frontend/src/components/live-dashboard.tsx`
+    - `frontend/src/lib/data-paths.ts`
+    - `frontend/src/lib/data.ts`
+    - `tests/test_live_data_service_security.py`
+    - `docs/ARCHITECTURE.md`
+    - `docs/CLOUD_RUN_LIVE_REFRESH.md`
+    - `docs/FIREBASE_COST_REDUCTION_PLAN.md`
+    - `docs/OPERATIONS_INDEX.md`
+    - `docs/SECURITY_OPERATIONS_RUNBOOK.md`
+    - `YOUTUBE_NEWS_WORK_SPEC.md`
+
 ## 2026-06-12
 
 - Removed frontend EWY/FX drift compensation from the Model2 card.

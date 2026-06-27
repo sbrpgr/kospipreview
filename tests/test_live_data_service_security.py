@@ -89,6 +89,7 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["X-Kospi-Live-Source"], "bucket")
+        self.assertIn("public", response.headers["Cache-Control"])
 
         payload = response.get_json()
         self.assertEqual(payload["prediction"]["fileName"], "prediction.json")
@@ -104,6 +105,39 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
                 "livePredictionSeries": "bucket",
             },
         )
+
+    def test_holiday_dashboard_endpoint_combines_model2_files(self):
+        def fake_download(file_name, target_path):
+            target_path.write_bytes(json.dumps({"fileName": file_name}).encode("utf8"))
+            return True
+
+        live_data_service.LIVE_JSON_CACHE_SECONDS = 0
+        live_data_service.download_bucket_file = fake_download
+
+        response = live_data_service.app.test_client().get("/api/live/holiday-dashboard.json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["X-Kospi-Live-Source"], "bucket")
+        self.assertIn("public", response.headers["Cache-Control"])
+
+        payload = response.get_json()
+        self.assertEqual(payload["holidayPrediction"]["fileName"], "holiday_prediction.json")
+        self.assertEqual(payload["holidayPredictionSeries"]["fileName"], "holiday_prediction_series.json")
+        self.assertEqual(payload["holidayHistory"]["fileName"], "holiday_history.json")
+        self.assertEqual(
+            payload["sources"],
+            {
+                "holidayPrediction": "bucket",
+                "holidayPredictionSeries": "bucket",
+                "holidayHistory": "bucket",
+            },
+        )
+
+    def test_live_json_error_responses_are_not_publicly_cached(self):
+        response = live_data_service.app.test_client().get("/api/live/not-found.json")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("no-store", response.headers["Cache-Control"])
 
     def test_refresh_upload_excludes_independent_model2_files(self):
         self.assertTrue(live_data_service.MODEL2_FILE_NAMES <= live_data_service.SEED_FILE_NAMES)

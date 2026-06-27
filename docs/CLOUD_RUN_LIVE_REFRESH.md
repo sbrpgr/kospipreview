@@ -4,7 +4,7 @@ Baseline date: 2026-05-02
 
 ## Purpose
 
-Cloud Run is the primary minute-level live JSON refresh path.
+Cloud Run is the primary near-live JSON refresh path.
 
 Goals:
 
@@ -67,19 +67,19 @@ reference; it must not compound that spread as a percentage premium.
 
 ## Refresh Cadence And Performance
 
-Cloud Scheduler attempts one refresh per weekday minute outside the KST `09:00~16:59` quiet window.
+Cloud Scheduler attempts one refresh every two minutes outside the KST `09:00~16:59` quiet window.
 
 Current Scheduler settings:
 
-- cron: `* 0-8,17-23 * * 1-5`
+- cron: `*/2 0-8,17-23 * * 1-5`
 - time zone: `Asia/Seoul`
 
 Operational target:
 
 - a normal refresh run should finish well under `60s`;
-- if a refresh run exceeds roughly one minute, the next Scheduler attempt can overlap with the active run;
+- if a refresh run exceeds roughly two minutes, the next Scheduler attempt can overlap with the active run;
 - overlapping attempts are protected by the refresh lock and return `202 already_running`;
-- repeated over-one-minute runs make the effective dashboard cadence look closer to two minutes.
+- repeated over-two-minute runs make the effective dashboard cadence look closer to four minutes.
 
 Current implementation:
 
@@ -104,10 +104,12 @@ Latest verified production state after the refresh performance fix:
 - `/api/live/holiday_prediction.json`
 - `/api/live/holiday_prediction_series.json`
 - `/api/live/holiday_history.json`
+- `/api/live/dashboard.json`
+- `/api/live/holiday-dashboard.json`
 
 All should respond with:
 
-- `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+- `Cache-Control: public, max-age=45, s-maxage=60, stale-while-revalidate=120`
 - `X-Kospi-Live-Source: bucket` when Cloud Storage is being used
 
 ## Served News Files (Separated From Live Prediction)

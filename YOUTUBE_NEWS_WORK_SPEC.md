@@ -1,6 +1,6 @@
 # YouTube News Work Spec
 
-Last updated: 2026-05-04
+Last updated: 2026-06-27
 
 ## Current production behavior
 
@@ -114,6 +114,15 @@ gs://kospipreview-live-data/youtube-news/youtube-news.json
 https://kospipreview.com/api/news/youtube-news.json
 ```
 
+- The news index is not a minute-level market signal. It may use a longer short-lived cache than live market JSON:
+
+```text
+NEWS_CACHE_SECONDS=300
+Cache-Control: public, max-age=300, s-maxage=600, stale-while-revalidate=1800
+```
+
+- Do not change the news cache back to per-request `no-store` unless production verification proves stale news is being served after a publish.
+
 ## When full deploy is still needed
 
 Use the light Hosting deploy for frontend-only code/UI/page changes.
@@ -139,6 +148,7 @@ Examples:
 - Changing `/api/live/**` or `/api/news/**` server behavior
 - Changing Cloud Scheduler refresh timing
 - Changing Cloud Run environment variables
+- Changing Cloud Run response cache headers or server-side cache TTLs
 
 Cloud Run workflow:
 

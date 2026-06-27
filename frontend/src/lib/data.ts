@@ -12,11 +12,11 @@ async function fetchJson<T>(fileName: DataFileName): Promise<T> {
   }
 
   const preferredUrl = getClientDataUrl(fileName);
-  let res = await fetch(preferredUrl, { cache: "no-store" });
+  let res = await fetch(preferredUrl);
 
   if (!res.ok && isLiveDataFile(fileName)) {
     const fallbackUrl = getStaticDataUrl(fileName);
-    res = await fetch(fallbackUrl, { cache: "no-store" });
+    res = await fetch(fallbackUrl);
   }
 
   if (!res.ok) {

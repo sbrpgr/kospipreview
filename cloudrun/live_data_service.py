@@ -44,6 +44,11 @@ DASHBOARD_FILE_NAMES = {
     "history": "history.json",
     "livePredictionSeries": "live_prediction_series.json",
 }
+HOLIDAY_DASHBOARD_FILE_NAMES = {
+    "holidayPrediction": "holiday_prediction.json",
+    "holidayPredictionSeries": "holiday_prediction_series.json",
+    "holidayHistory": "holiday_history.json",
+}
 SEED_FILE_NAMES = SERVE_FILE_NAMES | {
     "day_futures_close_cache.json",
     "night_futures_source_cache.json",
@@ -72,6 +77,17 @@ REFRESH_TIMEOUT_SECONDS = int(os.environ.get("REFRESH_TIMEOUT_SECONDS", "240"))
 LIVE_JSON_CACHE_SECONDS = max(0.0, float(os.environ.get("LIVE_JSON_CACHE_SECONDS", "10")))
 NEWS_CACHE_SECONDS = max(0.0, float(os.environ.get("NEWS_CACHE_SECONDS", "15")))
 MAX_REFRESH_BODY_BYTES = int(os.environ.get("MAX_REFRESH_BODY_BYTES", "1024"))
+DEFAULT_LIVE_RESPONSE_CACHE_CONTROL = "public, max-age=45, s-maxage=60, stale-while-revalidate=120"
+DEFAULT_NEWS_RESPONSE_CACHE_CONTROL = "public, max-age=300, s-maxage=600, stale-while-revalidate=1800"
+LIVE_RESPONSE_CACHE_CONTROL = os.environ.get(
+    "LIVE_RESPONSE_CACHE_CONTROL",
+    DEFAULT_LIVE_RESPONSE_CACHE_CONTROL,
+).strip() or DEFAULT_LIVE_RESPONSE_CACHE_CONTROL
+NEWS_RESPONSE_CACHE_CONTROL = os.environ.get(
+    "NEWS_RESPONSE_CACHE_CONTROL",
+    DEFAULT_NEWS_RESPONSE_CACHE_CONTROL,
+).strip() or DEFAULT_NEWS_RESPONSE_CACHE_CONTROL
+ERROR_RESPONSE_CACHE_CONTROL = "no-store, no-cache, must-revalidate, max-age=0"
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = MAX_REFRESH_BODY_BYTES
@@ -92,8 +108,12 @@ def add_security_headers(response: Response) -> Response:
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
     response.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
-    if request.path.startswith("/api/live/") or request.path.startswith("/api/news/"):
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    if response.status_code >= 400 and (request.path.startswith("/api/live/") or request.path.startswith("/api/news/")):
+        response.headers.setdefault("Cache-Control", ERROR_RESPONSE_CACHE_CONTROL)
+    elif request.path.startswith("/api/live/"):
+        response.headers.setdefault("Cache-Control", LIVE_RESPONSE_CACHE_CONTROL)
+    elif request.path.startswith("/api/news/"):
+        response.headers.setdefault("Cache-Control", NEWS_RESPONSE_CACHE_CONTROL)
     return response
 
 
@@ -324,11 +344,11 @@ def clear_live_json_cache() -> None:
         _live_json_cache.clear()
 
 
-def load_dashboard_json_bytes() -> tuple[bytes, str] | tuple[None, None]:
+def load_json_bundle_bytes(file_names: dict[str, str]) -> tuple[bytes, str] | tuple[None, None]:
     payload = {}
     sources = {}
 
-    for payload_key, file_name in DASHBOARD_FILE_NAMES.items():
+    for payload_key, file_name in file_names.items():
         content, source = load_live_json_bytes(file_name)
         if content is None or source is None:
             return None, None
@@ -346,6 +366,14 @@ def load_dashboard_json_bytes() -> tuple[bytes, str] | tuple[None, None]:
     response_source = source_values.pop() if len(source_values) == 1 else "mixed"
     response_bytes = f"{json.dumps(payload, ensure_ascii=False, separators=(',', ':'))}\n".encode("utf8")
     return response_bytes, response_source
+
+
+def load_dashboard_json_bytes() -> tuple[bytes, str] | tuple[None, None]:
+    return load_json_bundle_bytes(DASHBOARD_FILE_NAMES)
+
+
+def load_holiday_dashboard_json_bytes() -> tuple[bytes, str] | tuple[None, None]:
+    return load_json_bundle_bytes(HOLIDAY_DASHBOARD_FILE_NAMES)
 
 
 def load_news_index_bytes() -> tuple[bytes, str] | tuple[None, None]:
@@ -691,6 +719,7 @@ def root() -> Response:
                 "history": "/api/live/history.json",
                 "livePredictionSeries": "/api/live/live_prediction_series.json",
                 "dashboard": "/api/live/dashboard.json",
+                "holidayDashboard": "/api/live/holiday-dashboard.json",
                 "newsIndex": "/api/news/youtube-news.json",
             },
         }
@@ -712,7 +741,23 @@ def get_live_dashboard_data() -> Response:
         payload,
         mimetype="application/json",
         headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Cache-Control": LIVE_RESPONSE_CACHE_CONTROL,
+            "X-Kospi-Live-Source": source,
+        },
+    )
+
+
+@app.get("/api/live/holiday-dashboard.json")
+def get_live_holiday_dashboard_data() -> Response:
+    payload, source = load_holiday_dashboard_json_bytes()
+    if payload is None or source is None:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+
+    return Response(
+        payload,
+        mimetype="application/json",
+        headers={
+            "Cache-Control": LIVE_RESPONSE_CACHE_CONTROL,
             "X-Kospi-Live-Source": source,
         },
     )
@@ -731,7 +776,7 @@ def get_live_data(file_name: str) -> Response:
         payload,
         mimetype="application/json",
         headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Cache-Control": LIVE_RESPONSE_CACHE_CONTROL,
             "X-Kospi-Live-Source": source,
         },
     )
@@ -747,7 +792,7 @@ def get_news_index() -> Response:
         payload,
         mimetype="application/json",
         headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Cache-Control": NEWS_RESPONSE_CACHE_CONTROL,
             "X-Kospi-News-Source": source,
         },
     )
