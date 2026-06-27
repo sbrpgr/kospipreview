@@ -116,6 +116,19 @@ All should respond with:
 - `Cache-Control: public, max-age=45, s-maxage=60, stale-while-revalidate=120`
 - `X-Kospi-Live-Source: bucket` when Cloud Storage is being used
 
+## Legacy And Fallback Retention
+
+The bundled endpoints `/api/live/dashboard.json` and
+`/api/live/holiday-dashboard.json` are the preferred low-call production read
+paths, but the older per-file live JSON endpoints remain part of the supported
+surface. They are intentionally retained because the 2026-06-27 changes were
+made to reduce high Cloud Run operating cost, not to remove rollback or recovery
+options.
+
+Do not remove legacy per-file endpoints, bundled JSON fallbacks, or the manual
+`refresh-night-futures` fallback workflow without a separate work spec, a
+production observation window, and an explicit rollback plan.
+
 ## Served News Files (Separated From Live Prediction)
 
 - `/api/news/youtube-news.json`

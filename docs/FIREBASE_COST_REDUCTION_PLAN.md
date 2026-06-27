@@ -22,6 +22,7 @@ Related work spec: `docs/LIVE_DASHBOARD_API_WORK_SPEC_2026-05-22.md`
 - Recent `save-market-snapshot` runs failed before uploading snapshots because `google-cloud-storage` was missing from the workflow install step.
 - Remote GitHub Actions still has `deploy-production` active. `cloudrun-deploy.yml` is now tracked on `main`, and its Cloud Scheduler update step is opt-in through the `update_scheduler` manual input.
 - `deploy-production` is retained as a deprecated emergency path only and now requires the explicit confirmation string `RUN_DEPRECATED_DEPLOY`.
+- This reduction was applied because Cloud Run had become the dominant operating cost. The intent is to reduce unnecessary calls and retained artifacts while keeping rollback and legacy read paths available.
 
 ## Immediate Changes Applied
 
@@ -42,12 +43,32 @@ Related work spec: `docs/LIVE_DASHBOARD_API_WORK_SPEC_2026-05-22.md`
    - Default protection keeps the newest 30 unique digests and any digest newer than 14 days.
    - The workflow supports `dry_run=true` for audit and runs monthly in dry-run mode.
    - 2026-06-27 dry-run found 65 unique image digests and 35 cleanup candidates.
-   - Actual deletion is blocked until the GitHub Actions service account has `artifactregistry.repositories.deleteArtifacts` on `projects/kospipreview/locations/us/repositories/gcr.io`.
-   - 2026-06-27 actual cleanup attempt with `dry_run=false` failed on that exact permission before deleting any image.
+   - After IAM propagation on 2026-06-27, actual cleanup selected and deleted 36 stale image digests, then a follow-up dry-run reported `total_unique_digests=30` and `selected_for_cleanup=0`.
 7. Cloud Storage retention stance:
    - Cloud Storage subtotal is materially smaller than Cloud Run, and many objects are research/news archives.
    - Do not apply destructive lifecycle deletion to `youtube-news/**` or `intraday_indicator_series/**` until prefix-level size and retention value are reviewed.
    - Prefer Cloud Run and Artifact Registry reduction first; revisit Storage only after Billing by SKU/prefix is available.
+
+## Legacy Retention Decision
+
+The 2026-06-27 cost reduction is a conservative operating-cost control, not a
+legacy deletion project. Keep the following legacy or fallback paths unless a
+separate work spec approves removal after production observation:
+
+- keep `/api/live/prediction.json`, `/api/live/indicators.json`,
+  `/api/live/history.json`, `/api/live/live_prediction_series.json`, and the
+  Model 2 per-file endpoints even though bundled dashboard endpoints are now
+  preferred;
+- keep `refresh-night-futures` as a manual fallback JSON refresh path;
+- keep `deploy-production.yml` as a guarded emergency legacy path requiring
+  `RUN_DEPRECATED_DEPLOY`;
+- keep at least the newest 30 Cloud Run image digests for rollback;
+- keep research/news Cloud Storage archives until prefix-level size and
+  retention value are reviewed.
+
+Rationale: Cloud Run was expensive enough to justify throttling, cache headers,
+bundled reads, and artifact cleanup, but removing legacy paths would increase
+recovery risk for a live financial dashboard.
 
 ## Billing Verification Checklist
 

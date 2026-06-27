@@ -17,6 +17,9 @@
   - Artifact cleanup dry-run found 65 unique image digests and 35 cleanup candidates; actual deletion requires `artifactregistry.repositories.deleteArtifacts` on the `gcr.io` Artifact Registry repository.
   - Actual production attempts on run `28277230233` and `28277230237` confirmed Cloud Run service deploy succeeds, while Scheduler update is blocked by `cloudscheduler.jobs.update` and Artifact cleanup is blocked by `artifactregistry.repositories.deleteArtifacts`.
   - `cloudrun-deploy` now supports Scheduler-only retries with `deploy_service=false` and `update_scheduler=true` to avoid another Cloud Build / Cloud Run / Hosting deploy after IAM is granted.
+  - After IAM propagation, Scheduler-only run `28277662973` updated `kospi-live-refresh` to `*/2 0-8,17-23 * * 1-5` in `Asia/Seoul` without Cloud Build, Cloud Run deploy, or Hosting deploy.
+  - Artifact cleanup run `28277545656` deleted 36 stale Cloud Run image digests; verification run `28277678941` reported `total_unique_digests=30` and `selected_for_cleanup=0`.
+  - Legacy/fallback paths are intentionally retained because the reduction was triggered by high Cloud Run operating cost, not by a decision to remove rollback or recovery surfaces.
   - Deprecated `deploy-production` now requires explicit `RUN_DEPRECATED_DEPLOY` confirmation to prevent accidental Cloud Build / Cloud Run cost.
   - External reusable platform insight note added under `C:\Users\sprbx\Desktop\ViveCoding\1.개발자원\API 플랫폼 구축 및 운영 스킬`.
   - Files changed:

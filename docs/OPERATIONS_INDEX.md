@@ -49,7 +49,8 @@ If work resumes later, read these documents in order:
 - Cloud Storage bucket: `kospipreview-live-data`
 - Intraday indicator research archive: `gs://kospipreview-live-data/intraday_indicator_series/`
 - Live refresh performance control: `YAHOO_FETCH_WORKERS` default `6`
-- Artifact image cleanup: GitHub Actions `cleanup-artifact-images` keeps newest 30 `gcr.io/kospipreview/kospi-live-data` digests and selects older digests after the minimum age window. Actual deletion requires `artifactregistry.repositories.deleteArtifacts` on `projects/kospipreview/locations/us/repositories/gcr.io`.
+- Artifact image cleanup: GitHub Actions `cleanup-artifact-images` keeps newest 30 `gcr.io/kospipreview/kospi-live-data` digests and selects older digests after the minimum age window. The 2026-06-27 cleanup deleted 36 stale digests and the follow-up dry-run reported `selected_for_cleanup=0`.
+- Legacy retention stance: the cost reduction was done because Cloud Run operating cost was too high, but legacy/fallback paths are retained for rollback and recovery. Do not remove legacy live JSON endpoints, fallback JSON workflows, guarded `deploy-production`, or research/news archives without a separate work spec and production observation window.
 - Data refresh workflows seed current JSON from `gs://kospipreview-live-data/`
   before rebuilding and merge archive fallback fields so archive/history state is
   not reset to incomplete bundled or bucket files. Before publish, regenerated
@@ -336,6 +337,7 @@ Last verified on 2026-04-23 KST:
   - Firebase Hosting deploy workflows may treat "current active version" as an already-deployed state; verify production URLs when this warning appears.
   - Use `cleanup-artifact-images` for old container image cleanup; it runs scheduled dry-runs by default. Use `dry_run=false` only after Artifact Registry delete IAM is confirmed.
   - Do not add Cloud Storage lifecycle deletion for research/news prefixes until prefix-level size and retention value are reviewed.
+  - Do not delete legacy fallback endpoints or workflows merely because the bundled/cost-reduced path is active; this reduction intentionally preserved legacy paths after a high Cloud Run cost incident.
 
 ## Operating Principles
 
