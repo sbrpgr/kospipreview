@@ -134,7 +134,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dry_run="${DRY_RUN_INPUT:-false}"
+          dry_run="${DRY_RUN_INPUT:-true}"
+          echo "dry_run=${dry_run}"
 
           if [ ! -s stale-digests.txt ]; then
             echo "No stale image digests selected."

@@ -49,7 +49,7 @@ If work resumes later, read these documents in order:
 - Cloud Storage bucket: `kospipreview-live-data`
 - Intraday indicator research archive: `gs://kospipreview-live-data/intraday_indicator_series/`
 - Live refresh performance control: `YAHOO_FETCH_WORKERS` default `6`
-- Artifact image cleanup: GitHub Actions `cleanup-artifact-images` keeps newest 30 `gcr.io/kospipreview/kospi-live-data` digests and deletes older digests after the minimum age window.
+- Artifact image cleanup: GitHub Actions `cleanup-artifact-images` keeps newest 30 `gcr.io/kospipreview/kospi-live-data` digests and selects older digests after the minimum age window. Actual deletion requires `artifactregistry.repositories.deleteArtifacts` on `projects/kospipreview/locations/us/repositories/gcr.io`.
 - Data refresh workflows seed current JSON from `gs://kospipreview-live-data/`
   before rebuilding and merge archive fallback fields so archive/history state is
   not reset to incomplete bundled or bucket files. Before publish, regenerated
@@ -333,7 +333,7 @@ Last verified on 2026-04-23 KST:
   - `deploy-production` is deprecated and requires `RUN_DEPRECATED_DEPLOY`; prefer `cloudrun-deploy`.
   - Do not run Cloud Build or Cloud Run deploy for routine frontend, calculator, copy, news, or JSON-only changes.
   - Firebase Hosting deploy workflows may treat "current active version" as an already-deployed state; verify production URLs when this warning appears.
-  - Use `cleanup-artifact-images` for old container image cleanup; start with `dry_run=true` if changing keep-count or age settings.
+  - Use `cleanup-artifact-images` for old container image cleanup; it runs scheduled dry-runs by default. Use `dry_run=false` only after Artifact Registry delete IAM is confirmed.
   - Do not add Cloud Storage lifecycle deletion for research/news prefixes until prefix-level size and retention value are reviewed.
 
 ## Operating Principles

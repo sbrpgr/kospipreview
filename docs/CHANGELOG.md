@@ -14,6 +14,7 @@
   - Hosting deploy workflows now treat Firebase's "current active version" response as a benign already-deployed state while preserving failure for real errors.
   - Manual Cloud Run deploy script now uses the same reduced refresh/cache settings as the production workflow.
   - Added `cleanup-artifact-images` workflow to remove old `gcr.io/kospipreview/kospi-live-data` image digests while keeping recent rollback images.
+  - Artifact cleanup dry-run found 65 unique image digests and 35 cleanup candidates; actual deletion requires `artifactregistry.repositories.deleteArtifacts` on the `gcr.io` Artifact Registry repository.
   - Deprecated `deploy-production` now requires explicit `RUN_DEPRECATED_DEPLOY` confirmation to prevent accidental Cloud Build / Cloud Run cost.
   - External reusable platform insight note added under `C:\Users\sprbx\Desktop\ViveCoding\1.개발자원\API 플랫폼 구축 및 운영 스킬`.
   - Files changed:

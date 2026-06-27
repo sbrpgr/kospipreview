@@ -40,7 +40,9 @@ Related work spec: `docs/LIVE_DASHBOARD_API_WORK_SPEC_2026-05-22.md`
 6. Artifact Registry reduction path:
    - `.github/workflows/cleanup-artifact-images.yml` removes old `gcr.io/kospipreview/kospi-live-data` image digests.
    - Default protection keeps the newest 30 unique digests and any digest newer than 14 days.
-   - The workflow supports `dry_run=true` for audit and runs monthly with deletion enabled.
+   - The workflow supports `dry_run=true` for audit and runs monthly in dry-run mode.
+   - 2026-06-27 dry-run found 65 unique image digests and 35 cleanup candidates.
+   - Actual deletion is blocked until the GitHub Actions service account has `artifactregistry.repositories.deleteArtifacts` on `projects/kospipreview/locations/us/repositories/gcr.io`.
 7. Cloud Storage retention stance:
    - Cloud Storage subtotal is materially smaller than Cloud Run, and many objects are research/news archives.
    - Do not apply destructive lifecycle deletion to `youtube-news/**` or `intraday_indicator_series/**` until prefix-level size and retention value are reviewed.
@@ -90,7 +92,7 @@ Use the Google Cloud Billing report for billing account `013A72-4608CD-FE4F11`.
 
 - Reduce `retrain-model` schedule from `*/5 * * * 1-5` to a smaller set of market-relevant rebuild times, because Cloud Run is already the primary near-live refresh path.
 - Keep the old `deploy-production.yml` workflow guarded by the explicit `RUN_DEPRECATED_DEPLOY` confirmation, or remove it entirely once the emergency path is no longer needed.
-- Run `cleanup-artifact-images` monthly, or manually with `dry_run=true` first when Artifact Registry cost rises.
+- Run `cleanup-artifact-images` monthly in dry-run mode, or manually with `dry_run=false` after granting Artifact Registry delete permission.
 - Add a monthly cost review runbook section after real Billing SKU data is captured.
 
 ## References
