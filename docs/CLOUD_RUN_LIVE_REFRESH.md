@@ -75,6 +75,7 @@ Current Scheduler settings:
 - cron: `*/2 0-8,17-23 * * 1-5`
 - time zone: `Asia/Seoul`
 - Cloud Run also enforces `REFRESH_MIN_INTERVAL_SECONDS=120`, so an older every-minute Scheduler configuration still skips the non-window minute with `202 {"ok": true, "status": "throttled"}`.
+- If only Scheduler settings need to be applied after IAM is granted, dispatch `cloudrun-deploy` with `deploy_service=false` and `update_scheduler=true`; this skips Cloud Build, Cloud Run deploy, and Firebase Hosting deploy.
 
 Operational target:
 

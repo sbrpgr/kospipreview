@@ -330,6 +330,7 @@ Last verified on 2026-04-23 KST:
   - Routine news publish uses `publish_youtube_news.cmd` / `publish-youtube-news` only.
   - Routine model/data refresh uses JSON upload to Cloud Storage only.
   - `cloudrun-deploy` is reserved for Cloud Run code, Cloud Run env vars, Firebase rewrite pinning, or Scheduler changes.
+  - For Scheduler-only retries after IAM is granted, run `cloudrun-deploy` with `deploy_service=false` and `update_scheduler=true` to avoid Cloud Build, Cloud Run deploy, and Hosting deploy.
   - `deploy-production` is deprecated and requires `RUN_DEPRECATED_DEPLOY`; prefer `cloudrun-deploy`.
   - Do not run Cloud Build or Cloud Run deploy for routine frontend, calculator, copy, news, or JSON-only changes.
   - Firebase Hosting deploy workflows may treat "current active version" as an already-deployed state; verify production URLs when this warning appears.

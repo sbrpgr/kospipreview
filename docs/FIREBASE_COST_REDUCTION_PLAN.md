@@ -28,7 +28,7 @@ Related work spec: `docs/LIVE_DASHBOARD_API_WORK_SPEC_2026-05-22.md`
 1. `save-market-snapshot` now installs `google-cloud-storage>=2.18.0,<4.0` before running `scripts/save_market_snapshot.py`.
 2. Frontend live polling changed from 30 seconds to 60 seconds. This cuts steady-state live API reads from each open dashboard tab by about 50% while matching the production refresh cadence.
 3. Cloud Run now serves `/api/live/dashboard.json`, which bundles prediction, indicators, history, and live prediction series. The frontend tries this single endpoint first and falls back to the previous per-file endpoints if needed, cutting steady-state dashboard live reads from four per poll to one per poll.
-4. `cloudrun-deploy` no longer updates Cloud Scheduler by default. Use the `update_scheduler` input only when Scheduler cadence, target URI, or auth header must change.
+4. `cloudrun-deploy` no longer updates Cloud Scheduler by default. Use the `update_scheduler` input only when Scheduler cadence, target URI, or auth header must change. If only Scheduler must be changed after IAM is granted, run `cloudrun-deploy` with `deploy_service=false` and `update_scheduler=true` so Cloud Build, Cloud Run deploy, and Hosting deploy are skipped.
 5. 2026-06-27 reduction pass:
    - frontend cache-buster query strings now use fixed time buckets instead of per-request `Date.now()`;
    - hidden browser tabs skip live polling and resync on focus/visibility return;
@@ -43,6 +43,7 @@ Related work spec: `docs/LIVE_DASHBOARD_API_WORK_SPEC_2026-05-22.md`
    - The workflow supports `dry_run=true` for audit and runs monthly in dry-run mode.
    - 2026-06-27 dry-run found 65 unique image digests and 35 cleanup candidates.
    - Actual deletion is blocked until the GitHub Actions service account has `artifactregistry.repositories.deleteArtifacts` on `projects/kospipreview/locations/us/repositories/gcr.io`.
+   - 2026-06-27 actual cleanup attempt with `dry_run=false` failed on that exact permission before deleting any image.
 7. Cloud Storage retention stance:
    - Cloud Storage subtotal is materially smaller than Cloud Run, and many objects are research/news archives.
    - Do not apply destructive lifecycle deletion to `youtube-news/**` or `intraday_indicator_series/**` until prefix-level size and retention value are reviewed.
@@ -70,6 +71,7 @@ Use the Google Cloud Billing report for billing account `013A72-4608CD-FE4F11`.
    - `*/2 0-8,17-23 * * 1-5`
    - time zone `Asia/Seoul`
    - If Scheduler IAM blocks cron updates, verify Cloud Run returns `202 throttled` for non-window refresh attempts.
+   - After granting Scheduler IAM, rerun `cloudrun-deploy` with `deploy_service=false` and `update_scheduler=true`.
 
 ## Cost Reduction Roadmap
 

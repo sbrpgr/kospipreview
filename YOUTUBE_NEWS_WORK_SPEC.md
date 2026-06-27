@@ -156,6 +156,10 @@ Cloud Run workflow:
 .github/workflows/cloudrun-deploy.yml
 ```
 
+For Scheduler-only timing/header retries after IAM is granted, dispatch
+`cloudrun-deploy` with `deploy_service=false` and `update_scheduler=true` so
+Cloud Build, Cloud Run deploy, and Firebase Hosting deploy are skipped.
+
 ## Important files
 
 - `publish_youtube_news.cmd`

@@ -15,6 +15,8 @@
   - Manual Cloud Run deploy script now uses the same reduced refresh/cache settings as the production workflow.
   - Added `cleanup-artifact-images` workflow to remove old `gcr.io/kospipreview/kospi-live-data` image digests while keeping recent rollback images.
   - Artifact cleanup dry-run found 65 unique image digests and 35 cleanup candidates; actual deletion requires `artifactregistry.repositories.deleteArtifacts` on the `gcr.io` Artifact Registry repository.
+  - Actual production attempts on run `28277230233` and `28277230237` confirmed Cloud Run service deploy succeeds, while Scheduler update is blocked by `cloudscheduler.jobs.update` and Artifact cleanup is blocked by `artifactregistry.repositories.deleteArtifacts`.
+  - `cloudrun-deploy` now supports Scheduler-only retries with `deploy_service=false` and `update_scheduler=true` to avoid another Cloud Build / Cloud Run / Hosting deploy after IAM is granted.
   - Deprecated `deploy-production` now requires explicit `RUN_DEPRECATED_DEPLOY` confirmation to prevent accidental Cloud Build / Cloud Run cost.
   - External reusable platform insight note added under `C:\Users\sprbx\Desktop\ViveCoding\1.개발자원\API 플랫폼 구축 및 운영 스킬`.
   - Files changed:
