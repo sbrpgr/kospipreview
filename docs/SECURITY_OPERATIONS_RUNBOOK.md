@@ -160,6 +160,7 @@ Verification:
 #### Live refresh path
 
 - Cloud Scheduler should call Cloud Run every two minutes outside `09:00~16:59 KST`
+- Cloud Run should also enforce `REFRESH_MIN_INTERVAL_SECONDS=120`; if Scheduler IAM blocks cron updates and the job still calls every minute, the non-window minute should return `202 throttled`
 - a normal refresh should finish under `60s`; latest verified production latency after optimization was `12.1s~14.9s`
 - no full Hosting redeploy required for normal live data updates
 
@@ -205,6 +206,7 @@ Check:
 Expected state:
 
 - Scheduler remains enabled on weekday `*/2 0-8,17-23 * * 1-5` with time zone `Asia/Seoul`;
+- if Scheduler remains on the older every-minute cron because of IAM, Cloud Run throttling returns `202 throttled` on the skipped minute;
 - successful refresh requests normally complete below `60s`;
 - latest verified production latency was `12.1s~14.9s` on revision `kospi-live-data-00026-nf2`.
 

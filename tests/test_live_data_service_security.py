@@ -13,6 +13,7 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         self.original_token = live_data_service.REFRESH_BEARER_TOKEN
         self.original_allow_unauthenticated = live_data_service.ALLOW_UNAUTHENTICATED_REFRESH
         self.original_cache_seconds = live_data_service.LIVE_JSON_CACHE_SECONDS
+        self.original_refresh_min_interval_seconds = live_data_service.REFRESH_MIN_INTERVAL_SECONDS
         self.original_download = live_data_service.download_bucket_file
         self.original_get_storage_bucket = live_data_service.get_storage_bucket
         live_data_service.clear_live_json_cache()
@@ -21,6 +22,7 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         live_data_service.REFRESH_BEARER_TOKEN = self.original_token
         live_data_service.ALLOW_UNAUTHENTICATED_REFRESH = self.original_allow_unauthenticated
         live_data_service.LIVE_JSON_CACHE_SECONDS = self.original_cache_seconds
+        live_data_service.REFRESH_MIN_INTERVAL_SECONDS = self.original_refresh_min_interval_seconds
         live_data_service.download_bucket_file = self.original_download
         live_data_service.get_storage_bucket = self.original_get_storage_bucket
         live_data_service.clear_live_json_cache()
@@ -218,6 +220,23 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
 
         self.assertEqual(status, 413)
         self.assertEqual(response.get_json()["error"], "request_too_large")
+
+    def test_refresh_throttle_skips_non_window_calls(self):
+        live_data_service.REFRESH_MIN_INTERVAL_SECONDS = 120
+
+        with live_data_service.app.test_request_context("/api/tasks/refresh", method="POST"):
+            self.assertIsNone(live_data_service.refresh_throttle_status(now=120))
+            payload = live_data_service.refresh_throttle_status(now=190)
+
+        self.assertIsNotNone(payload)
+        self.assertEqual(payload["status"], "throttled")
+        self.assertEqual(payload["nextWindowSeconds"], 50)
+
+    def test_refresh_throttle_allows_force_request(self):
+        live_data_service.REFRESH_MIN_INTERVAL_SECONDS = 120
+
+        with live_data_service.app.test_request_context("/api/tasks/refresh?force=1", method="POST"):
+            self.assertIsNone(live_data_service.refresh_throttle_status(now=190))
 
     def test_intraday_archive_upload_uses_create_only_objects(self):
         uploads = []

@@ -9,6 +9,7 @@
   - Cloud Run live JSON responses now use short public cache headers for successful responses and keep error responses on `no-store`.
   - Cloud Run instance-local live JSON cache increased to 60 seconds; news index cache increased to 300 seconds.
   - Cloud Scheduler cadence changed from every minute to every two minutes outside `09:00~16:59 KST`.
+  - Cloud Run refresh now also enforces `REFRESH_MIN_INTERVAL_SECONDS=120`, returning `202 throttled` for non-window calls so cost reduction still applies if Scheduler IAM blocks cron updates.
   - Cloud Run deploy now explicitly sets `--min-instances 0`.
   - External reusable platform insight note added under `C:\Users\sprbx\Desktop\ViveCoding\1.개발자원\API 플랫폼 구축 및 운영 스킬`.
   - Files changed:

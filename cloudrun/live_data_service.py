@@ -74,6 +74,7 @@ ALLOW_UNAUTHENTICATED_REFRESH = os.environ.get("ALLOW_UNAUTHENTICATED_REFRESH", 
     "on",
 }
 REFRESH_TIMEOUT_SECONDS = int(os.environ.get("REFRESH_TIMEOUT_SECONDS", "240"))
+REFRESH_MIN_INTERVAL_SECONDS = max(0, int(os.environ.get("REFRESH_MIN_INTERVAL_SECONDS", "120")))
 LIVE_JSON_CACHE_SECONDS = max(0.0, float(os.environ.get("LIVE_JSON_CACHE_SECONDS", "10")))
 NEWS_CACHE_SECONDS = max(0.0, float(os.environ.get("NEWS_CACHE_SECONDS", "15")))
 MAX_REFRESH_BODY_BYTES = int(os.environ.get("MAX_REFRESH_BODY_BYTES", "1024"))
@@ -645,6 +646,29 @@ def is_refresh_request_authorized() -> bool:
     return hmac.compare_digest(auth_header, expected)
 
 
+def is_force_refresh_request() -> bool:
+    force_arg = request.args.get("force", "").strip().lower()
+    force_header = request.headers.get("X-Kospi-Force-Refresh", "").strip().lower()
+    return force_arg in {"1", "true", "yes", "on"} or force_header in {"1", "true", "yes", "on"}
+
+
+def refresh_throttle_status(now: float | None = None) -> dict | None:
+    if REFRESH_MIN_INTERVAL_SECONDS <= 60 or is_force_refresh_request():
+        return None
+
+    current_time = int(now if now is not None else time.time())
+    elapsed = current_time % REFRESH_MIN_INTERVAL_SECONDS
+    if elapsed < 60:
+        return None
+
+    return {
+        "ok": True,
+        "status": "throttled",
+        "minIntervalSeconds": REFRESH_MIN_INTERVAL_SECONDS,
+        "nextWindowSeconds": REFRESH_MIN_INTERVAL_SECONDS - elapsed,
+    }
+
+
 def run_refresh_job() -> dict:
     with tempfile.TemporaryDirectory(prefix="kospi-live-refresh-") as temp_dir:
         temp_root = Path(temp_dir)
@@ -808,6 +832,10 @@ def get_legacy_news_report(report_path: str | None = None) -> Response:
 def refresh_live_data() -> Response:
     if not is_refresh_request_authorized():
         return jsonify({"ok": False, "error": "unauthorized"}), 401
+
+    throttled_payload = refresh_throttle_status()
+    if throttled_payload is not None:
+        return jsonify(throttled_payload), 202
 
     if not _refresh_lock.acquire(blocking=False):
         return jsonify({"ok": True, "status": "already_running"}), 202

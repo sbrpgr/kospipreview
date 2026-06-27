@@ -34,7 +34,8 @@ Related work spec: `docs/LIVE_DASHBOARD_API_WORK_SPEC_2026-05-22.md`
    - Model 2 reads use `/api/live/holiday-dashboard.json` in the normal path, with the legacy three-file path kept as fallback;
    - Cloud Run live responses use short public cache headers and an instance-local 60 second JSON cache;
    - news index responses use a longer cache because the news index is not a minute-level market signal;
-   - Cloud Scheduler live refresh cadence is reduced from every minute to every two minutes outside `09:00~16:59 KST`.
+   - Cloud Scheduler live refresh cadence is reduced from every minute to every two minutes outside `09:00~16:59 KST`;
+   - Cloud Run also enforces `REFRESH_MIN_INTERVAL_SECONDS=120` so an older every-minute Scheduler configuration still skips the non-window minute cheaply.
 
 ## Billing Verification Checklist
 
@@ -57,6 +58,7 @@ Use the Google Cloud Billing report for billing account `013A72-4608CD-FE4F11`.
 5. In Cloud Scheduler, verify the live refresh cron is still:
    - `*/2 0-8,17-23 * * 1-5`
    - time zone `Asia/Seoul`
+   - If Scheduler IAM blocks cron updates, verify Cloud Run returns `202 throttled` for non-window refresh attempts.
 
 ## Cost Reduction Roadmap
 

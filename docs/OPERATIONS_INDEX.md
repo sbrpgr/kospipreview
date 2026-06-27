@@ -45,6 +45,7 @@ If work resumes later, read these documents in order:
 - Cloud Run service: `kospi-live-data`
 - Cloud Scheduler job: `kospi-live-refresh`
 - Cloud Scheduler cadence: KST weekdays, every two minutes outside `09:00~16:59`
+- Cloud Run refresh backstop: `REFRESH_MIN_INTERVAL_SECONDS=120` returns `202 throttled` for non-window calls if Scheduler still attempts every minute
 - Cloud Storage bucket: `kospipreview-live-data`
 - Intraday indicator research archive: `gs://kospipreview-live-data/intraday_indicator_series/`
 - Live refresh performance control: `YAHOO_FETCH_WORKERS` default `6`

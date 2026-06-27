@@ -18,6 +18,7 @@ Goals:
 - Cloud Run service: `kospi-live-data`
 - Cloud Scheduler job: `kospi-live-refresh`
 - Cloud Storage bucket: `kospipreview-live-data`
+- Cloud Run refresh throttle: `REFRESH_MIN_INTERVAL_SECONDS=120`
 - Firebase Hosting rewrite:
   - `/api/**`
   - service `kospi-live-data`
@@ -73,10 +74,12 @@ Current Scheduler settings:
 
 - cron: `*/2 0-8,17-23 * * 1-5`
 - time zone: `Asia/Seoul`
+- Cloud Run also enforces `REFRESH_MIN_INTERVAL_SECONDS=120`, so an older every-minute Scheduler configuration still skips the non-window minute with `202 {"ok": true, "status": "throttled"}`.
 
 Operational target:
 
 - a normal refresh run should finish well under `60s`;
+- non-window refresh attempts should return `202 throttled` without running the expensive refresh script;
 - if a refresh run exceeds roughly two minutes, the next Scheduler attempt can overlap with the active run;
 - overlapping attempts are protected by the refresh lock and return `202 already_running`;
 - repeated over-two-minute runs make the effective dashboard cadence look closer to four minutes.

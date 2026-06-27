@@ -16,6 +16,7 @@ The platform uses a split architecture.
    - Cloud Scheduler job: `kospi-live-refresh`
    - Cloud Storage bucket: `kospipreview-live-data`
    - Scheduler cadence: every two minutes on weekdays outside `09:00~16:59 KST`.
+   - Cloud Run backstop: `REFRESH_MIN_INTERVAL_SECONDS=120` skips non-window refresh attempts when an older Scheduler config still calls every minute.
 
 3. YouTube news dynamic archive
    - Source reports are stored under the repository root `news/YYYY-MM-DD/HHMMSS/`.
@@ -83,12 +84,13 @@ Both hosts should return live API data from the Cloud Run bucket-backed path.
 
 1. Cloud Scheduler calls `POST /api/tasks/refresh` on Cloud Run.
 2. Cloud Run seeds a temporary workspace from Cloud Storage live JSON, then repo-bundled fallback JSON when needed.
-3. `scripts/refresh_night_futures.py` refreshes indicators, prediction, history, archive, caches, and live trend data.
-4. Cloud Run uploads refreshed JSON back to Cloud Storage.
-5. Public live JSON reads use a short Cloud Run instance-local cache and short public response caching to absorb bursts.
-6. Browser requests `/api/live/*.json`.
-7. Firebase Hosting rewrites the request to the pinned Cloud Run revision.
-8. Cloud Run reads the JSON object from Cloud Storage and returns it with short-lived public cache headers.
+3. Cloud Run skips non-window attempts with `202 throttled` when `REFRESH_MIN_INTERVAL_SECONDS` is active.
+4. `scripts/refresh_night_futures.py` refreshes indicators, prediction, history, archive, caches, and live trend data.
+5. Cloud Run uploads refreshed JSON back to Cloud Storage.
+6. Public live JSON reads use a short Cloud Run instance-local cache and short public response caching to absorb bursts.
+7. Browser requests `/api/live/*.json`.
+8. Firebase Hosting rewrites the request to the pinned Cloud Run revision.
+9. Cloud Run reads the JSON object from Cloud Storage and returns it with short-lived public cache headers.
 
 The refresh task endpoint is token protected and fails closed if
 `REFRESH_BEARER_TOKEN` is missing. Unauthenticated refresh is only allowed when
