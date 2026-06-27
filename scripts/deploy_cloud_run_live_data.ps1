@@ -4,7 +4,7 @@ param(
   [string]$ServiceName = "kospi-live-data",
   [string]$ServiceAccount = "firebase-adminsdk-fbsvc@kospipreview.iam.gserviceaccount.com",
   [string]$BucketName = "kospipreview-live-data",
-  [string]$Schedule = "* 0-8,17-23 * * 1-5",
+  [string]$Schedule = "*/2 0-8,17-23 * * 1-5",
   [string]$SchedulerTimeZone = "Asia/Seoul",
   [string]$SchedulerJobName = "kospi-live-refresh",
   [string]$RefreshToken = ""
@@ -76,7 +76,8 @@ Invoke-Gcloud run deploy $ServiceName `
   --region $Region `
   --service-account $ServiceAccount `
   --allow-unauthenticated `
-  --set-env-vars "LIVE_DATA_BUCKET=$BucketName,REFRESH_BEARER_TOKEN=$RefreshToken,LIVE_JSON_CACHE_SECONDS=10,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240,NEWS_BUCKET_NAME=$BucketName,NEWS_STORAGE_PREFIX=youtube-news,NEWS_INDEX_FILE_NAME=youtube-news.json,NEWS_CACHE_SECONDS=15"
+  --set-env-vars "LIVE_DATA_BUCKET=$BucketName,REFRESH_BEARER_TOKEN=$RefreshToken,REFRESH_MIN_INTERVAL_SECONDS=120,LIVE_JSON_CACHE_SECONDS=60,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240,NEWS_BUCKET_NAME=$BucketName,NEWS_STORAGE_PREFIX=youtube-news,NEWS_INDEX_FILE_NAME=youtube-news.json,NEWS_CACHE_SECONDS=300" `
+  --min-instances 0
 
 $serviceUrl = gcloud run services describe $ServiceName --region $Region --format="value(status.url)"
 if ($LASTEXITCODE -ne 0) {

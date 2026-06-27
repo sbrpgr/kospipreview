@@ -1,0 +1,155 @@
+name: cleanup-artifact-images
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PROJECT_ID: kospipreview
+  IMAGE_PATH: gcr.io/kospipreview/kospi-live-data
+
+on:
+  workflow_dispatch:
+    inputs:
+      keep_count:
+        description: "Number of newest image digests to always keep"
+        required: false
+        default: "30"
+      min_age_days:
+        description: "Only delete images older than this many days"
+        required: false
+        default: "14"
+      dry_run:
+        description: "Print deletions without deleting images"
+        required: false
+        default: true
+        type: boolean
+  schedule:
+    - cron: "0 18 1 * *"
+
+concurrency:
+  group: cleanup-artifact-images
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: List image digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud container images list-tags "${IMAGE_PATH}" \
+            --project "${PROJECT_ID}" \
+            --limit=999999 \
+            --format=json > image-tags.json
+
+      - name: Select stale image digests
+        env:
+          KEEP_COUNT_INPUT: ${{ github.event.inputs.keep_count }}
+          MIN_AGE_DAYS_INPUT: ${{ github.event.inputs.min_age_days }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+
+          keep_count = int(os.environ.get("KEEP_COUNT_INPUT") or "30")
+          min_age_days = int(os.environ.get("MIN_AGE_DAYS_INPUT") or "14")
+          cutoff = datetime.now(timezone.utc) - timedelta(days=min_age_days)
+
+          def parse_timestamp(value):
+              if isinstance(value, dict):
+                  value = value.get("datetime") or value.get("seconds")
+              if isinstance(value, (int, float)):
+                  return datetime.fromtimestamp(float(value), timezone.utc)
+              if not isinstance(value, str) or not value.strip():
+                  return datetime.fromtimestamp(0, timezone.utc)
+              text = value.strip().replace("Z", "+00:00")
+              try:
+                  parsed = datetime.fromisoformat(text)
+              except ValueError:
+                  return datetime.fromtimestamp(0, timezone.utc)
+              if parsed.tzinfo is None:
+                  return parsed.replace(tzinfo=timezone.utc)
+              return parsed.astimezone(timezone.utc)
+
+          rows = json.loads(Path("image-tags.json").read_text(encoding="utf8"))
+          by_digest = {}
+          for row in rows:
+              digest = row.get("digest")
+              if not digest:
+                  continue
+              timestamp = parse_timestamp(row.get("timestamp"))
+              current = by_digest.get(digest)
+              if current is None or timestamp > current["timestamp"]:
+                  by_digest[digest] = {
+                      "digest": digest,
+                      "timestamp": timestamp,
+                      "tags": row.get("tags") or [],
+                  }
+
+          ordered = sorted(by_digest.values(), key=lambda row: row["timestamp"], reverse=True)
+          protected = {row["digest"] for row in ordered[:keep_count]}
+          stale = [
+              row
+              for row in ordered
+              if row["digest"] not in protected and row["timestamp"] < cutoff
+          ]
+
+          Path("stale-digests.txt").write_text(
+              "".join(f"{row['digest']}\n" for row in stale),
+              encoding="utf8",
+          )
+
+          print(f"total_unique_digests={len(ordered)}")
+          print(f"protected_newest={min(keep_count, len(ordered))}")
+          print(f"min_age_days={min_age_days}")
+          print(f"selected_for_cleanup={len(stale)}")
+          for row in stale[:20]:
+              tag_text = ",".join(row["tags"][:5])
+              print(f"cleanup_candidate={row['digest']} timestamp={row['timestamp'].isoformat()} tags={tag_text}")
+          if len(stale) > 20:
+              print(f"cleanup_candidate_more={len(stale) - 20}")
+          PY
+
+      - name: Delete stale image digests
+        env:
+          DRY_RUN_INPUT: ${{ github.event.inputs.dry_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          dry_run="${DRY_RUN_INPUT:-false}"
+
+          if [ ! -s stale-digests.txt ]; then
+            echo "No stale image digests selected."
+            exit 0
+          fi
+
+          while IFS= read -r digest; do
+            [ -n "$digest" ] || continue
+            target="${IMAGE_PATH}@${digest}"
+            if [ "$dry_run" = "true" ]; then
+              echo "DRY_RUN delete ${target}"
+            else
+              gcloud container images delete "${target}" \
+                --project "${PROJECT_ID}" \
+                --force-delete-tags \
+                --quiet
+            fi
+          done < stale-digests.txt

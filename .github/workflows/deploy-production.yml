@@ -6,6 +6,11 @@ env:
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Deprecated path. Type RUN_DEPRECATED_DEPLOY to continue."
+        required: true
+        default: ""
 
 concurrency:
   group: deploy-production-${{ github.ref }}
@@ -21,6 +26,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Guard deprecated deployment path
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "RUN_DEPRECATED_DEPLOY" ]; then
+            echo "::error::deploy-production is deprecated. Use cloudrun-deploy for Cloud Run changes or deploy-hosting for frontend-only changes."
+            exit 1
+          fi
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
