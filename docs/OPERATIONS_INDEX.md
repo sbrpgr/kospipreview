@@ -330,6 +330,7 @@ Last verified on 2026-04-23 KST:
   - Routine model/data refresh uses JSON upload to Cloud Storage only.
   - `cloudrun-deploy` is reserved for Cloud Run code, Cloud Run env vars, Firebase rewrite pinning, or Scheduler changes.
   - Do not run Cloud Build or Cloud Run deploy for routine frontend, calculator, copy, news, or JSON-only changes.
+  - Firebase Hosting deploy workflows may treat "current active version" as an already-deployed state; verify production URLs when this warning appears.
 
 ## Operating Principles
 

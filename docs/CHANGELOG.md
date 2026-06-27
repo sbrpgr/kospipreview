@@ -11,9 +11,11 @@
   - Cloud Scheduler cadence changed from every minute to every two minutes outside `09:00~16:59 KST`.
   - Cloud Run refresh now also enforces `REFRESH_MIN_INTERVAL_SECONDS=120`, returning `202 throttled` for non-window calls so cost reduction still applies if Scheduler IAM blocks cron updates.
   - Cloud Run deploy now explicitly sets `--min-instances 0`.
+  - Hosting deploy workflows now treat Firebase's "current active version" response as a benign already-deployed state while preserving failure for real errors.
   - External reusable platform insight note added under `C:\Users\sprbx\Desktop\ViveCoding\1.개발자원\API 플랫폼 구축 및 운영 스킬`.
   - Files changed:
     - `.github/workflows/cloudrun-deploy.yml`
+    - `.github/workflows/deploy-hosting.yml`
     - `.github/workflows/deploy-production.yml`
     - `cloudrun/live_data_service.py`
     - `frontend/src/components/live-dashboard.tsx`
