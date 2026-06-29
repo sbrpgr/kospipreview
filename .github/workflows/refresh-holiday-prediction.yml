@@ -61,7 +61,9 @@ jobs:
 
       - name: Seed current JSON from Cloud Storage
         run: |
-          mkdir -p frontend/public/data
+          mkdir -p .model2-seed/bundled frontend/public/data
+          cp frontend/public/data/backtest_diagnostics.json \
+            .model2-seed/bundled/backtest_diagnostics.json || true
           for f in prediction.json backtest_diagnostics.json \
                    holiday_prediction.json holiday_prediction_series.json holiday_history.json; do
             if ! gcloud storage cp \
@@ -69,8 +71,11 @@ jobs:
               "frontend/public/data/$f" \
               --quiet; then
               if [ "$f" = "backtest_diagnostics.json" ]; then
-                if [ -f "frontend/public/data/$f" ] && python -m json.tool "frontend/public/data/$f" >/dev/null; then
-                  echo "::warning::Using bundled backtest_diagnostics.json fallback"
+                if [ -f ".model2-seed/bundled/$f" ] && python -m json.tool ".model2-seed/bundled/$f" >/dev/null; then
+                  cp ".model2-seed/bundled/$f" "frontend/public/data/$f"
+                  echo "::warning::Using preserved bundled backtest_diagnostics.json fallback"
+                elif [ -f "frontend/public/data/$f" ] && python -m json.tool "frontend/public/data/$f" >/dev/null; then
+                  echo "::warning::Using existing backtest_diagnostics.json fallback"
                 else
                   tmp_file="$(mktemp)"
                   if curl -fsSL \

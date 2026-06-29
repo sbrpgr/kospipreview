@@ -7,6 +7,7 @@
   - Impact: production API stayed up and publish was safely skipped, but scheduled retrain runs would continue failing until the stale Model2 artifact was cleared.
   - Fix: `guard_live_json_publish.py` now accepts an explicitly `status: "cleared"` Model2 payload as a safe no-display state while continuing to reject any bootstrap/night-futures Model2 artifact.
   - Workflow hardening: `refresh-holiday-prediction` clear-stale output now writes `oneTimeNightFuturesBootstrapUsed: false`.
+  - Follow-up repair: forced Model2 run `28367486554` failed because `backtest_diagnostics.json` was missing from the bucket and the public API fallback returned 403 from the GitHub runner; the workflow now preserves the bundled diagnostics artifact before any Cloud Storage copy attempt and restores that validated copy before trying the public fallback.
   - Files changed:
     - `.github/workflows/refresh-holiday-prediction.yml`
     - `scripts/guard_live_json_publish.py`

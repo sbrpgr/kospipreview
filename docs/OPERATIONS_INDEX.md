@@ -78,8 +78,10 @@ If work resumes later, read these documents in order:
 - Model2 diagnostics guard:
   `refresh-holiday-prediction` must load a valid `backtest_diagnostics.json`
   artifact before publishing. If the Cloud Storage copy is missing, the workflow
-  falls back to `/api/live/backtest_diagnostics.json`; if that is invalid too,
-  the Model2 refresh must fail instead of publishing a degenerate forecast.
+  first restores the validated bundled diagnostics artifact preserved before the
+  Cloud Storage copy attempt, then falls back to
+  `/api/live/backtest_diagnostics.json`; if those are invalid too, the Model2
+  refresh must fail instead of publishing a degenerate forecast.
   A valid artifact must include EWY/FX correction coefficients and the learned
   `direct_blend_weight`; Model2 should report `directBlendSource:
   diagnostics` after a normal retrain.
