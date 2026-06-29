@@ -13,6 +13,7 @@
     - `scripts/guard_live_json_publish.py`
     - `tests/test_guard_live_json_publish.py`
     - `docs/CHANGELOG.md`
+    - `docs/OPERATIONS_INDEX.md`
 
 ## 2026-06-27
 
