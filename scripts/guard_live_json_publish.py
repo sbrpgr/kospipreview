@@ -92,7 +92,19 @@ def guard_model2_payload(data_dir: Path) -> None:
     require_field(payload, "usesOtherModelPrediction", False)
     require_field(payload, "nightFuturesUsed", False)
     require_field(payload, "nightFuturesReadThisRun", False)
-    require_field(payload, "oneTimeNightFuturesBootstrapUsed", False)
+
+    if payload.get("oneTimeNightFuturesBootstrapUsed", False) is not False:
+        raise GuardFailure(
+            "holiday_prediction.json: oneTimeNightFuturesBootstrapUsed must be False, "
+            f"got {payload.get('oneTimeNightFuturesBootstrapUsed')!r}"
+        )
+
+    if payload.get("status") == "cleared":
+        for key in ("pointPrediction", "predictedChangePct", "rangeLow", "rangeHigh", "predictionDateIso"):
+            if payload.get(key) is not None:
+                raise GuardFailure(f"holiday_prediction.json: cleared payload must keep {key} null")
+        print("model2 guard ok: cleared stale Model2 payload")
+        return
 
     if not is_number(payload.get("pointPrediction")):
         raise GuardFailure("holiday_prediction.json: pointPrediction must be numeric")

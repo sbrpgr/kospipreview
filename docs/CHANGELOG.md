@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06-29
+
+- Model2 stale bootstrap guard repair.
+  - Symptom: scheduled `retrain-model` run `28347035136` failed at `Guard live JSON publish` because the seeded bucket `holiday_prediction.json` still had `oneTimeNightFuturesBootstrapUsed: true`.
+  - Impact: production API stayed up and publish was safely skipped, but scheduled retrain runs would continue failing until the stale Model2 artifact was cleared.
+  - Fix: `guard_live_json_publish.py` now accepts an explicitly `status: "cleared"` Model2 payload as a safe no-display state while continuing to reject any bootstrap/night-futures Model2 artifact.
+  - Workflow hardening: `refresh-holiday-prediction` clear-stale output now writes `oneTimeNightFuturesBootstrapUsed: false`.
+  - Files changed:
+    - `.github/workflows/refresh-holiday-prediction.yml`
+    - `scripts/guard_live_json_publish.py`
+    - `tests/test_guard_live_json_publish.py`
+    - `docs/CHANGELOG.md`
+
 ## 2026-06-27
 
 - Cloud Run cost reduction pass.

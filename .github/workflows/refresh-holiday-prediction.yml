@@ -113,6 +113,8 @@ jobs:
                       "usesOtherModelPrediction": False,
                       "nightFuturesUsed": False,
                       "nightFuturesReadThisRun": False,
+                      "oneTimeNightFuturesBootstrapUsed": False,
+                      "oneTimeNightFuturesBootstrapAt": None,
                       "status": "cleared",
                       "clearReason": "manual_stale_model2_clear",
                       "predictionDate": None,
