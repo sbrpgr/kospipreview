@@ -12,10 +12,10 @@
 ## Current Production Workflows
 
 - `.github/workflows/deploy-hosting.yml`: Firebase Hosting only.
-- `.github/workflows/cloudrun-deploy.yml`: Cloud Run deploy, Scheduler update, then Hosting deploy to pin the latest Cloud Run revision.
+- `.github/workflows/cloudrun-deploy.yml`: Cloud Run deploy and Hosting rewrite pin; Scheduler update remains an explicit opt-in.
 - `.github/workflows/ci.yml`: Python and frontend regression checks for pull requests and `main` pushes.
 - `.github/workflows/retrain-model.yml`: rebuilds primary model JSON once after each weekday KRX close and uploads only primary-owned JSON to `gs://kospipreview-live-data/`.
-- `.github/workflows/refresh-holiday-prediction.yml`: publishes only independent Model2 JSON.
+- `.github/workflows/refresh-holiday-prediction.yml`: manual Model2 repair/clear path; no scheduled runs.
 - `.github/workflows/refresh-night-futures.yml`: manual fallback JSON refresh and Cloud Storage upload only.
 - `.github/workflows/publish-youtube-news.yml`: YouTube news JSON upload only.
 
@@ -23,7 +23,10 @@
 
 - Cloud Scheduler live refresh is KST-based and should not run during `09:00~16:59`.
 - Current cron: `*/2 0-8,17-23 * * 1-5` with time zone `Asia/Seoul`.
-- Cloud Run refresh overlap should return `202 {"ok": true, "status": "already_running"}` rather than a failure.
+- Cloud Run owns routine Model2 refresh at a five-minute minimum interval during the U.S. active window; the manual workflow is recovery-only.
+- Process-local and Cloud Storage lease overlap should return `202 {"ok": true, "status": "already_running"}` rather than a failure.
+- Preferred reads are atomic `dashboard.json` and `holiday-dashboard.json` snapshots; keep per-file APIs as legacy fallbacks.
+- `/api/healthz` reports live snapshot source, target alignment, Model2 invariants, and freshness without exposing secrets.
 - If freshness looks wrong, inspect `/api/live/*.json`, Cloud Scheduler attempts, Cloud Run logs, and Cloud Storage timestamps before redeploying anything.
 
 ## Documentation Rule

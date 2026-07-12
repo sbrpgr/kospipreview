@@ -34,7 +34,11 @@ from typing import Any
 import yfinance as yf
 
 
-OUTPUT_DIR = Path("frontend/public/data")
+OUTPUT_DIR = Path(
+    os.environ.get("KOSPI_PREVIEW_DATA_DIR")
+    or os.environ.get("KOSPI_DAWN_DATA_DIR")
+    or "frontend/public/data"
+)
 DIAGNOSTICS_PATH = OUTPUT_DIR / "backtest_diagnostics.json"
 DIAGNOSTICS_PUBLIC_URL = "https://kospipreview.com/api/live/backtest_diagnostics.json"
 PRIMARY_PREDICTION_PATH = OUTPUT_DIR / "prediction.json"

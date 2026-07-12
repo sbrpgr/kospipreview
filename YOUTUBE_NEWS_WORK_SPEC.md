@@ -7,6 +7,7 @@ Last updated: 2026-07-12
 - Pull requests and `main` pushes run the shared `ci` workflow.
 - News-only publishing still uses `publish_youtube_news.cmd` / `publish-youtube-news` and does not run Cloud Build, Cloud Run deploy, or Hosting deploy.
 - The shared Python lock and frontend lockfile are deployment inputs; routine news JSON uploads do not modify them.
+- Live prediction atomic snapshots, the distributed refresh lease, and Model2 runtime consolidation do not change `/api/news/**`; news uploads remain Storage-only and must not trigger model refresh or Cloud Run deployment.
 
 ## Current production behavior
 

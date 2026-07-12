@@ -17,6 +17,9 @@ The platform uses a split architecture.
    - Cloud Storage bucket: `kospipreview-live-data`
    - Scheduler cadence: every two minutes on weekdays outside `09:00~16:59 KST`.
    - Cloud Run backstop: `REFRESH_MIN_INTERVAL_SECONDS=120` skips non-window refresh attempts when an older Scheduler config still calls every minute.
+   - A Cloud Storage generation-guarded lease prevents overlapping refreshes across instances and revisions.
+   - Cloud Run is capped at zero minimum and one maximum instance for the current traffic level.
+   - Primary dashboard reads prefer the last complete `dashboard.json` snapshot.
 
 3. YouTube news dynamic archive
    - Source reports are stored under the repository root `news/YYYY-MM-DD/HHMMSS/`.
@@ -34,13 +37,15 @@ The platform uses a split architecture.
    - Does not deploy Firebase Hosting.
 
 5. Independent Model2 publish
-   - GitHub Actions workflow: `refresh-holiday-prediction`.
-   - Publishes only `holiday_prediction.json`, `holiday_prediction_series.json`, and `holiday_history.json`.
-   - Validates prediction, active-target series, history, and no-night-futures invariants before upload.
+   - Cloud Run runs the unchanged independent Model2 calculator inside the normal refresh process, at most once per five minutes during its U.S. active window.
+   - Model2 remains isolated from night-futures inputs and has a separate upload allowlist and publish guard.
+   - Same-target clock-synced jumps above `2.5%` are rejected while the last valid snapshot remains public.
+   - `holiday-dashboard.json` is uploaded only after all three Model2 components succeed.
+   - GitHub Actions `refresh-holiday-prediction` remains a manual repair/clear path and has no schedule.
 
 6. Deployment split
    - GitHub Actions workflow `deploy-hosting` deploys Firebase Hosting only.
-   - GitHub Actions workflow `cloudrun-deploy` deploys Cloud Run, updates Scheduler, then deploys Hosting to pin the latest Cloud Run revision by tag.
+   - GitHub Actions workflow `cloudrun-deploy` deploys Cloud Run, smoke-tests `/healthz` and `/api/healthz`, then deploys Hosting to pin the latest Cloud Run revision by tag. Scheduler updates are opt-in.
    - Frontend, calculator, copy, and static page changes must not run Cloud Build or Cloud Run deploy.
 
 7. Fallback refresh path

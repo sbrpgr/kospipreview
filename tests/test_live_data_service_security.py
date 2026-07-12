@@ -3,9 +3,14 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
+
+from google.api_core.exceptions import NotFound, PreconditionFailed
 
 from cloudrun import live_data_service
+from scripts.guard_live_json_publish import GuardFailure
 
 
 class LiveDataServiceSecurityTests(unittest.TestCase):
@@ -16,6 +21,9 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         self.original_refresh_min_interval_seconds = live_data_service.REFRESH_MIN_INTERVAL_SECONDS
         self.original_download = live_data_service.download_bucket_file
         self.original_get_storage_bucket = live_data_service.get_storage_bucket
+        self.original_bucket_name = live_data_service.BUCKET_NAME
+        self.original_model2_interval = live_data_service.MODEL2_REFRESH_MIN_INTERVAL_SECONDS
+        self.original_model2_max_step = live_data_service.MODEL2_MAX_SAME_TARGET_STEP_PCT
         live_data_service.clear_live_json_cache()
 
     def tearDown(self):
@@ -25,6 +33,9 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         live_data_service.REFRESH_MIN_INTERVAL_SECONDS = self.original_refresh_min_interval_seconds
         live_data_service.download_bucket_file = self.original_download
         live_data_service.get_storage_bucket = self.original_get_storage_bucket
+        live_data_service.BUCKET_NAME = self.original_bucket_name
+        live_data_service.MODEL2_REFRESH_MIN_INTERVAL_SECONDS = self.original_model2_interval
+        live_data_service.MODEL2_MAX_SAME_TARGET_STEP_PCT = self.original_model2_max_step
         live_data_service.clear_live_json_cache()
 
     def test_refresh_auth_fails_closed_when_token_is_missing(self):
@@ -108,6 +119,32 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
             },
         )
 
+    def test_dashboard_endpoint_prefers_atomic_bucket_snapshot(self):
+        calls = []
+        snapshot = {
+            key: {"fileName": file_name}
+            for key, file_name in live_data_service.DASHBOARD_FILE_NAMES.items()
+        }
+        snapshot["sources"] = {key: "snapshot" for key in live_data_service.DASHBOARD_FILE_NAMES}
+        snapshot["snapshot"] = {"id": "snapshot-1"}
+
+        def fake_download(file_name, target_path):
+            calls.append(file_name)
+            if file_name != live_data_service.PRIMARY_BUNDLE_FILE_NAME:
+                return False
+            target_path.write_text(json.dumps(snapshot), encoding="utf-8")
+            return True
+
+        live_data_service.LIVE_JSON_CACHE_SECONDS = 0
+        live_data_service.download_bucket_file = fake_download
+
+        response = live_data_service.app.test_client().get("/api/live/dashboard.json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["X-Kospi-Live-Source"], "bucket-snapshot")
+        self.assertEqual(response.get_json()["snapshot"]["id"], "snapshot-1")
+        self.assertEqual(calls, [live_data_service.PRIMARY_BUNDLE_FILE_NAME])
+
     def test_holiday_dashboard_endpoint_combines_model2_files(self):
         def fake_download(file_name, target_path):
             target_path.write_bytes(json.dumps({"fileName": file_name}).encode("utf8"))
@@ -141,10 +178,234 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertIn("no-store", response.headers["Cache-Control"])
 
+    def test_live_health_reports_aligned_independent_model2(self):
+        dashboard = {
+            "prediction": {
+                "predictionDateIso": "2026-07-14",
+                "generatedAt": "2026-07-13T10:00:00+00:00",
+            },
+            "livePredictionSeries": {"predictionDateIso": "2026-07-14"},
+            "snapshot": {"id": "primary-1"},
+        }
+        holiday = {
+            "holidayPrediction": {
+                "predictionDateIso": "2026-07-14",
+                "generatedAt": "2026-07-13T10:00:00+00:00",
+                "pointPrediction": 7510.0,
+                "independentModel": True,
+                "usesOtherModelPrediction": False,
+                "nightFuturesUsed": False,
+                "nightFuturesReadThisRun": False,
+                "clockSyncUsed": True,
+            },
+            "snapshot": {"id": "model2-1"},
+        }
+
+        with patch.object(
+            live_data_service,
+            "load_dashboard_json_bytes",
+            return_value=(json.dumps(dashboard).encode("utf-8"), "bucket-snapshot"),
+        ), patch.object(
+            live_data_service,
+            "load_holiday_dashboard_json_bytes",
+            return_value=(json.dumps(holiday).encode("utf-8"), "bucket-snapshot"),
+        ):
+            response = live_data_service.app.test_client().get("/api/healthz")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["status"], "ok")
+        self.assertEqual(response.get_json()["snapshotIds"]["holidayDashboard"], "model2-1")
+        self.assertIn("no-store", response.headers["Cache-Control"])
+
     def test_refresh_upload_excludes_independent_model2_files(self):
         self.assertTrue(live_data_service.MODEL2_FILE_NAMES <= live_data_service.SEED_FILE_NAMES)
         self.assertTrue(live_data_service.MODEL2_FILE_NAMES <= live_data_service.SERVE_FILE_NAMES)
         self.assertTrue(live_data_service.MODEL2_FILE_NAMES.isdisjoint(live_data_service.REFRESH_UPLOAD_FILE_NAMES))
+        self.assertEqual(live_data_service.MODEL2_FILE_NAMES, live_data_service.MODEL2_RUNTIME_UPLOAD_FILE_NAMES)
+
+    def test_model2_refresh_decision_uses_rollover_and_interval(self):
+        live_data_service.MODEL2_REFRESH_MIN_INTERVAL_SECONDS = 300
+        now = datetime(2026, 7, 13, 10, 0, tzinfo=timezone.utc).timestamp()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = Path(temp_dir)
+            (data_dir / "prediction.json").write_text(
+                json.dumps({"predictionDateIso": "2026-07-14"}),
+                encoding="utf-8",
+            )
+            (data_dir / "holiday_prediction.json").write_text(
+                json.dumps(
+                    {
+                        "predictionDateIso": "2026-07-14",
+                        "generatedAt": datetime.fromtimestamp(now - 120, timezone.utc).isoformat(),
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                live_data_service.model2_refresh_decision(data_dir, now),
+                (False, "recent_payload"),
+            )
+
+            payload = json.loads((data_dir / "holiday_prediction.json").read_text(encoding="utf-8"))
+            payload["generatedAt"] = datetime.fromtimestamp(now - 301, timezone.utc).isoformat()
+            (data_dir / "holiday_prediction.json").write_text(json.dumps(payload), encoding="utf-8")
+            self.assertEqual(
+                live_data_service.model2_refresh_decision(data_dir, now),
+                (True, "interval_elapsed"),
+            )
+
+            payload["predictionDateIso"] = "2026-07-13"
+            payload["generatedAt"] = datetime.fromtimestamp(now - 30, timezone.utc).isoformat()
+            (data_dir / "holiday_prediction.json").write_text(json.dumps(payload), encoding="utf-8")
+            self.assertEqual(
+                live_data_service.model2_refresh_decision(data_dir, now),
+                (True, "target_rollover"),
+            )
+
+    def test_model2_same_target_clock_sync_rejects_extreme_step(self):
+        live_data_service.MODEL2_MAX_SAME_TARGET_STEP_PCT = 2.5
+        previous = {
+            "predictionDateIso": "2026-07-14",
+            "clockSyncUsed": True,
+            "pointPrediction": 7500.0,
+        }
+
+        live_data_service.guard_model2_same_target_step(
+            previous,
+            {**previous, "pointPrediction": 7560.0},
+        )
+        with self.assertRaises(GuardFailure):
+            live_data_service.guard_model2_same_target_step(
+                previous,
+                {**previous, "pointPrediction": 7700.0},
+            )
+
+    def test_model2_refresh_publishes_atomic_snapshot_last(self):
+        now = datetime(2026, 7, 13, 10, 0, tzinfo=timezone.utc).timestamp()
+        uploads = []
+
+        def model2_payload(point):
+            return {
+                "generatedAt": datetime.fromtimestamp(now - 600, timezone.utc).isoformat(),
+                "calculationMode": "model2_no_night_futures_composite",
+                "independentModel": True,
+                "usesOtherModelPrediction": False,
+                "nightFuturesUsed": False,
+                "nightFuturesReadThisRun": False,
+                "oneTimeNightFuturesBootstrapUsed": False,
+                "baselineSource": "primary_model_prediction_clock_sync",
+                "clockSyncUsed": True,
+                "predictionDateIso": "2026-07-14",
+                "pointPrediction": point,
+                "model": {"engine": "EWYFXHybridCompositeNoNightFutures"},
+            }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = Path(temp_dir)
+            (data_dir / "prediction.json").write_text(
+                json.dumps({"predictionDateIso": "2026-07-14"}),
+                encoding="utf-8",
+            )
+            (data_dir / "holiday_prediction.json").write_text(json.dumps(model2_payload(7500.0)), encoding="utf-8")
+
+            def fake_run(*args, **kwargs):
+                current = model2_payload(7510.0)
+                current["generatedAt"] = datetime.fromtimestamp(now, timezone.utc).isoformat()
+                (data_dir / "holiday_prediction.json").write_text(json.dumps(current), encoding="utf-8")
+                (data_dir / "holiday_prediction_series.json").write_text(
+                    json.dumps(
+                        {
+                            "predictionDateIso": "2026-07-14",
+                            "records": [
+                                {
+                                    "predictionDateIso": "2026-07-14",
+                                    "observedAt": datetime.fromtimestamp(now, timezone.utc).isoformat(),
+                                    "pointPrediction": 7510.0,
+                                }
+                            ],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                (data_dir / "holiday_history.json").write_text(
+                    json.dumps({"records": [{"date": "2026-07-14", "model2Prediction": 7510.0}]}),
+                    encoding="utf-8",
+                )
+                return type("Result", (), {"returncode": 0, "stdout": "wrote Model 2 independent prediction", "stderr": ""})()
+
+            def fake_upload(file_name, source_path):
+                self.assertTrue(source_path.exists())
+                uploads.append(file_name)
+                return True
+
+            with patch.object(live_data_service.subprocess, "run", side_effect=fake_run), patch.object(
+                live_data_service,
+                "upload_bucket_file",
+                side_effect=fake_upload,
+            ):
+                result = live_data_service.run_model2_refresh(data_dir, {}, now)
+
+        self.assertEqual(result["status"], "updated")
+        self.assertEqual(uploads[-1], live_data_service.MODEL2_BUNDLE_FILE_NAME)
+
+    def test_distributed_refresh_lease_blocks_overlap_and_releases_by_generation(self):
+        state = {"payload": None, "generation": 0, "updated": None}
+
+        class FakeBlob:
+            def __init__(self, name):
+                self.name = name
+                self.cache_control = None
+                self.generation = None
+                self.updated = None
+
+            def upload_from_string(self, payload, content_type=None, if_generation_match=None):
+                if if_generation_match == 0 and state["payload"] is not None:
+                    raise PreconditionFailed("exists")
+                state["generation"] += 1
+                state["payload"] = payload.encode("utf-8")
+                state["updated"] = datetime.now(timezone.utc)
+                self.generation = state["generation"]
+
+            def reload(self):
+                if state["payload"] is None:
+                    raise NotFound("missing")
+                self.generation = state["generation"]
+                self.updated = state["updated"]
+
+            def download_as_bytes(self):
+                if state["payload"] is None:
+                    raise NotFound("missing")
+                return state["payload"]
+
+            def delete(self, if_generation_match=None):
+                if state["payload"] is None:
+                    raise NotFound("missing")
+                if if_generation_match != state["generation"]:
+                    raise PreconditionFailed("replaced")
+                state["payload"] = None
+
+        class FakeBucket:
+            def blob(self, name):
+                return FakeBlob(name)
+
+        live_data_service.BUCKET_NAME = "test-bucket"
+        live_data_service.get_storage_bucket = lambda bucket_name: FakeBucket()
+
+        first = live_data_service.acquire_refresh_lease(now=1000, lease_id="first")
+        second = live_data_service.acquire_refresh_lease(now=1001, lease_id="second")
+        self.assertIsNotNone(first)
+        self.assertIsNone(second)
+
+        live_data_service.release_refresh_lease(first)
+        third = live_data_service.acquire_refresh_lease(now=1002, lease_id="third")
+        self.assertIsNotNone(third)
+        self.assertNotEqual(first["generation"], third["generation"])
+
+        fourth = live_data_service.acquire_refresh_lease(now=1500, lease_id="fourth")
+        self.assertIsNotNone(fourth)
+        self.assertNotEqual(third["generation"], fourth["generation"])
 
     def test_live_prediction_series_upload_skips_shorter_same_target_series(self):
         def series_payload(count):

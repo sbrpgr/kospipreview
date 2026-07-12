@@ -33,7 +33,8 @@ If work resumes later, read these documents in order:
 - Hosting-only deploy workflow: GitHub Actions `deploy-hosting`
 - Cloud Run deploy workflow: GitHub Actions `cloudrun-deploy`
 - Fallback-only JSON refresh workflow: GitHub Actions `refresh-night-futures`
-- Independent Model2 JSON workflow: GitHub Actions `refresh-holiday-prediction`
+- Routine independent Model2 owner: Cloud Run, minimum five-minute cadence in the U.S. active window
+- Manual Model2 repair/clear workflow: GitHub Actions `refresh-holiday-prediction`
 - `/history` live path: static initial payload, then client sync from live dashboard, Model2 dashboard, and diagnostics API
 - Header support button: Ko-fi link `https://ko-fi.com/sbgkp` shown as `연구 후원하기` to the right of `문의`
 - Home top ad banner: three-column `320x140` style placement between the global header and homepage forecast hero.
@@ -49,6 +50,10 @@ If work resumes later, read these documents in order:
 - Cloud Scheduler job: `kospi-live-refresh`
 - Cloud Scheduler cadence: KST weekdays, every two minutes outside `09:00~16:59`
 - Cloud Run refresh backstop: `REFRESH_MIN_INTERVAL_SECONDS=120` returns `202 throttled` for non-window calls if Scheduler still attempts every minute
+- Cloud Run overlap guard: process-local lock plus generation-guarded Cloud Storage lease at `_locks/live-refresh.json`
+- Cloud Run scale guard: `min-instances=0`, `max-instances=1`, concurrency `40`
+- Atomic live snapshots: `dashboard.json` and `holiday-dashboard.json`; per-file endpoints remain supported fallbacks
+- Operational health: `/api/healthz`
 - Cloud Storage bucket: `kospipreview-live-data`
 - Intraday indicator research archive: `gs://kospipreview-live-data/intraday_indicator_series/`
 - Live refresh performance control: `YAHOO_FETCH_WORKERS` default `6`
@@ -72,13 +77,15 @@ If work resumes later, read these documents in order:
   prediction, active-target series, matching history row, and independent
   no-night-futures invariants.
 - Independent Model 2 JSON ownership:
-  Cloud Run serves and seeds `holiday_prediction.json`,
-  `holiday_prediction_series.json`, and `holiday_history.json`, but Cloud Run
-  Scheduler refresh must not upload them. They are published only by
-  `refresh-holiday-prediction` so the EWY/FX independent model cannot be
-  overwritten by minute-level night-futures refresh.
-  `retrain-model` and `refresh-night-futures` use primary-only upload allowlists;
-  wildcard JSON publish is prohibited.
+  Cloud Run seeds, calculates, validates, and publishes
+  `holiday_prediction.json`, `holiday_prediction_series.json`, and
+  `holiday_history.json` through a Model2-only lane at most once per five
+  minutes. The primary refresh cannot include these files in its upload set.
+  GitHub Actions `refresh-holiday-prediction` has no schedule and remains a
+  manual repair/clear lane. `retrain-model` and `refresh-night-futures` use
+  primary-only upload allowlists; wildcard JSON publish is prohibited.
+  Both Model2 publishers upload `holiday-dashboard.json` last so readers see
+  either the previous complete snapshot or the next complete snapshot.
 - Model2 diagnostics guard:
   `refresh-holiday-prediction` must load a valid `backtest_diagnostics.json`
   artifact before publishing. If the Cloud Storage copy is missing, the workflow
@@ -104,14 +111,14 @@ If work resumes later, read these documents in order:
   reissues must preserve that baseline unless another explicit `clock_sync=on`
   repair is requested.
 - Model2 automatic clock sync:
-  scheduled Model2 runs may auto-repair a same-target `kospi_close` baseline
+  routine Cloud Run Model2 runs may auto-repair a same-target `kospi_close` baseline
   to the primary payload's `pointPrediction` once when the primary forecast is
   ready. This is only a reference-clock alignment for the active target; it
   must not repeat after a `primary_model_prediction_clock_sync` baseline exists
   for the same KRX session and prediction date, and it must not fall back to
   `ewyFxSimplePoint`.
 - Model2 primary snapshot freshness:
-  if the workflow-seeded `prediction.json` has a `generatedAt` older than 120
+  if the workspace-seeded `prediction.json` has a `generatedAt` older than 120
   seconds, Model2 must refetch the public primary JSON before recording
   `clockSyncPrimaryGeneratedAt` or `ewyFxReferencePoint`. These fields are for
   diagnostics and audit; the frontend must not use them to add client-side
@@ -122,7 +129,7 @@ If work resumes later, read these documents in order:
   `nightFuturesUsed: false`, and `nightFuturesReadThisRun: false`. The
   historical one-time night-futures bootstrap path is disabled by default and
   exists only for explicit legacy migration tests, not routine operation. If the
-  Model2 script exits with a `skip:` result, the workflow must not publish the
+  Model2 script exits with a `skip:` result, the active publisher must not publish the
   seeded `holiday_prediction*.json` or `holiday_history.json` files again.
   The frontend must only display Model2 when `holiday_prediction.json`
   `predictionDateIso` matches the main `prediction.json` `predictionDateIso`.
@@ -144,10 +151,9 @@ If work resumes later, read these documents in order:
   `prediction_date`. It rebuilds the trend from
   `intraday_indicator_series/kst_date=.../prediction_date=.../*.json` and
   refuses to publish if the recovered series is shorter than the current series
-  or requested minimum. Cloud Run refresh must skip uploading
-  `live_prediction_series.json` when the regenerated same-target series is
-  shorter than the current Cloud Storage object, otherwise Scheduler can
-  immediately overwrite a recovered trend with a shortened file. A full U.S.
+  or requested minimum. Cloud Run refresh must reject the primary publish before
+  replacing `dashboard.json` when the regenerated same-target series is shorter
+  than the current Cloud Storage object. A full U.S.
   premarket-through-open trend can span two KST archive partitions, for example
   `17:00~23:59` on the prior KST date and `00:00~08:59` on the current KST
   date; recover both partitions before declaring the trend complete.
