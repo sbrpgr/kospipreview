@@ -2,7 +2,7 @@
 
 Date: 2026-05-22 KST
 
-Updated: 2026-06-27 KST
+Updated: 2026-07-12 KST
 
 Related work spec: `docs/LIVE_DASHBOARD_API_WORK_SPEC_2026-05-22.md`
 
@@ -48,6 +48,12 @@ Related work spec: `docs/LIVE_DASHBOARD_API_WORK_SPEC_2026-05-22.md`
    - Cloud Storage subtotal is materially smaller than Cloud Run, and many objects are research/news archives.
    - Do not apply destructive lifecycle deletion to `youtube-news/**` or `intraday_indicator_series/**` until prefix-level size and retention value are reviewed.
    - Prefer Cloud Run and Artifact Registry reduction first; revisit Storage only after Billing by SKU/prefix is available.
+8. 2026-07-12 runtime consolidation:
+   - Cloud Run keeps `min-instances=0` and now caps `max-instances=1` with concurrency `40` for the current traffic level.
+   - A Cloud Storage lease prevents duplicate refresh CPU across instances or deployment revisions.
+   - Routine Model2 work is folded into the existing Scheduler-triggered Cloud Run request at a five-minute minimum interval; the separate five-minute GitHub Actions schedule is removed.
+   - Complete `dashboard.json` and `holiday-dashboard.json` snapshots are read in one object request and replaced only after all component uploads succeed.
+   - The manual Model2 workflow, per-file live APIs, bundled data, and guarded legacy deploy paths remain available for rollback and repair.
 
 ## Legacy Retention Decision
 
@@ -88,6 +94,8 @@ Use the Google Cloud Billing report for billing account `013A72-4608CD-FE4F11`.
    - request count for `GET /api/live/*`;
    - request count and latency for `POST /api/tasks/refresh`;
    - minimum instances must remain `0` unless explicitly justified.
+   - maximum instances should remain `1` until measured traffic or latency justifies a reviewed increase.
+   - duplicate refresh attempts should return `202 already_running` and should not run model code twice.
 5. In Cloud Scheduler, verify the live refresh cron is still:
    - `*/2 0-8,17-23 * * 1-5`
    - time zone `Asia/Seoul`
@@ -110,10 +118,13 @@ Use the Google Cloud Billing report for billing account `013A72-4608CD-FE4F11`.
 - Deployed: `/api/live/holiday-dashboard.json` returns Model 2 prediction, series, and history together. Keep the legacy per-file endpoints available as a fallback.
 - Keep Cloud Run `LIVE_JSON_CACHE_SECONDS` at 60 seconds unless production freshness or Billing SKU detail proves a different value is needed.
 - Keep `/api/news/youtube-news.json` on the longer news cache path; news does not need the same freshness as live market data.
+- Deployed: atomic snapshot objects are uploaded last and preferred by dashboard reads; legacy per-file assembly remains the fallback.
+- Deployed: distributed refresh lease and `max-instances=1` cap prevent overlapping scale-out cost.
+- Deployed: Model2 is consolidated into the existing Cloud Run refresh and its standalone GitHub schedule is removed.
 
 ### Phase 3 - Requires workflow policy decision
 
-- Reduce `retrain-model` schedule from `*/5 * * * 1-5` to a smaller set of market-relevant rebuild times, because Cloud Run is already the primary near-live refresh path.
+- Completed: `retrain-model` now runs once at `17:17 KST` on weekdays because Cloud Run is the primary near-live refresh path.
 - Keep the old `deploy-production.yml` workflow guarded by the explicit `RUN_DEPRECATED_DEPLOY` confirmation, or remove it entirely once the emergency path is no longer needed.
 - Run `cleanup-artifact-images` monthly in dry-run mode, or manually with `dry_run=false` after granting Artifact Registry delete permission.
 - Add a monthly cost review runbook section after real Billing SKU data is captured.

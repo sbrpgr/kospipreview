@@ -18,16 +18,11 @@ on:
         description: "Sync Model2 baseline to the primary same-date model point"
         required: false
         default: "off"
-  schedule:
-    # Every 5 minutes on weekdays; script exits early unless KRX no-open status and U.S. market timing are valid.
-    - cron: "*/5 * * * 1-5"
-
 concurrency:
   group: refresh-holiday-prediction-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
-  actions: write
   contents: read
 
 jobs:
@@ -216,10 +211,17 @@ jobs:
             --data-dir frontend/public/data \
             --scope model2
 
+      - name: Build atomic model2 dashboard snapshot
+        if: ${{ steps.model2.outputs.should_publish == 'true' || steps.clear_model2.outputs.should_publish == 'true' }}
+        run: |
+          python ./scripts/build_live_dashboard_bundles.py \
+            --data-dir frontend/public/data \
+            --scope model2
+
       - name: Publish model2 JSON to Cloud Storage
         if: ${{ steps.model2.outputs.should_publish == 'true' || steps.clear_model2.outputs.should_publish == 'true' }}
         run: |
-          for f in holiday_prediction.json holiday_prediction_series.json holiday_history.json; do
+          for f in holiday_prediction.json holiday_prediction_series.json holiday_history.json holiday-dashboard.json; do
             if [ -f "frontend/public/data/$f" ]; then
               gcloud storage cp \
                 "frontend/public/data/$f" \

@@ -2,6 +2,14 @@
 
 ## 2026-07-12
 
+- Stability hardening, phase 2.
+  - Added a generation-guarded Cloud Storage refresh lease so overlapping instances and deployment revisions return `202 already_running`.
+  - Added atomic `dashboard.json` and `holiday-dashboard.json` snapshots, uploaded last and preferred by public dashboard reads.
+  - Consolidated routine Model2 refresh into Cloud Run at a five-minute minimum interval; the GitHub Model2 workflow is manual repair-only.
+  - Preserved Model2 no-night-futures invariants and added a `2.5%` same-target clock-synced jump publish circuit breaker.
+  - Added `/api/healthz` for snapshot source, target alignment, Model2 invariants, and freshness checks.
+  - Cloud Run remains scale-to-zero and is capped at one instance with concurrency `40`; all legacy per-file and manual fallback paths remain.
+
 - Stability hardening, phase 1.
   - Model2 chart now filters rows to the active prediction target and hides the pre-clock-sync epoch after a valid synchronized epoch exists.
   - `/history` now hydrates from live primary, Model2, and diagnostics APIs while retaining static and per-file fallbacks.

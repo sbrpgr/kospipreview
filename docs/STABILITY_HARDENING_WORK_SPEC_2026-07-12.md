@@ -24,6 +24,13 @@ an explicit deployment decision.
 The first release uses `deploy-hosting` only. The second release requires
 `cloudrun-deploy` because it changes Cloud Run code and runtime behavior.
 
+## Implemented State
+
+- Phase 1 merged through PR #12 after the shared CI passed and was deployed with `deploy-hosting` run `29193541690`.
+- `/history` live hydration, active-target Model2 chart filtering, SEO policy, dependency locks, and publisher allowlists are active.
+- Phase 2 adds a generation-guarded Storage lease, atomic primary/Model2 snapshots, a Cloud Run-owned five-minute Model2 lane, a `2.5%` same-target synchronized jump circuit breaker, and `/api/healthz`.
+- Cloud Run remains scale-to-zero and is capped at one instance. Legacy per-file and manual repair paths remain intact.
+
 ## Invariants
 
 - Model2 never reads or uses night-futures input.

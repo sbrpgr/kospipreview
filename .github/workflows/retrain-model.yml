@@ -98,6 +98,12 @@ jobs:
             --seed-dir .live-data-seed/bucket \
             --scope primary
 
+      - name: Build atomic primary dashboard snapshot
+        run: |
+          python ./scripts/build_live_dashboard_bundles.py \
+            --data-dir frontend/public/data \
+            --scope primary
+
       - name: Publish generated JSON to Cloud Storage
         run: |
           publish_files=(
@@ -109,6 +115,7 @@ jobs:
             day_futures_close_cache.json
             night_futures_source_cache.json
             prediction_archive.json
+            dashboard.json
           )
           for file_name in "${publish_files[@]}"; do
             source_path="frontend/public/data/${file_name}"

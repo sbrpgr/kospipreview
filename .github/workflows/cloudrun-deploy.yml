@@ -86,9 +86,26 @@ jobs:
             --region "${REGION}" \
             --service-account "${CLOUD_RUN_SERVICE_ACCOUNT}" \
             --allow-unauthenticated \
-            --update-env-vars "LIVE_DATA_BUCKET=${LIVE_DATA_BUCKET},REFRESH_BEARER_TOKEN=${REFRESH_BEARER_TOKEN},REFRESH_MIN_INTERVAL_SECONDS=120,LIVE_JSON_CACHE_SECONDS=60,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240,NEWS_BUCKET_NAME=${LIVE_DATA_BUCKET},NEWS_STORAGE_PREFIX=youtube-news,NEWS_INDEX_FILE_NAME=youtube-news.json,NEWS_CACHE_SECONDS=300" \
+            --update-env-vars "LIVE_DATA_BUCKET=${LIVE_DATA_BUCKET},REFRESH_BEARER_TOKEN=${REFRESH_BEARER_TOKEN},REFRESH_MIN_INTERVAL_SECONDS=120,REFRESH_LEASE_TTL_SECONDS=420,LIVE_JSON_CACHE_SECONDS=60,MAX_REFRESH_BODY_BYTES=1024,REFRESH_TIMEOUT_SECONDS=240,MODEL2_REFRESH_MIN_INTERVAL_SECONDS=300,MODEL2_REFRESH_TIMEOUT_SECONDS=120,MODEL2_MAX_SAME_TARGET_STEP_PCT=2.5,NEWS_BUCKET_NAME=${LIVE_DATA_BUCKET},NEWS_STORAGE_PREFIX=youtube-news,NEWS_INDEX_FILE_NAME=youtube-news.json,NEWS_CACHE_SECONDS=300" \
             --min-instances 0 \
+            --max-instances 1 \
+            --concurrency 40 \
+            --timeout 420 \
             --quiet
+
+      - name: Smoke test Cloud Run live data service
+        if: ${{ inputs.deploy_service == true }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          service_url="$(gcloud run services describe "${SERVICE_NAME}" \
+            --project "${PROJECT_ID}" \
+            --region "${REGION}" \
+            --format="value(status.url)")"
+          curl --fail --show-error --silent --retry 5 --retry-all-errors \
+            "${service_url}/healthz"
+          curl --fail --show-error --silent --retry 5 --retry-all-errors \
+            "${service_url}/api/healthz"
 
       - name: Configure Cloud Scheduler live refresh window
         if: ${{ inputs.update_scheduler == true }}

@@ -25,8 +25,16 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-DATA_DIR = Path(os.environ.get("KOSPI_DAWN_DATA_DIR", ROOT / "frontend" / "public" / "data"))
-OUT_DATA_DIR = Path(os.environ.get("KOSPI_DAWN_OUT_DATA_DIR", ROOT / "frontend" / "out" / "data"))
+DATA_DIR = Path(
+    os.environ.get("KOSPI_PREVIEW_DATA_DIR")
+    or os.environ.get("KOSPI_DAWN_DATA_DIR")
+    or ROOT / "frontend" / "public" / "data"
+)
+OUT_DATA_DIR = Path(
+    os.environ.get("KOSPI_PREVIEW_OUT_DATA_DIR")
+    or os.environ.get("KOSPI_DAWN_OUT_DATA_DIR")
+    or ROOT / "frontend" / "out" / "data"
+)
 DOCS_DIR = Path(os.environ.get("KOSPI_DAWN_DOCS_DIR", ROOT / "docs"))
 # Keep yfinance timezone cache outside the repository so CI git state stays clean.
 CACHE_DIR = Path.home() / ".cache" / "kospipreview-yfinance"

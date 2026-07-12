@@ -156,12 +156,17 @@ Verification:
 - run GitHub Actions workflow `cloudrun-deploy`
 - confirm Cloud Run latest ready revision receives 100% traffic
 - confirm Firebase Hosting rewrite pins the latest Cloud Run tag
-- confirm `/api/live/prediction.json` responds from bucket
+- confirm `/healthz` and `/api/healthz` respond successfully
+- confirm `/api/live/dashboard.json` and `/api/live/holiday-dashboard.json` report `X-Kospi-Live-Source: bucket-snapshot` after the next validated JSON publish
+- update Scheduler only when `update_scheduler=true` is explicitly required
 
 #### Live refresh path
 
 - Cloud Scheduler should call Cloud Run every two minutes outside `09:00~16:59 KST`
 - Cloud Run should also enforce `REFRESH_MIN_INTERVAL_SECONDS=120`; if Scheduler IAM blocks cron updates and the job still calls every minute, the non-window minute should return `202 throttled`
+- overlapping refreshes must return `202 already_running`; the `_locks/live-refresh.json` generation lease must not be manually deleted unless it is older than the configured TTL and no refresh is active
+- Cloud Run owns routine Model2 refresh at a five-minute minimum interval in the U.S. active window; `refresh-holiday-prediction` is manual recovery-only
+- `dashboard.json` and `holiday-dashboard.json` must be uploaded after their component files, never before them
 - a normal refresh should finish under `60s`; latest verified production latency after optimization was `12.1s~14.9s`
 - no full Hosting redeploy required for normal live data updates
 

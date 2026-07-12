@@ -19,6 +19,8 @@ Goals:
 - Cloud Scheduler job: `kospi-live-refresh`
 - Cloud Storage bucket: `kospipreview-live-data`
 - Cloud Run refresh throttle: `REFRESH_MIN_INTERVAL_SECONDS=120`
+- Cross-revision lease: `_locks/live-refresh.json`, generation precondition, `420s` TTL
+- Runtime scale: minimum `0`, maximum `1`, concurrency `40`
 - Firebase Hosting rewrite:
   - `/api/**`
   - service `kospi-live-data`
@@ -29,42 +31,32 @@ Goals:
 
 1. Cloud Scheduler calls `POST /api/tasks/refresh`.
 2. Cloud Run validates the bearer token.
-3. Cloud Run creates a temporary workspace.
-4. Cloud Run seeds JSON files from Cloud Storage, falling back to repo-bundled JSON.
-5. `scripts/refresh_night_futures.py` runs.
-6. Refreshed JSON is uploaded back to Cloud Storage.
-7. Public reads use `/api/live/*.json`.
+3. Cloud Run acquires both the process lock and a generation-guarded Cloud
+   Storage lease. An overlap returns `202 already_running`.
+4. Cloud Run creates a temporary workspace and seeds JSON from Cloud Storage,
+   falling back to repo-bundled JSON.
+5. `scripts/refresh_night_futures.py` runs and the primary publish guard checks
+   trend continuity.
+6. Primary component JSON is uploaded, then `dashboard.json` is uploaded last.
+7. During the U.S. active window, Cloud Run runs the unchanged independent
+   Model2 calculator only when its target rolled or its last payload is at least
+   five minutes old.
+8. Model2 prediction, series, history, no-night-futures invariants, and a
+   same-target `2.5%` clock-synced step limit are checked before upload.
+9. Model2 component JSON is uploaded, then `holiday-dashboard.json` is uploaded
+   last. A Model2 failure leaves the prior complete Model2 snapshot public and
+   does not roll back a valid primary refresh.
+10. Public dashboard reads prefer the atomic snapshots. Per-file reads remain
+    available for compatibility and recovery.
 
-Independent Model 2 files are a separate JSON ownership lane. Cloud Run may
-serve and seed `holiday_prediction.json`, `holiday_prediction_series.json`, and
-`holiday_history.json`, but the Scheduler refresh must not upload those files.
-They are produced by the `refresh-holiday-prediction` workflow so minute-level
-night-futures refreshes cannot overwrite the independent EWY/FX model output.
-Model 2 production refreshes must keep `nightFuturesUsed` and
-`nightFuturesReadThisRun` false; the legacy night-futures bootstrap path is
-disabled by default and is not part of routine operation. When the Model 2
-script exits with `skip:`, the workflow must not re-publish the seeded
-`holiday_prediction*.json` or `holiday_history.json` files. Use the
-workflow's `clear_stale=on` dispatch input to clear stale Model 2 JSON from
-Cloud Storage without deploying Cloud Run. The frontend must only display
-Model 2 when `holiday_prediction.json` `predictionDateIso` matches the main
-`prediction.json` `predictionDateIso`. Model 2 applies the same EWY/FX
-trend-follow floor from its own EWY/KRW signal and raw return, but it must not
-copy the primary model's `pointPrediction` continuously. When the primary model
-is anchored by a materially different night-futures bridge, a visible gap from
-Model 2 can be valid. For manual reference-clock repair, run
-`refresh-holiday-prediction` with `force=on` and `clock_sync=on`; this anchors
-Model 2 once to the primary payload's same-date `pointPrediction` when
-available, or to `ewyFxSimplePoint` only as a manual fallback. Scheduled Model 2
-runs may also auto-apply that one-time primary-point sync only when repairing a
-same-target non-clock-synced `kospi_close` baseline. Clock-synced Model 2
-payloads should also record `ewyFxReferencePoint` for diagnostics, but the
-homepage must display raw Model 2 `holiday_prediction.json` values without
-client-side EWY/FX drift compensation. Stale Model 2 values are refreshed
-through the Model 2 JSON workflow, not through Cloud Run refresh uploads.
-When Model 2 is clock-synced, that workflow preserves the absolute sync spread
-from `clockSyncPoint - clockSyncEwyFxReferencePoint` against the current EWY/FX
-reference; it must not compound that spread as a percentage premium.
+Model2 keeps `nightFuturesUsed` and `nightFuturesReadThisRun` false. The legacy
+night-futures bootstrap remains disabled by default. The normal Cloud Run lane
+does not force a Model2 run outside the U.S. active window and does not copy the
+primary forecast continuously; it only preserves the existing one-time clock
+alignment rules. `refresh-holiday-prediction` is retained without a schedule
+for explicit `force`, `clock_sync`, or `clear_stale` repairs. The frontend still
+requires Model2 and primary `predictionDateIso` to match before displaying the
+current value.
 
 ## Refresh Cadence And Performance
 
@@ -83,6 +75,7 @@ Operational target:
 - non-window refresh attempts should return `202 throttled` without running the expensive refresh script;
 - if a refresh run exceeds roughly two minutes, the next Scheduler attempt can overlap with the active run;
 - overlapping attempts are protected by the refresh lock and return `202 already_running`;
+- the Cloud Storage lease protects overlap between old/new revisions as well as within one process;
 - repeated over-two-minute runs make the effective dashboard cadence look closer to four minutes.
 
 Current implementation:
@@ -114,7 +107,13 @@ Latest verified production state after the refresh performance fix:
 All should respond with:
 
 - `Cache-Control: public, max-age=45, s-maxage=60, stale-while-revalidate=120`
-- `X-Kospi-Live-Source: bucket` when Cloud Storage is being used
+- `X-Kospi-Live-Source: bucket-snapshot` when an atomic Cloud Storage snapshot is used
+- `X-Kospi-Live-Source: bucket`, `bundled`, or `mixed` only on the legacy assembly fallback
+
+Operational health is exposed at `/api/healthz`. It reports snapshot IDs,
+source lane, target alignment, Model2 independence flags, and freshness without
+returning credentials. `/healthz` remains the lightweight container liveness
+check.
 
 ## Legacy And Fallback Retention
 
@@ -150,20 +149,21 @@ The refresh worker also syncs internal state files:
 
 These files are needed for rollover, settlement, fallback, and actual-record continuity.
 
-Cloud Run refresh upload excludes the independent Model 2 files:
+The primary Cloud Run upload set excludes the independent Model2 files:
 
 - `holiday_prediction.json`
 - `holiday_prediction_series.json`
 - `holiday_history.json`
 
-Those files are seeded for continuity and served through `/api/live/**`, but
-only `refresh-holiday-prediction` should publish them.
+Those files are published only by Cloud Run's separate Model2 lane or the
+manual `refresh-holiday-prediction` repair workflow. They can never enter the
+primary upload loop.
 
 Cloud Run refresh must also protect `live_prediction_series.json` continuity.
 Before upload, it compares the regenerated file with the current Cloud Storage
 object. If both files target the same `predictionDateIso` and the regenerated
-series has fewer valid records, the upload is skipped so a transient no-seed
-or shortened local run cannot overwrite the longer public trend.
+series has fewer valid records, the primary guard rejects the refresh before a
+new atomic dashboard snapshot can replace the last complete public snapshot.
 
 ## Operating Rules
 
@@ -271,7 +271,9 @@ Responsible for:
 - live prediction recalculation;
 - recent actual record updates;
 - day/night futures cache updates;
-- live trend series updates.
+- live trend series updates;
+- routine independent Model2 refresh at the guarded five-minute minimum interval;
+- atomic primary and Model2 snapshot publication.
 
 ### `retrain-model`
 
@@ -284,8 +286,8 @@ Responsible for:
 
 It must not deploy Firebase Hosting during routine scheduled runs. Before
 publishing JSON, it must run `scripts/guard_live_json_publish.py` so a rebuild
-cannot shrink the current live trend or publish a Model2 artifact that violates
-the independent no-night-futures contract.
+cannot shrink the current live trend. Its explicit primary allowlist must not
+contain any Model2 artifact.
 
 ### `refresh-night-futures`
 
@@ -298,10 +300,10 @@ It uses the same pre-publish JSON guard as `retrain-model`.
 
 When live values look stale:
 
-1. check `/api/live/prediction.json` `generatedAt`;
-2. check `/api/live/indicators.json` `generatedAt`;
-3. check `/api/live/live_prediction_series.json` latest `observedAt`;
+1. check `/api/healthz` status, sources, snapshot IDs, and target alignment;
+2. check `/api/live/dashboard.json` and `/api/live/holiday-dashboard.json` source headers;
+3. check `/api/live/prediction.json` `generatedAt` and the live series latest `observedAt`;
 4. check Cloud Scheduler last attempt;
 5. check Cloud Run latest ready revision and logs;
-6. check Cloud Storage live object timestamps;
+6. check Cloud Storage component, snapshot, and `_locks/live-refresh.json` timestamps;
 7. check source market data freshness by symbol.

@@ -30,8 +30,16 @@ from backtest_and_generate import (  # noqa: E402
     simple_return_pct_to_log_return_pct,
 )
 
-DATA_DIR = Path(os.environ.get("KOSPI_DAWN_DATA_DIR", ROOT / "frontend" / "public" / "data"))
-OUT_DATA_DIR = Path(os.environ.get("KOSPI_DAWN_OUT_DATA_DIR", ROOT / "frontend" / "out" / "data"))
+DATA_DIR = Path(
+    os.environ.get("KOSPI_PREVIEW_DATA_DIR")
+    or os.environ.get("KOSPI_DAWN_DATA_DIR")
+    or ROOT / "frontend" / "public" / "data"
+)
+OUT_DATA_DIR = Path(
+    os.environ.get("KOSPI_PREVIEW_OUT_DATA_DIR")
+    or os.environ.get("KOSPI_DAWN_OUT_DATA_DIR")
+    or ROOT / "frontend" / "out" / "data"
+)
 INDICATORS_FILE = DATA_DIR / "indicators.json"
 PREDICTION_FILE = DATA_DIR / "prediction.json"
 HISTORY_FILE = DATA_DIR / "history.json"

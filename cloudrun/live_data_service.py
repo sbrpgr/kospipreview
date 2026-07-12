@@ -11,12 +11,21 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, request
-from google.api_core.exceptions import PreconditionFailed
+from google.api_core.exceptions import NotFound, PreconditionFailed
 from google.cloud import storage
+from scripts.build_live_dashboard_bundles import (
+    MODEL2_BUNDLE_FILE_NAME,
+    MODEL2_BUNDLE_FILES,
+    PRIMARY_BUNDLE_FILE_NAME,
+    PRIMARY_BUNDLE_FILES,
+    write_bundle,
+)
+from scripts.guard_live_json_publish import GuardFailure, guard_publish
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLED_DATA_DIR = ROOT / "frontend" / "public" / "data"
@@ -38,17 +47,8 @@ MODEL2_FILE_NAMES = {
     "holiday_prediction_series.json",
     "holiday_history.json",
 }
-DASHBOARD_FILE_NAMES = {
-    "prediction": "prediction.json",
-    "indicators": "indicators.json",
-    "history": "history.json",
-    "livePredictionSeries": "live_prediction_series.json",
-}
-HOLIDAY_DASHBOARD_FILE_NAMES = {
-    "holidayPrediction": "holiday_prediction.json",
-    "holidayPredictionSeries": "holiday_prediction_series.json",
-    "holidayHistory": "holiday_history.json",
-}
+DASHBOARD_FILE_NAMES = dict(PRIMARY_BUNDLE_FILES)
+HOLIDAY_DASHBOARD_FILE_NAMES = dict(MODEL2_BUNDLE_FILES)
 SEED_FILE_NAMES = SERVE_FILE_NAMES | {
     "day_futures_close_cache.json",
     "night_futures_source_cache.json",
@@ -59,7 +59,9 @@ REFRESH_UPLOAD_FILE_NAMES = (SERVE_FILE_NAMES - MODEL2_FILE_NAMES) | {
     "night_futures_source_cache.json",
     "prediction_archive.json",
 }
+MODEL2_RUNTIME_UPLOAD_FILE_NAMES = set(MODEL2_FILE_NAMES)
 INTRADAY_INDICATOR_SERIES_DIR_NAME = "intraday_indicator_series"
+REFRESH_LEASE_FILE_NAME = "_locks/live-refresh.json"
 
 BUCKET_NAME = os.environ.get("LIVE_DATA_BUCKET", "").strip()
 BUCKET_PREFIX = os.environ.get("LIVE_DATA_PREFIX", "").strip().strip("/")
@@ -75,6 +77,19 @@ ALLOW_UNAUTHENTICATED_REFRESH = os.environ.get("ALLOW_UNAUTHENTICATED_REFRESH", 
 }
 REFRESH_TIMEOUT_SECONDS = int(os.environ.get("REFRESH_TIMEOUT_SECONDS", "240"))
 REFRESH_MIN_INTERVAL_SECONDS = max(0, int(os.environ.get("REFRESH_MIN_INTERVAL_SECONDS", "120")))
+MODEL2_REFRESH_MIN_INTERVAL_SECONDS = max(
+    60,
+    int(os.environ.get("MODEL2_REFRESH_MIN_INTERVAL_SECONDS", "300")),
+)
+MODEL2_REFRESH_TIMEOUT_SECONDS = max(30, int(os.environ.get("MODEL2_REFRESH_TIMEOUT_SECONDS", "120")))
+REFRESH_LEASE_TTL_SECONDS = max(
+    REFRESH_TIMEOUT_SECONDS + MODEL2_REFRESH_TIMEOUT_SECONDS + 30,
+    int(os.environ.get("REFRESH_LEASE_TTL_SECONDS", "420")),
+)
+MODEL2_MAX_SAME_TARGET_STEP_PCT = max(
+    0.1,
+    float(os.environ.get("MODEL2_MAX_SAME_TARGET_STEP_PCT", "2.5")),
+)
 LIVE_JSON_CACHE_SECONDS = max(0.0, float(os.environ.get("LIVE_JSON_CACHE_SECONDS", "10")))
 NEWS_CACHE_SECONDS = max(0.0, float(os.environ.get("NEWS_CACHE_SECONDS", "15")))
 MAX_REFRESH_BODY_BYTES = int(os.environ.get("MAX_REFRESH_BODY_BYTES", "1024"))
@@ -144,6 +159,101 @@ def get_storage_bucket(bucket_name: str):
 
 def live_blob_name(file_name: str) -> str:
     return f"{BUCKET_PREFIX}/{file_name}" if BUCKET_PREFIX else file_name
+
+
+def _parse_iso_timestamp(value: object) -> float | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
+
+
+def acquire_refresh_lease(now: float | None = None, lease_id: str | None = None) -> dict | None:
+    current_time = float(now if now is not None else time.time())
+    current_lease_id = lease_id or uuid.uuid4().hex
+    bucket = get_storage_bucket(BUCKET_NAME)
+    if bucket is None:
+        return {"distributed": False, "leaseId": current_lease_id, "generation": None}
+
+    blob_name = live_blob_name(REFRESH_LEASE_FILE_NAME)
+
+    def upload_new_lease():
+        lease_blob = bucket.blob(blob_name)
+        lease_blob.cache_control = "no-store"
+        payload = {
+            "schemaVersion": 1,
+            "leaseId": current_lease_id,
+            "createdAt": datetime.fromtimestamp(current_time, timezone.utc).isoformat(),
+            "expiresAt": datetime.fromtimestamp(
+                current_time + REFRESH_LEASE_TTL_SECONDS,
+                timezone.utc,
+            ).isoformat(),
+        }
+        lease_blob.upload_from_string(
+            json.dumps(payload, separators=(",", ":")),
+            content_type="application/json; charset=utf-8",
+            if_generation_match=0,
+        )
+        if getattr(lease_blob, "generation", None) is None:
+            lease_blob.reload()
+        return {
+            "distributed": True,
+            "leaseId": current_lease_id,
+            "generation": getattr(lease_blob, "generation", None),
+        }
+
+    try:
+        return upload_new_lease()
+    except PreconditionFailed:
+        pass
+
+    existing_blob = bucket.blob(blob_name)
+    try:
+        existing_blob.reload()
+        existing_payload = json.loads(existing_blob.download_as_bytes().decode("utf-8"))
+    except (NotFound, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+
+    expires_at = _parse_iso_timestamp(existing_payload.get("expiresAt")) if isinstance(existing_payload, dict) else None
+    if expires_at is None:
+        updated_at = getattr(existing_blob, "updated", None)
+        if isinstance(updated_at, datetime):
+            expires_at = updated_at.timestamp() + REFRESH_LEASE_TTL_SECONDS
+    if expires_at is None or expires_at > current_time:
+        return None
+
+    generation = getattr(existing_blob, "generation", None)
+    if generation is None:
+        return None
+    try:
+        existing_blob.delete(if_generation_match=generation)
+    except (NotFound, PreconditionFailed):
+        return None
+
+    try:
+        return upload_new_lease()
+    except PreconditionFailed:
+        return None
+
+
+def release_refresh_lease(lease: dict | None) -> None:
+    if not lease or not lease.get("distributed"):
+        return
+
+    bucket = get_storage_bucket(BUCKET_NAME)
+    generation = lease.get("generation")
+    if bucket is None or generation is None:
+        return
+
+    blob = bucket.blob(live_blob_name(REFRESH_LEASE_FILE_NAME))
+    try:
+        blob.delete(if_generation_match=generation)
+    except (NotFound, PreconditionFailed):
+        logging.warning("refresh lease was already released or replaced")
+    except Exception:
+        logging.exception("refresh lease release failed; TTL recovery remains available")
 
 
 def bundled_file_path(file_name: str) -> Path:
@@ -345,6 +455,43 @@ def clear_live_json_cache() -> None:
         _live_json_cache.clear()
 
 
+def load_prebuilt_bundle_bytes(
+    file_name: str,
+    required_keys: set[str],
+) -> tuple[bytes, str] | tuple[None, None]:
+    cache_key = f"snapshot:{file_name}"
+    now = time.monotonic()
+    if LIVE_JSON_CACHE_SECONDS > 0:
+        with _live_json_cache_lock:
+            cached = _live_json_cache.get(cache_key)
+            if cached is not None:
+                cached_at, payload, source = cached
+                if now - cached_at <= LIVE_JSON_CACHE_SECONDS:
+                    return payload, source
+
+    with tempfile.TemporaryDirectory(prefix="kospi-live-bundle-read-") as temp_dir:
+        temp_path = Path(temp_dir) / file_name
+        if not download_bucket_file(file_name, temp_path):
+            return None, None
+        payload = temp_path.read_bytes()
+
+    try:
+        parsed = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        logging.exception("invalid prebuilt dashboard snapshot", extra={"file_name": file_name})
+        return None, None
+
+    if not isinstance(parsed, dict) or not required_keys.issubset(parsed):
+        logging.warning("incomplete prebuilt dashboard snapshot: %s", file_name)
+        return None, None
+
+    source = "bucket-snapshot"
+    if LIVE_JSON_CACHE_SECONDS > 0:
+        with _live_json_cache_lock:
+            _live_json_cache[cache_key] = (now, payload, source)
+    return payload, source
+
+
 def load_json_bundle_bytes(file_names: dict[str, str]) -> tuple[bytes, str] | tuple[None, None]:
     payload = {}
     sources = {}
@@ -370,10 +517,16 @@ def load_json_bundle_bytes(file_names: dict[str, str]) -> tuple[bytes, str] | tu
 
 
 def load_dashboard_json_bytes() -> tuple[bytes, str] | tuple[None, None]:
+    payload, source = load_prebuilt_bundle_bytes(PRIMARY_BUNDLE_FILE_NAME, set(DASHBOARD_FILE_NAMES))
+    if payload is not None and source is not None:
+        return payload, source
     return load_json_bundle_bytes(DASHBOARD_FILE_NAMES)
 
 
 def load_holiday_dashboard_json_bytes() -> tuple[bytes, str] | tuple[None, None]:
+    payload, source = load_prebuilt_bundle_bytes(MODEL2_BUNDLE_FILE_NAME, set(HOLIDAY_DASHBOARD_FILE_NAMES))
+    if payload is not None and source is not None:
+        return payload, source
     return load_json_bundle_bytes(HOLIDAY_DASHBOARD_FILE_NAMES)
 
 
@@ -669,18 +822,160 @@ def refresh_throttle_status(now: float | None = None) -> dict | None:
     }
 
 
+def read_json_file(path: Path) -> dict:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def publish_atomic_bundle(
+    data_dir: Path,
+    output_name: str,
+    file_names: dict[str, str],
+    *,
+    kind: str,
+) -> bool:
+    output_path = write_bundle(data_dir, output_name, file_names, kind=kind)
+    return upload_bucket_file(output_name, output_path)
+
+
+def is_model2_refresh_window(now_utc: datetime) -> bool:
+    if now_utc.weekday() >= 5:
+        return False
+    minutes = now_utc.hour * 60 + now_utc.minute
+    return 9 * 60 <= minutes <= 22 * 60
+
+
+def model2_refresh_decision(data_dir: Path, now: float | None = None) -> tuple[bool, str]:
+    current_time = float(now if now is not None else time.time())
+    now_utc = datetime.fromtimestamp(current_time, timezone.utc)
+    if not is_model2_refresh_window(now_utc):
+        return False, "outside_window"
+
+    primary_payload = read_json_file(data_dir / "prediction.json")
+    model2_payload = read_json_file(data_dir / "holiday_prediction.json")
+    primary_target = primary_payload.get("predictionDateIso")
+    model2_target = model2_payload.get("predictionDateIso")
+    if isinstance(primary_target, str) and primary_target and primary_target != model2_target:
+        return True, "target_rollover"
+
+    generated_at = _parse_iso_timestamp(model2_payload.get("generatedAt"))
+    if generated_at is None:
+        return True, "missing_generated_at"
+    if current_time - generated_at >= MODEL2_REFRESH_MIN_INTERVAL_SECONDS:
+        return True, "interval_elapsed"
+    return False, "recent_payload"
+
+
+def guard_model2_same_target_step(previous: dict, current: dict) -> None:
+    if previous.get("predictionDateIso") != current.get("predictionDateIso"):
+        return
+    if previous.get("clockSyncUsed") is not True or current.get("clockSyncUsed") is not True:
+        return
+
+    previous_point = previous.get("pointPrediction")
+    current_point = current.get("pointPrediction")
+    if not isinstance(previous_point, (int, float)) or isinstance(previous_point, bool) or previous_point <= 0:
+        return
+    if not isinstance(current_point, (int, float)) or isinstance(current_point, bool):
+        return
+
+    step_pct = abs(float(current_point) - float(previous_point)) / float(previous_point) * 100.0
+    if step_pct > MODEL2_MAX_SAME_TARGET_STEP_PCT:
+        raise GuardFailure(
+            "holiday_prediction.json: same-target clock-synced Model2 step "
+            f"{step_pct:.3f}% exceeds {MODEL2_MAX_SAME_TARGET_STEP_PCT:.3f}%"
+        )
+
+
+def run_model2_refresh(data_dir: Path, env: dict[str, str], now: float | None = None) -> dict:
+    should_run, reason = model2_refresh_decision(data_dir, now)
+    if not should_run:
+        return {"status": "skipped", "reason": reason, "uploadedFiles": []}
+
+    previous_payload = read_json_file(data_dir / "holiday_prediction.json")
+    try:
+        process = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "refresh_holiday_prediction.py")],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=MODEL2_REFRESH_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        logging.exception("Model2 refresh timed out")
+        return {"status": "failed", "reason": "timeout", "uploadedFiles": []}
+
+    if process.returncode != 0:
+        logging.error(
+            "Model2 refresh failed: returncode=%s stdout=%s stderr=%s",
+            process.returncode,
+            process.stdout[-2000:],
+            process.stderr[-2000:],
+        )
+        return {"status": "failed", "reason": "process_error", "uploadedFiles": []}
+    if "wrote Model 2 independent prediction" not in process.stdout:
+        return {"status": "skipped", "reason": "producer_skipped", "uploadedFiles": []}
+
+    current_payload = read_json_file(data_dir / "holiday_prediction.json")
+    try:
+        guard_publish(data_dir, None, "model2")
+        guard_model2_same_target_step(previous_payload, current_payload)
+    except GuardFailure as exc:
+        logging.error("Model2 publish guard rejected refresh: %s", exc)
+        return {"status": "rejected", "reason": str(exc), "uploadedFiles": []}
+
+    uploaded_files: list[str] = []
+    for file_name in sorted(MODEL2_RUNTIME_UPLOAD_FILE_NAMES):
+        if upload_bucket_file(file_name, data_dir / file_name):
+            uploaded_files.append(file_name)
+
+    if set(uploaded_files) != MODEL2_RUNTIME_UPLOAD_FILE_NAMES:
+        logging.error("Model2 component upload incomplete: %s", uploaded_files)
+        return {"status": "failed", "reason": "component_upload_incomplete", "uploadedFiles": uploaded_files}
+
+    if not publish_atomic_bundle(
+        data_dir,
+        MODEL2_BUNDLE_FILE_NAME,
+        HOLIDAY_DASHBOARD_FILE_NAMES,
+        kind="model2-dashboard",
+    ):
+        logging.error("Model2 atomic dashboard snapshot upload failed")
+        return {"status": "failed", "reason": "bundle_upload_failed", "uploadedFiles": uploaded_files}
+
+    uploaded_files.append(MODEL2_BUNDLE_FILE_NAME)
+    clear_live_json_cache()
+    return {
+        "status": "updated",
+        "reason": reason,
+        "uploadedFiles": uploaded_files,
+        "predictionDateIso": current_payload.get("predictionDateIso"),
+        "pointPrediction": current_payload.get("pointPrediction"),
+    }
+
+
 def run_refresh_job() -> dict:
     with tempfile.TemporaryDirectory(prefix="kospi-live-refresh-") as temp_dir:
         temp_root = Path(temp_dir)
         data_dir = temp_root / "data"
+        seed_dir = temp_root / "seed"
         out_data_dir = temp_root / "out"
 
         seed_work_dir(data_dir)
+        seed_dir.mkdir(parents=True, exist_ok=True)
+        for file_name in SEED_FILE_NAMES:
+            source_path = data_dir / file_name
+            if source_path.exists():
+                shutil.copy2(source_path, seed_dir / file_name)
         out_data_dir.mkdir(parents=True, exist_ok=True)
 
         env = os.environ.copy()
-        env["KOSPI_DAWN_DATA_DIR"] = str(data_dir)
-        env["KOSPI_DAWN_OUT_DATA_DIR"] = str(out_data_dir)
+        env["KOSPI_PREVIEW_DATA_DIR"] = str(data_dir)
+        env["KOSPI_PREVIEW_OUT_DATA_DIR"] = str(out_data_dir)
 
         process = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "refresh_night_futures.py")],
@@ -702,8 +997,10 @@ def run_refresh_job() -> dict:
                 },
             )
 
-        uploaded_files = []
-        for file_name in REFRESH_UPLOAD_FILE_NAMES:
+        guard_publish(data_dir, seed_dir, "primary")
+
+        uploaded_files: list[str] = []
+        for file_name in sorted(REFRESH_UPLOAD_FILE_NAMES):
             if file_name == "live_prediction_series.json" and not should_upload_live_prediction_series(
                 data_dir / file_name,
                 temp_root,
@@ -711,9 +1008,35 @@ def run_refresh_job() -> dict:
                 continue
             if upload_bucket_file(file_name, data_dir / file_name):
                 uploaded_files.append(file_name)
+
+        required_dashboard_components = set(DASHBOARD_FILE_NAMES.values())
+        if not required_dashboard_components.issubset(uploaded_files):
+            raise RuntimeError(
+                "primary dashboard component upload incomplete",
+                {"uploadedFiles": uploaded_files},
+            )
+        if not publish_atomic_bundle(
+            data_dir,
+            PRIMARY_BUNDLE_FILE_NAME,
+            DASHBOARD_FILE_NAMES,
+            kind="primary-dashboard",
+        ):
+            raise RuntimeError("primary atomic dashboard snapshot upload failed")
+        uploaded_files.append(PRIMARY_BUNDLE_FILE_NAME)
+
         uploaded_intraday_archive_files = upload_intraday_archive_files(data_dir)
         if uploaded_files:
             clear_live_json_cache()
+
+        try:
+            model2_result = run_model2_refresh(data_dir, env)
+        except Exception:
+            logging.exception("Model2 refresh failed after primary snapshot publish")
+            model2_result = {
+                "status": "failed",
+                "reason": "unexpected_error",
+                "uploadedFiles": [],
+            }
 
         prediction_payload = json.loads((data_dir / "prediction.json").read_text(encoding="utf8"))
         indicators_payload = json.loads((data_dir / "indicators.json").read_text(encoding="utf8"))
@@ -724,11 +1047,102 @@ def run_refresh_job() -> dict:
             "uploadedFiles": uploaded_files,
             "uploadedIntradayArchiveFiles": uploaded_intraday_archive_files["uploaded"],
             "skippedIntradayArchiveFiles": uploaded_intraday_archive_files["skipped"],
+            "model2": model2_result,
             "predictionGeneratedAt": prediction_payload.get("generatedAt"),
             "liveCalculatedAt": prediction_payload.get("lastCalculatedAt"),
             "indicatorGeneratedAt": indicators_payload.get("generatedAt"),
             "storageBucket": BUCKET_NAME or None,
         }
+
+
+def decode_json_object(payload: bytes | None) -> dict:
+    if payload is None:
+        return {}
+    try:
+        parsed = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def build_live_health_payload() -> tuple[dict, int]:
+    dashboard_bytes, dashboard_source = load_dashboard_json_bytes()
+    holiday_bytes, holiday_source = load_holiday_dashboard_json_bytes()
+    dashboard = decode_json_object(dashboard_bytes)
+    holiday_dashboard = decode_json_object(holiday_bytes)
+
+    prediction = dashboard.get("prediction") if isinstance(dashboard.get("prediction"), dict) else {}
+    series = (
+        dashboard.get("livePredictionSeries")
+        if isinstance(dashboard.get("livePredictionSeries"), dict)
+        else {}
+    )
+    model2 = (
+        holiday_dashboard.get("holidayPrediction")
+        if isinstance(holiday_dashboard.get("holidayPrediction"), dict)
+        else {}
+    )
+
+    primary_target = prediction.get("predictionDateIso")
+    model2_target = model2.get("predictionDateIso")
+    point_prediction = model2.get("pointPrediction")
+    checks = {
+        "primarySnapshotReadable": bool(dashboard and prediction),
+        "holidaySnapshotReadable": bool(holiday_dashboard and model2),
+        "primaryTargetPresent": isinstance(primary_target, str) and bool(primary_target),
+        "primarySeriesAligned": series.get("predictionDateIso") == primary_target,
+        "model2Present": isinstance(point_prediction, (int, float)) and not isinstance(point_prediction, bool),
+        "model2TargetAligned": model2_target == primary_target,
+        "model2Independent": (
+            model2.get("independentModel") is True
+            and model2.get("usesOtherModelPrediction") is False
+            and model2.get("nightFuturesUsed") is False
+            and model2.get("nightFuturesReadThisRun") is False
+        ),
+    }
+
+    generated_values = [
+        prediction.get("lastCalculatedAt"),
+        prediction.get("generatedAt"),
+        model2.get("generatedAt"),
+    ]
+    generated_timestamps = [timestamp for value in generated_values if (timestamp := _parse_iso_timestamp(value))]
+    newest_timestamp = max(generated_timestamps) if generated_timestamps else None
+    age_minutes = round(max(0.0, time.time() - newest_timestamp) / 60.0, 1) if newest_timestamp else None
+
+    critical_ok = checks["primarySnapshotReadable"] and checks["primaryTargetPresent"]
+    all_checks_ok = all(checks.values())
+    payload = {
+        "ok": critical_ok,
+        "status": "ok" if all_checks_ok else ("degraded" if critical_ok else "unavailable"),
+        "checkedAt": datetime.now(timezone.utc).isoformat(),
+        "targetDate": primary_target,
+        "sources": {
+            "dashboard": dashboard_source,
+            "holidayDashboard": holiday_source,
+        },
+        "snapshotIds": {
+            "dashboard": (dashboard.get("snapshot") or {}).get("id")
+            if isinstance(dashboard.get("snapshot"), dict)
+            else None,
+            "holidayDashboard": (holiday_dashboard.get("snapshot") or {}).get("id")
+            if isinstance(holiday_dashboard.get("snapshot"), dict)
+            else None,
+        },
+        "freshness": {
+            "newestGeneratedAt": datetime.fromtimestamp(newest_timestamp, timezone.utc).isoformat()
+            if newest_timestamp
+            else None,
+            "ageMinutes": age_minutes,
+        },
+        "model2": {
+            "predictionDateIso": model2_target,
+            "pointPrediction": point_prediction,
+            "clockSyncUsed": model2.get("clockSyncUsed"),
+        },
+        "checks": checks,
+    }
+    return payload, 200 if critical_ok else 503
 
 
 @app.get("/")
@@ -738,6 +1152,7 @@ def root() -> Response:
             "service": "kospi-live-data",
             "routes": {
                 "health": "/healthz",
+                "liveHealth": "/api/healthz",
                 "prediction": "/api/live/prediction.json",
                 "indicators": "/api/live/indicators.json",
                 "history": "/api/live/history.json",
@@ -753,6 +1168,15 @@ def root() -> Response:
 @app.get("/healthz")
 def healthz() -> Response:
     return jsonify({"ok": True})
+
+
+@app.get("/api/healthz")
+def live_healthz() -> Response:
+    payload, status = build_live_health_payload()
+    response = jsonify(payload)
+    response.status_code = status
+    response.headers["Cache-Control"] = ERROR_RESPONSE_CACHE_CONTROL
+    return response
 
 
 @app.get("/api/live/dashboard.json")
@@ -840,7 +1264,11 @@ def refresh_live_data() -> Response:
     if not _refresh_lock.acquire(blocking=False):
         return jsonify({"ok": True, "status": "already_running"}), 202
 
+    lease = None
     try:
+        lease = acquire_refresh_lease()
+        if lease is None:
+            return jsonify({"ok": True, "status": "already_running", "lock": "distributed"}), 202
         payload = run_refresh_job()
         return jsonify(payload)
     except Exception as exc:  # pragma: no cover - exercised in Cloud Run
@@ -856,6 +1284,7 @@ def refresh_live_data() -> Response:
             500,
         )
     finally:
+        release_refresh_lease(lease)
         _refresh_lock.release()
 
 
