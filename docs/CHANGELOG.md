@@ -9,6 +9,8 @@
   - Preserved Model2 no-night-futures invariants and added a `2.5%` same-target clock-synced jump publish circuit breaker.
   - Added `/api/healthz` for snapshot source, target alignment, Model2 invariants, and freshness checks.
   - First deployment run `29194110904` successfully created revision `kospi-live-data-00081-xzj` but stopped before Hosting pin because the Cloud Run public edge returned 404 for unprefixed `/healthz`; the lightweight smoke route was moved to `/api/livez`.
+  - Follow-up deploy run `29194326340` created revision `kospi-live-data-00082-6kv`, passed both health probes, and completed the Hosting rewrite pin.
+  - Storage-only runs `29194460165` and `29194460996` published the first atomic snapshots. Both public hosts then reported `bucket-snapshot`, target `2026-07-13`, primary `7,561.25`, Model2 `7,562.92`, and all Model2 independence checks true.
   - Cloud Run remains scale-to-zero and is capped at one instance with concurrency `40`; all legacy per-file and manual fallback paths remain.
 
 - Stability hardening, phase 1.
