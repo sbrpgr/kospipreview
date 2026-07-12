@@ -45,7 +45,7 @@ The platform uses a split architecture.
 
 6. Deployment split
    - GitHub Actions workflow `deploy-hosting` deploys Firebase Hosting only.
-   - GitHub Actions workflow `cloudrun-deploy` deploys Cloud Run, smoke-tests `/healthz` and `/api/healthz`, then deploys Hosting to pin the latest Cloud Run revision by tag. Scheduler updates are opt-in.
+   - GitHub Actions workflow `cloudrun-deploy` deploys Cloud Run, smoke-tests `/api/livez` and `/api/healthz`, then deploys Hosting to pin the latest Cloud Run revision by tag. Scheduler updates are opt-in.
    - Frontend, calculator, copy, and static page changes must not run Cloud Build or Cloud Run deploy.
 
 7. Fallback refresh path

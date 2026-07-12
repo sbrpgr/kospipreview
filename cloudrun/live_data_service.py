@@ -1151,7 +1151,7 @@ def root() -> Response:
         {
             "service": "kospi-live-data",
             "routes": {
-                "health": "/healthz",
+                "health": "/api/livez",
                 "liveHealth": "/api/healthz",
                 "prediction": "/api/live/prediction.json",
                 "indicators": "/api/live/indicators.json",
@@ -1165,8 +1165,8 @@ def root() -> Response:
     )
 
 
-@app.get("/healthz")
-def healthz() -> Response:
+@app.get("/api/livez")
+def livez() -> Response:
     return jsonify({"ok": True})
 
 

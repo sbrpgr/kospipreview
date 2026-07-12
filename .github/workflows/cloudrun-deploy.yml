@@ -103,7 +103,7 @@ jobs:
             --region "${REGION}" \
             --format="value(status.url)")"
           curl --fail --show-error --silent --retry 5 --retry-all-errors \
-            "${service_url}/healthz"
+            "${service_url}/api/livez"
           curl --fail --show-error --silent --retry 5 --retry-all-errors \
             "${service_url}/api/healthz"
 
