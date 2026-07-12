@@ -1,6 +1,12 @@
 # YouTube News Work Spec
 
-Last updated: 2026-06-27
+Last updated: 2026-07-12
+
+## Repository verification boundary
+
+- Pull requests and `main` pushes run the shared `ci` workflow.
+- News-only publishing still uses `publish_youtube_news.cmd` / `publish-youtube-news` and does not run Cloud Build, Cloud Run deploy, or Hosting deploy.
+- The shared Python lock and frontend lockfile are deployment inputs; routine news JSON uploads do not modify them.
 
 ## Current production behavior
 

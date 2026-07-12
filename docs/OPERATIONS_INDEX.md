@@ -28,10 +28,13 @@ If work resumes later, read these documents in order:
 - Static frontend hosting: Firebase Hosting
 - Live refresh path: Cloud Run + Cloud Scheduler + Cloud Storage
 - Model JSON rebuild path: GitHub Actions `retrain-model`
+- Model JSON rebuild cadence: weekdays at `17:17 KST`; primary artifacts only
+- Required pre-merge verification: GitHub Actions `ci`
 - Hosting-only deploy workflow: GitHub Actions `deploy-hosting`
 - Cloud Run deploy workflow: GitHub Actions `cloudrun-deploy`
 - Fallback-only JSON refresh workflow: GitHub Actions `refresh-night-futures`
 - Independent Model2 JSON workflow: GitHub Actions `refresh-holiday-prediction`
+- `/history` live path: static initial payload, then client sync from live dashboard, Model2 dashboard, and diagnostics API
 - Header support button: Ko-fi link `https://ko-fi.com/sbgkp` shown as `연구 후원하기` to the right of `문의`
 - Home top ad banner: three-column `320x140` style placement between the global header and homepage forecast hero.
   The left slot uses Coupang Partners widget `id=995011`, `trackingCode=AF1258921`; the center and right slots show
@@ -60,21 +63,22 @@ If work resumes later, read these documents in order:
   copied JSON files, and continue only when critical live-state seeds are
   present. If no bucket JSON files, or no `live_prediction_series.json`, were
   copied, the workflow must fail before publish so the prediction trend history
-  is not overwritten by bundled or newly shortened data. Before publishing,
-  JSON refresh workflows must remove empty bundled Model2 placeholders when the
-  independent model skipped outside the U.S. live/pre-market window so
-  `holiday_prediction*.json` is not overwritten with null values.
+  is not overwritten by bundled or newly shortened data. Primary JSON workflows
+  must use an explicit upload allowlist and must never upload Model2 files.
   JSON refresh workflows must then run
   `scripts/guard_live_json_publish.py` before any Cloud Storage upload. The
   guard must fail the workflow if same-target `live_prediction_series.json`
-  would shrink the bucket trend, or if `holiday_prediction.json` violates the
-  independent Model2 no-night-futures invariants.
+  would shrink the bucket trend. Model2 publish must separately validate the
+  prediction, active-target series, matching history row, and independent
+  no-night-futures invariants.
 - Independent Model 2 JSON ownership:
   Cloud Run serves and seeds `holiday_prediction.json`,
   `holiday_prediction_series.json`, and `holiday_history.json`, but Cloud Run
   Scheduler refresh must not upload them. They are published only by
   `refresh-holiday-prediction` so the EWY/FX independent model cannot be
   overwritten by minute-level night-futures refresh.
+  `retrain-model` and `refresh-night-futures` use primary-only upload allowlists;
+  wildcard JSON publish is prohibited.
 - Model2 diagnostics guard:
   `refresh-holiday-prediction` must load a valid `backtest_diagnostics.json`
   artifact before publishing. If the Cloud Storage copy is missing, the workflow

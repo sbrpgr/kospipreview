@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import type { HolidayPredictionSeriesData, LivePredictionSeriesData, PredictionData } from "@/lib/data";
+import { selectActiveModel2Records } from "@/lib/model2-series";
 
 type PredictionTrendChartProps = {
   prediction: PredictionData;
@@ -43,8 +44,12 @@ function formatKstTime(value: string) {
 
 export function PredictionTrendChart({ prediction, series, holidaySeries }: PredictionTrendChartProps) {
   const targetDate = prediction.predictionDateIso;
-
   const holidayTargetDate = holidaySeries?.predictionDateIso ?? null;
+  const [canRenderChart, setCanRenderChart] = useState(false);
+
+  useEffect(() => {
+    setCanRenderChart(true);
+  }, []);
 
   const chartData = useMemo(() => {
     const mainRecords = series.records
@@ -63,9 +68,10 @@ export function PredictionTrendChart({ prediction, series, holidaySeries }: Pred
       }));
 
     // Build model2 lookup by minute key
+    const activeModel2Records = selectActiveModel2Records(holidaySeries?.records ?? [], targetDate);
     const model2ByMinute = new Map<string, number>();
     if (holidaySeries && holidayTargetDate === targetDate) {
-      for (const r of holidaySeries.records) {
+      for (const r of activeModel2Records) {
         if (isFiniteNumber(r.pointPrediction)) {
           model2ByMinute.set(r.observedAt.slice(0, 16), r.pointPrediction!);
         }
@@ -79,7 +85,7 @@ export function PredictionTrendChart({ prediction, series, holidaySeries }: Pred
     }
     // Add holiday-only rows not in main series
     if (holidaySeries && holidayTargetDate === targetDate) {
-      for (const r of holidaySeries.records) {
+      for (const r of activeModel2Records) {
         const key = r.observedAt.slice(0, 16);
         if (!merged.has(key) && isFiniteNumber(r.pointPrediction)) {
           merged.set(key, {
@@ -130,7 +136,8 @@ export function PredictionTrendChart({ prediction, series, holidaySeries }: Pred
 
       {chartData.length ? (
         <div className="predictionTrendChart">
-          <ResponsiveContainer width="100%" height="100%">
+          {canRenderChart ? (
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280}>
             <LineChart data={chartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis
@@ -217,6 +224,9 @@ export function PredictionTrendChart({ prediction, series, holidaySeries }: Pred
               />
             </LineChart>
           </ResponsiveContainer>
+          ) : (
+            <div className="predictionTrendChartPlaceholder" aria-hidden="true" />
+          )}
         </div>
       ) : (
         <div className="predictionTrendEmpty">

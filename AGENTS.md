@@ -13,14 +13,16 @@
 
 - `.github/workflows/deploy-hosting.yml`: Firebase Hosting only.
 - `.github/workflows/cloudrun-deploy.yml`: Cloud Run deploy, Scheduler update, then Hosting deploy to pin the latest Cloud Run revision.
-- `.github/workflows/retrain-model.yml`: rebuilds model JSON and uploads JSON to `gs://kospipreview-live-data/`.
+- `.github/workflows/ci.yml`: Python and frontend regression checks for pull requests and `main` pushes.
+- `.github/workflows/retrain-model.yml`: rebuilds primary model JSON once after each weekday KRX close and uploads only primary-owned JSON to `gs://kospipreview-live-data/`.
+- `.github/workflows/refresh-holiday-prediction.yml`: publishes only independent Model2 JSON.
 - `.github/workflows/refresh-night-futures.yml`: manual fallback JSON refresh and Cloud Storage upload only.
 - `.github/workflows/publish-youtube-news.yml`: YouTube news JSON upload only.
 
 ## Scheduler And Refresh Guardrails
 
 - Cloud Scheduler live refresh is KST-based and should not run during `09:00~16:59`.
-- Current cron: `* 0-8,17-23 * * 1-5` with time zone `Asia/Seoul`.
+- Current cron: `*/2 0-8,17-23 * * 1-5` with time zone `Asia/Seoul`.
 - Cloud Run refresh overlap should return `202 {"ok": true, "status": "already_running"}` rather than a failure.
 - If freshness looks wrong, inspect `/api/live/*.json`, Cloud Scheduler attempts, Cloud Run logs, and Cloud Storage timestamps before redeploying anything.
 
@@ -35,7 +37,7 @@
 - Home page shows latest 3 papers via `PAPERS_HOME.slice(0, 3)` in `frontend/src/components/live-dashboard.tsx`.
 - Sitemap entries are in `frontend/src/app/sitemap.ts`.
 - Full paper index and add procedure: `docs/PAPERS_INDEX.md`.
-- Current total: 15 papers (No.1–No.15). Next paper is No.16.
+- Current total: 23 papers (No.1–No.23). Next paper is No.24.
 - Always deploy with `deploy-hosting` workflow after adding papers.
 
 ## AdSense Policy Rule

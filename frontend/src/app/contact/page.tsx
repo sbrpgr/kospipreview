@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     canonical: "/contact",
   },
   robots: {
-    index: true,
+    index: false,
     follow: true,
   },
   openGraph: {

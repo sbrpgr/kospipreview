@@ -6,10 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt requirements-cloudrun.txt ./
+COPY requirements.txt requirements-cloudrun.txt requirements.lock ./
 
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements-cloudrun.txt
+    && pip install --no-cache-dir -r requirements.lock
 
 COPY cloudrun ./cloudrun
 COPY model ./model

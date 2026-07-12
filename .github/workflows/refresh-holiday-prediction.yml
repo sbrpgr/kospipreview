@@ -46,7 +46,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.lock
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -208,6 +208,13 @@ jobs:
                       target.unlink()
               print("removed invalid skipped Model2 placeholder files before publish")
           PY
+
+      - name: Guard model2 JSON publish
+        if: ${{ steps.model2.outputs.should_publish == 'true' || steps.clear_model2.outputs.should_publish == 'true' }}
+        run: |
+          python ./scripts/guard_live_json_publish.py \
+            --data-dir frontend/public/data \
+            --scope model2
 
       - name: Publish model2 JSON to Cloud Storage
         if: ${{ steps.model2.outputs.should_publish == 'true' || steps.clear_model2.outputs.should_publish == 'true' }}
