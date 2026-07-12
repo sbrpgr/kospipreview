@@ -178,6 +178,12 @@ class LiveDataServiceSecurityTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertIn("no-store", response.headers["Cache-Control"])
 
+    def test_livez_is_available_under_api_rewrite(self):
+        response = live_data_service.app.test_client().get("/api/livez")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"ok": True})
+
     def test_live_health_reports_aligned_independent_model2(self):
         dashboard = {
             "prediction": {

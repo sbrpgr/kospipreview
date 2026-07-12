@@ -8,6 +8,7 @@
   - Consolidated routine Model2 refresh into Cloud Run at a five-minute minimum interval; the GitHub Model2 workflow is manual repair-only.
   - Preserved Model2 no-night-futures invariants and added a `2.5%` same-target clock-synced jump publish circuit breaker.
   - Added `/api/healthz` for snapshot source, target alignment, Model2 invariants, and freshness checks.
+  - First deployment run `29194110904` successfully created revision `kospi-live-data-00081-xzj` but stopped before Hosting pin because the Cloud Run public edge returned 404 for unprefixed `/healthz`; the lightweight smoke route was moved to `/api/livez`.
   - Cloud Run remains scale-to-zero and is capped at one instance with concurrency `40`; all legacy per-file and manual fallback paths remain.
 
 - Stability hardening, phase 1.

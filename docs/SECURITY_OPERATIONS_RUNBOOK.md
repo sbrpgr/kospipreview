@@ -156,7 +156,7 @@ Verification:
 - run GitHub Actions workflow `cloudrun-deploy`
 - confirm Cloud Run latest ready revision receives 100% traffic
 - confirm Firebase Hosting rewrite pins the latest Cloud Run tag
-- confirm `/healthz` and `/api/healthz` respond successfully
+- confirm `/api/livez` and `/api/healthz` respond successfully
 - confirm `/api/live/dashboard.json` and `/api/live/holiday-dashboard.json` report `X-Kospi-Live-Source: bucket-snapshot` after the next validated JSON publish
 - update Scheduler only when `update_scheduler=true` is explicitly required
 

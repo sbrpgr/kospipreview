@@ -112,8 +112,9 @@ All should respond with:
 
 Operational health is exposed at `/api/healthz`. It reports snapshot IDs,
 source lane, target alignment, Model2 independence flags, and freshness without
-returning credentials. `/healthz` remains the lightweight container liveness
-check.
+returning credentials. `/api/livez` is the lightweight public liveness check.
+The unprefixed `/healthz` path is not used because the Cloud Run public edge can
+return its own 404 before the request reaches Flask.
 
 ## Legacy And Fallback Retention
 
