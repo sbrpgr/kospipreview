@@ -91,6 +91,20 @@ Latest verified production state after the refresh performance fix:
 - observed Cloud Run refresh POST latency: `12.1s` to `14.9s`;
 - verified date: `2026-04-14 KST`.
 
+Latest verified production state after the 2026-07-12 stability hardening:
+
+- merge commit: `34753586`;
+- Cloud Run revision: `kospi-live-data-00082-6kv`, 100% traffic;
+- successful deployment run: `29194326340`;
+- primary snapshot ID: `11d3c348bd6ce2be41b4`;
+- Model2 snapshot ID: `7213b465cd06998a581f`;
+- both custom and Firebase default hosts: health `ok`, all checks true;
+- both dashboard sources: `bucket-snapshot`;
+- verified target: `2026-07-13`;
+- primary point: `7,561.25`, Model2 point: `7,562.92`;
+- Model2 `nightFuturesUsed: false`, `nightFuturesReadThisRun: false`;
+- Scheduler update was skipped and the existing KST cron was preserved.
+
 ## Served Live Files
 
 - `/api/live/prediction.json`
