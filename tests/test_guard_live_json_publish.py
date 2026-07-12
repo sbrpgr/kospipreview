@@ -35,6 +35,7 @@ def valid_model2_payload() -> dict:
         "nightFuturesReadThisRun": False,
         "oneTimeNightFuturesBootstrapUsed": False,
         "baselineSource": "kospi_close",
+        "predictionDateIso": "2026-06-30",
         "pointPrediction": 7526.1568,
         "model": {"engine": "EWYFXHybridCompositeNoNightFutures"},
     }
@@ -59,6 +60,41 @@ def cleared_model2_payload() -> dict:
 
 
 class GuardLiveJsonPublishTests(unittest.TestCase):
+    def test_primary_scope_does_not_validate_model2_payload(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            data_dir = root / "data"
+            seed_dir = root / "seed"
+            write_json(data_dir / "live_prediction_series.json", series_payload("2026-06-08", 2))
+            write_json(seed_dir / "live_prediction_series.json", series_payload("2026-06-08", 1))
+            write_json(data_dir / "holiday_prediction.json", {"nightFuturesUsed": True})
+
+            guard.guard_publish(data_dir, seed_dir, "primary")
+
+    def test_model2_scope_does_not_require_primary_seed(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = Path(temp_dir)
+            write_json(data_dir / "holiday_prediction.json", valid_model2_payload())
+            write_json(
+                data_dir / "holiday_prediction_series.json",
+                {
+                    "predictionDateIso": "2026-06-30",
+                    "records": [
+                        {
+                            "predictionDateIso": "2026-06-30",
+                            "observedAt": "2026-06-29T21:00:00+00:00",
+                            "pointPrediction": 7526.1568,
+                        }
+                    ],
+                },
+            )
+            write_json(
+                data_dir / "holiday_history.json",
+                {"records": [{"date": "2026-06-30", "model2Prediction": 7526.1568}]},
+            )
+
+            guard.guard_publish(data_dir, None, "model2")
+
     def test_allows_same_target_series_that_does_not_shrink(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

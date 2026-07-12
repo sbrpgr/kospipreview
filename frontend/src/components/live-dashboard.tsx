@@ -542,8 +542,6 @@ export function LiveDashboard({
   const [hasSyncedOnce, setHasSyncedOnce] = useState(
     () => initialIndicators.primary.length > 0
   );
-  const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
-  const [lastChangedAt, setLastChangedAt] = useState<string | null>(initialFreshness.newestModifiedAt);
   const [isSyncing, setIsSyncing] = useState(false);
   const [marketOperation, setMarketOperation] = useState<MarketOperationInfo>(() => getMarketOperationInfo());
   const versionRef = useRef(
@@ -574,15 +572,11 @@ export function LiveDashboard({
           setHistory(next.history);
           setLivePredictionSeries(next.livePredictionSeries);
           setFreshness(next.freshness);
-          setLastChangedAt(next.freshness.newestModifiedAt);
         }
 
         setHasSyncedOnce(true);
-        setLastCheckedAt(new Date().toISOString());
       } catch {
-        if (!cancelled) {
-          setLastCheckedAt(new Date().toISOString());
-        }
+        // Keep the last valid dashboard state visible when a refresh fails.
       } finally {
         if (!cancelled) {
           setIsSyncing(false);

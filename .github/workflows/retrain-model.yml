@@ -5,20 +5,15 @@ env:
 
 on:
   workflow_dispatch:
-    inputs:
-      loop:
-        description: "Keep chaining this workflow continuously after each successful run"
-        required: false
-        default: "on"
   schedule:
-    - cron: "*/5 * * * 1-5"
+    # Daily model artifact rebuild after KRX close. Near-live data remains owned by Cloud Run.
+    - cron: "17 8 * * 1-5"
 
 concurrency:
   group: retrain-model-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
-  actions: write
   contents: read
 
 jobs:
@@ -37,7 +32,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.lock
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -83,9 +78,6 @@ jobs:
       - name: Refresh night futures and live prediction series
         run: python ./scripts/refresh_night_futures.py
 
-      - name: Refresh model2 (independent EWY/FX composite)
-        run: python ./scripts/refresh_holiday_prediction.py || true
-
       - name: Preserve existing prediction snapshot
         run: |
           python ./scripts/merge_live_data_seed.py \
@@ -99,41 +91,38 @@ jobs:
             --history-fallback .live-data-seed/bucket/history.json \
             --history-output frontend/public/data/history.json
 
-      - name: Drop invalid skipped model2 placeholders
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          data_dir = Path("frontend/public/data")
-          prediction_path = data_dir / "holiday_prediction.json"
-          try:
-              payload = json.loads(prediction_path.read_text(encoding="utf-8"))
-          except (OSError, json.JSONDecodeError):
-              payload = {}
-
-          if payload.get("pointPrediction") is None and not payload.get("generatedAt"):
-              for name in ("holiday_prediction.json", "holiday_prediction_series.json", "holiday_history.json"):
-                  target = data_dir / name
-                  if target.exists():
-                      target.unlink()
-              print("removed invalid skipped Model2 placeholder files before publish")
-          PY
-
       - name: Guard live JSON publish
         run: |
           python ./scripts/guard_live_json_publish.py \
             --data-dir frontend/public/data \
-            --seed-dir .live-data-seed/bucket
+            --seed-dir .live-data-seed/bucket \
+            --scope primary
 
       - name: Publish generated JSON to Cloud Storage
         run: |
-          gcloud storage cp \
-            frontend/public/data/*.json \
-            gs://kospipreview-live-data/ \
-            --cache-control=no-store \
-            --content-type="application/json; charset=utf-8" \
-            --quiet
+          publish_files=(
+            prediction.json
+            indicators.json
+            history.json
+            live_prediction_series.json
+            backtest_diagnostics.json
+            day_futures_close_cache.json
+            night_futures_source_cache.json
+            prediction_archive.json
+          )
+          for file_name in "${publish_files[@]}"; do
+            source_path="frontend/public/data/${file_name}"
+            if [ ! -f "$source_path" ]; then
+              echo "::error::Missing required primary publish artifact: $file_name"
+              exit 1
+            fi
+            gcloud storage cp \
+              "$source_path" \
+              "gs://kospipreview-live-data/$file_name" \
+              --cache-control=no-store \
+              --content-type="application/json; charset=utf-8" \
+              --quiet
+          done
           if [ -d frontend/public/data/intraday_indicator_series ]; then
             gcloud storage cp \
               frontend/public/data/intraday_indicator_series \
@@ -143,18 +132,3 @@ jobs:
               --content-type="application/json; charset=utf-8" \
               --quiet
           fi
-
-      - name: Queue next polling run
-        if: success() && github.event_name == 'workflow_dispatch' && github.event.inputs.loop == 'on'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          # Re-dispatch after a short delay; practical cadence becomes one cycle per workflow runtime.
-          sleep 5
-
-          curl --fail --silent --show-error -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/retrain-model.yml/dispatches" \
-            -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"loop\":\"on\"}}"

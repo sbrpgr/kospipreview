@@ -1,4 +1,5 @@
 import { getClientDataUrl, getStaticDataUrl, isLiveDataFile, type DataFileName } from "@/lib/data-paths";
+import { calculateDataFreshness } from "@/lib/data-freshness";
 
 async function fetchJson<T>(fileName: DataFileName): Promise<T> {
   const isServer = typeof window === "undefined";
@@ -206,6 +207,8 @@ export async function getHolidayPredictionSeriesData() {
       predictedChangePct?: number | null;
       ewyLogReturnPct?: number | null;
       krwLogReturnPct?: number | null;
+      clockSyncUsed?: boolean;
+      clockSyncAnchorKind?: string | null;
     }>;
   }>("holiday_prediction_series.json");
 }
@@ -225,46 +228,6 @@ export async function getHolidayHistoryData() {
   }>("holiday_history.json");
 }
 
-function latestIndicatorTimestamp(indicators: Awaited<ReturnType<typeof getIndicatorData>>) {
-  return [...indicators.primary, ...indicators.secondary]
-    .map((item) => item.checkedAt || item.updatedAt)
-    .filter(Boolean)
-    .map((value) => new Date(value).getTime())
-    .filter((value) => !Number.isNaN(value))
-    .sort((a, b) => b - a)[0];
-}
-
-function toKstDateTimestamp(dateText: string | null | undefined) {
-  if (!dateText) {
-    return Number.NaN;
-  }
-
-  const ts = new Date(`${dateText}T00:00:00+09:00`).getTime();
-  return Number.isNaN(ts) ? Number.NaN : ts;
-}
-
-function pickLatestRecordDate(
-  historyDate: string | null | undefined,
-  predictionDate: string | null | undefined,
-) {
-  const historyTs = toKstDateTimestamp(historyDate);
-  const predictionTs = toKstDateTimestamp(predictionDate);
-
-  if (!Number.isNaN(historyTs) && !Number.isNaN(predictionTs)) {
-    return historyTs >= predictionTs ? historyDate ?? null : predictionDate ?? null;
-  }
-
-  if (!Number.isNaN(predictionTs)) {
-    return predictionDate ?? null;
-  }
-
-  if (!Number.isNaN(historyTs)) {
-    return historyDate ?? null;
-  }
-
-  return predictionDate ?? historyDate ?? null;
-}
-
 export async function getDataFreshness() {
   const [prediction, indicators, history] = await Promise.all([
     getPredictionData(),
@@ -272,41 +235,5 @@ export async function getDataFreshness() {
     getHistoryData(),
   ]);
 
-  const timestamps = [
-    prediction.lastCalculatedAt,
-    prediction.generatedAt,
-    history.generatedAt,
-    indicators.generatedAt,
-  ]
-    .filter(Boolean)
-    .map((value) => new Date(value as string).getTime())
-    .filter((value) => !Number.isNaN(value));
-
-  const indicatorUpdatedAt = latestIndicatorTimestamp(indicators);
-  if (indicatorUpdatedAt) {
-    timestamps.push(indicatorUpdatedAt);
-  }
-
-  const newestModifiedAt = timestamps.length ? Math.max(...timestamps) : Date.now();
-  const ageHours = (Date.now() - newestModifiedAt) / (1000 * 60 * 60);
-
-  const latestRecordDate = pickLatestRecordDate(history.records[0]?.date, prediction.latestRecordDate);
-  const latestRecordAgeDays = latestRecordDate
-    ? (Date.now() - new Date(`${latestRecordDate}T00:00:00+09:00`).getTime()) / (1000 * 60 * 60 * 24)
-    : Number.POSITIVE_INFINITY;
-
-  let status: "fresh" | "aging" | "stale" = "fresh";
-  if (ageHours > 12 || latestRecordAgeDays > 2.2) {
-    status = "aging";
-  }
-  if (ageHours > 24 || latestRecordAgeDays > 4) {
-    status = "stale";
-  }
-
-  return {
-    status,
-    ageHours: Number(ageHours.toFixed(1)),
-    newestModifiedAt: new Date(newestModifiedAt).toISOString(),
-    latestRecordDate,
-  };
+  return calculateDataFreshness(prediction, indicators, history);
 }

@@ -17,6 +17,7 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/.pnp.*
 frontend/.eslintcache
+frontend/tsconfig.tsbuildinfo
 frontend/.vercel
 frontend/public/news/
 frontend/public/data/youtube-news.json

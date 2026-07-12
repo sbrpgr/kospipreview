@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-12
+
+- Stability hardening, phase 1.
+  - Model2 chart now filters rows to the active prediction target and hides the pre-clock-sync epoch after a valid synchronized epoch exists.
+  - `/history` now hydrates from live primary, Model2, and diagnostics APIs while retaining static and per-file fallbacks.
+  - Recharts rendering waits for client mount, removing the invalid initial container-size warning.
+  - `/contact` is restored to `noindex` and removed from the sitemap per the AdSense policy rule.
+  - Remaining user-facing `KOSPI Dawn` strings were removed from the research content generator.
+  - Added frontend ESLint, Vitest, TypeScript scripts and a pull-request/`main` CI workflow.
+  - Added a shared Python dependency lock for workflows and the Cloud Run image.
+  - `retrain-model` now runs once after KRX close, does not run Model2, and publishes primary JSON through an explicit allowlist.
+  - Primary and Model2 publish guards now have separate ownership scopes; Model2 validates matching prediction, series, and history artifacts before upload.
+
 ## 2026-06-29
 
 - Model2 stale bootstrap guard repair.

@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "15.5.18",
@@ -19,9 +21,13 @@
     "postcss": "8.5.10"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "3.3.1",
     "@types/node": "22.15.2",
     "@types/react": "19.1.2",
     "@types/react-dom": "19.1.2",
-    "typescript": "5.8.3"
+    "eslint": "9.39.1",
+    "eslint-config-next": "15.5.18",
+    "typescript": "5.8.3",
+    "vitest": "3.2.7"
   }
 }

@@ -24,11 +24,12 @@ This runbook covers:
 
 ### Frontend dependency posture
 
-- `next` pinned to `15.5.15`
+- `next` pinned to `15.5.18`
+- Node dependencies are pinned by `frontend/package-lock.json`.
+- Python runtime dependencies are pinned by `requirements.lock`; workflows and the Cloud Run image use the same lock.
 - latest recorded checks:
   - `npm audit --omit=dev`: no known issues at the time of the last audit
-  - `python -m pip_audit -r requirements.txt`: no known issues at the time of the last audit
-  - `python -m pip_audit -r requirements-cloudrun.txt`: no known issues at the time of the last audit
+  - `python -m pip_audit -r requirements.lock`: audits model and Cloud Run dependencies together
 
 ### Hosting headers
 
@@ -132,7 +133,7 @@ Verification:
 
 1. confirm no secrets are in the diff
 2. confirm the repo is in the expected branch/state
-3. run targeted build/test as appropriate
+3. require the `ci` workflow: Python tests, ESLint, frontend tests, TypeScript, and static build
 4. if infra-related changes are included, verify docs are updated too
 
 ### Main deploy paths

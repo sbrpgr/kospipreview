@@ -27,17 +27,23 @@ The platform uses a split architecture.
 
 4. Model rebuild and JSON publish
    - GitHub Actions workflow: `retrain-model`
-   - Scheduled every 5 minutes on weekdays.
+   - Scheduled once per weekday after KRX close (`17:17 KST`).
    - Rebuilds model artifacts and static fallback JSON.
-   - Uploads generated JSON to Cloud Storage.
+   - Uploads only primary-owned JSON to Cloud Storage using an explicit allowlist.
+   - Does not run or publish independent Model2 artifacts.
    - Does not deploy Firebase Hosting.
 
-5. Deployment split
+5. Independent Model2 publish
+   - GitHub Actions workflow: `refresh-holiday-prediction`.
+   - Publishes only `holiday_prediction.json`, `holiday_prediction_series.json`, and `holiday_history.json`.
+   - Validates prediction, active-target series, history, and no-night-futures invariants before upload.
+
+6. Deployment split
    - GitHub Actions workflow `deploy-hosting` deploys Firebase Hosting only.
    - GitHub Actions workflow `cloudrun-deploy` deploys Cloud Run, updates Scheduler, then deploys Hosting to pin the latest Cloud Run revision by tag.
    - Frontend, calculator, copy, and static page changes must not run Cloud Build or Cloud Run deploy.
 
-6. Fallback refresh path
+7. Fallback refresh path
    - GitHub Actions workflow: `refresh-night-futures`
    - Manual fallback only.
    - Not the primary production freshness path.
@@ -116,6 +122,11 @@ Served through `/api/live/**`:
 - `holiday_history.json`
 - bundled dashboard: `/api/live/dashboard.json`
 - bundled Model 2 dashboard: `/api/live/holiday-dashboard.json`
+
+The `/history` page starts with bundled static data for crawlability and then
+hydrates from the live dashboard, Model2 dashboard, and diagnostics API. A live
+API failure leaves the last valid rendered state visible and retains legacy
+per-file fallback reads.
 
 Static frontend data served through `/data/**`:
 
