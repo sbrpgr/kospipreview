@@ -7,7 +7,7 @@ import { IndicatorList } from "@/components/indicator-list";
 import { NoticeContent } from "@/components/notice-content";
 import { PredictionTrendChart } from "@/components/prediction-trend-chart";
 import { SiteHeader } from "@/components/site-header";
-import { HomeTopAdBanner } from "@/components/home-top-ad-banner";
+import { SpiritArticleBanner } from "@/components/spirit-article-banner";
 import {
   getClientDataUrl,
   getLiveDashboardClientUrl,
@@ -760,7 +760,7 @@ export function LiveDashboard({
       <SiteHeader status={freshness.status} isSyncing={isSyncing} />
 
       <main>
-        <HomeTopAdBanner />
+      <SpiritArticleBanner />
 
         <section className="card heroSection">
           <h1 className="pageSeoTitle">{prediction.predictionDate} 코스피 시초가 예측 및 시장 지표 대시보드</h1>
