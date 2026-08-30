@@ -22,6 +22,24 @@ describe("public Spirit feed", () => {
   it("includes referral attribution", () => {
     expect(articleTrackingUrl(selectSpiritArticles([sample()])[0])).toContain("utm_source=kospipreview&utm_medium=referral&utm_campaign=spirit_latest&utm_content=1");
   });
+  it("reserves the selected thumbnail's actual aspect ratio", () => {
+    const post = sample();
+    Object.assign(post._embedded["wp:featuredmedia"][0].media_details.sizes.medium, { width: 300, height: 188 });
+    expect(selectSpiritArticles([post])[0]).toMatchObject({ imageWidth: 300, imageHeight: 188 });
+  });
+  it("uses original dimensions when the medium image is not usable", () => {
+    const post = sample();
+    Object.assign(post._embedded["wp:featuredmedia"][0], { source_url: "https://insightspiritmarket.com/original.webp", media_details: { width: 1600, height: 900, sizes: { medium: { source_url: "https://evil.test/image.webp", width: 300, height: 200 } } } });
+    expect(selectSpiritArticles([post])[0]).toMatchObject({ image: "https://insightspiritmarket.com/original.webp", imageWidth: 1600, imageHeight: 900 });
+  });
+  it("falls back safely when image dimensions are missing or malformed", () => {
+    expect(selectSpiritArticles([sample()])[0]).toMatchObject({ imageWidth: 300, imageHeight: 169 });
+    for (const height of [0, -1, NaN, Infinity, 0.5, 20001, "188"]) {
+      const post = sample();
+      Object.assign(post._embedded["wp:featuredmedia"][0].media_details.sizes.medium, { width: 300, height });
+      expect(selectSpiritArticles([post])[0]).toMatchObject({ imageWidth: 300, imageHeight: 169 });
+    }
+  });
   it("fetches without credentials and handles HTTP failures", async () => {
     const mock = vi.fn().mockResolvedValue({ok:true,json:async()=>[sample()]}); vi.stubGlobal("fetch",mock);
     expect(await fetchSpiritArticles()).toHaveLength(1);

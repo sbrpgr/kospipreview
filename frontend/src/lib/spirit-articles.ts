@@ -2,7 +2,7 @@ export const SPIRIT_ORIGIN = "https://insightspiritmarket.com";
 export const ARTICLE_REFRESH_MS = 5 * 60 * 1000;
 export const ARTICLE_API = `${SPIRIT_ORIGIN}/wp-json/wp/v2/posts?per_page=12&status=publish&orderby=date&order=desc&_embed=wp:featuredmedia&_fields=id,date_gmt,status,link,title,excerpt,meta,_links,_embedded`;
 
-export type SpiritArticle = { id: number; title: string; url: string; date: string; image: string | null };
+export type SpiritArticle = { id: number; title: string; url: string; date: string; image: string | null; imageWidth: number; imageHeight: number };
 type RecordValue = Record<string, unknown>;
 const record = (value: unknown): RecordValue => value && typeof value === "object" ? value as RecordValue : {};
 
@@ -40,10 +40,16 @@ export function selectSpiritArticles(payload: unknown, now = Date.now()): Spirit
     if (post.status !== "publish" || demo === true || demo === 1 || demo === "1" || record(post.excerpt).protected === true || !Number.isInteger(post.id) || seen.has(post.id as number) || !title || !url || !Number.isFinite(Date.parse(date)) || Date.parse(date) > now || /^\[임시글\]/.test(title)) continue;
     const mediaList = record(post._embedded)["wp:featuredmedia"];
     const media = record(Array.isArray(mediaList) ? mediaList[0] : null);
-    const sizes = record(record(media.media_details).sizes);
-    const image = safeSpiritUrl(record(sizes.medium).source_url) ?? safeSpiritUrl(media.source_url);
+    const details = record(media.media_details);
+    const medium = record(record(details.sizes).medium);
+    const mediumUrl = safeSpiritUrl(medium.source_url);
+    const image = mediumUrl ?? safeSpiritUrl(media.source_url);
+    const dimensions = mediumUrl ? medium : details;
+    const validDimensions = [dimensions.width, dimensions.height].every(value => typeof value === "number" && Number.isInteger(value) && value > 0 && value <= 20000);
+    const imageWidth = validDimensions ? dimensions.width as number : 300;
+    const imageHeight = validDimensions ? dimensions.height as number : 169;
     seen.add(post.id as number);
-    articles.push({ id: post.id as number, title, url, date, image });
+    articles.push({ id: post.id as number, title, url, date, image, imageWidth, imageHeight });
   }
   return articles.sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 3);
 }
