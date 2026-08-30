@@ -8,7 +8,7 @@ Applied 2026-08-31. Replaces the home top Coupang iframe and two advertisement-i
 - Fetches on each page visit and every five minutes while the page is visible; returning to the page checks again if five minutes elapsed. New WordPress publications require **no Hosting deployment or manual update**.
 - Eight-second timeout. On temporary failure, retains the current page's last successful feed for up to one hour, then shows the direct Market link. No disk cache. A successful empty feed immediately clears old cards. The prediction dashboard works independently.
 - Desktop: three cards. Up to 720px: one card, seven-second rotation, previous/next, swipe, arrow keys, pause/play. Focus/manual interaction pauses; hover, offscreen, background tabs and reduced-motion preference suppress automatic rotation.
-- Medium-size WordPress thumbnails; reserved dimensions prevent layout jumps. Plain article title remains readable if an image fails.
+- Each card is a fixed 50:50 image/text grid on desktop and mobile. Medium-size WordPress thumbnails use contain (no cover-text cropping); larger 15px titles allow up to five lines (six on narrow desktop cards). Reserved dimensions prevent layout jumps. Plain article title remains readable if an image fails.
 - Outbound links carry `utm_source=kospipreview`, `utm_medium=referral`, `utm_campaign=spirit_latest`, `utm_content=<post ID>`. Existing GA receives `spirit_article_click` and visible `spirit_article_impression`; no personal data is sent. Destination Analytics availability depends on its existing GA configuration.
 
 ## Verification and deployment

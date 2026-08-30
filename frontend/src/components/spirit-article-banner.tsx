@@ -100,7 +100,7 @@ export function SpiritArticleBanner() {
             {article.image ? (
               // Public WordPress medium-size thumbnails; no image optimization server required.
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={article.image} width="112" height="84" alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.visibility = "hidden"; }} />
+              <img src={article.image} width="300" height="169" alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.visibility = "hidden"; }} />
             ) : <span className="spiritArticleMonogram" aria-hidden="true">IS</span>}
             <span className="spiritArticleCopy"><small>경제·기술 인사이트</small><strong>{article.title}</strong><time dateTime={article.date}>{new Date(article.date).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" })}</time></span>
           </a>
