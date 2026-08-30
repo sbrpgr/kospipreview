@@ -289,7 +289,7 @@ p {
 .spiritArticleMonogram { display: grid; place-items: center; font: 600 28px Georgia,serif; color: #556178; }
 .spiritArticleCopy { display: flex; min-width: 0; flex-direction: column; justify-content: center; gap: 8px; padding: 12px; }
 .spiritArticleCopy small { font-size: .68rem; color: var(--brand-strong); }
-.spiritArticleCopy strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; font-size: .94rem; font-weight: 700; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
+.spiritArticleCopy strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; font-size: 1rem; font-weight: 700; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
 .spiritArticleCopy time { font-size: .7rem; color: var(--text-secondary); }
 .spiritArticlesFooter { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; min-height: 20px; }
 .spiritArticlesFooter > small { font-size: .63rem; color: var(--text-secondary); }
@@ -3929,7 +3929,7 @@ p {
   .spiritArticles { padding: 12px; margin-bottom: 18px; }
   .spiritArticleGrid { grid-template-columns: minmax(0,1fr); }
   .spiritArticle:not(.isActive) { display: none; }
-  .spiritArticleCopy strong { font-size: .96rem; }
+  .spiritArticleCopy strong { font-size: 1.04rem; }
   .spiritArticleControls { display: flex; }
   .spiritArticlesFooter { flex-wrap: wrap; }
 
