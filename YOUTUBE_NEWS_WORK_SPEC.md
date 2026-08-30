@@ -11,6 +11,8 @@ Last updated: 2026-07-12
 
 ## Current production behavior
 
+- The separate home top strip now reads Insight Spirit Market's latest published articles automatically; see `docs/SPIRIT_ARTICLE_FEED.md`. This does not change the YouTube news upload path or require deploys when WordPress articles are published.
+
 - Home page `/` shows only the latest 10 YouTube news posts.
 - Full board `/youtube-news` shows all collected YouTube news posts.
 - `/youtube-news` paginates posts by 10 items per page.

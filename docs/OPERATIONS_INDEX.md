@@ -16,7 +16,7 @@ If work resumes later, read these documents in order:
 8. `docs/CHANGELOG.md`
 9. `docs/HISTORY_DATA_GAP_INCIDENT_2026-05-22.md`
 10. `docs/INTRADAY_INDICATOR_SERIES_WORK_SPEC_2026-05-23.md`
-11. `docs/HOME_TOP_AD_BANNER_WORK_SPEC_2026-06-07.md`
+11. `docs/SPIRIT_ARTICLE_FEED.md` (replaces the old home top ad strip)
 12. `docs/MODEL2_CLOCK_SYNC_WORK_SPEC_2026-06-09.md`
 
 ## Current Production Summary
