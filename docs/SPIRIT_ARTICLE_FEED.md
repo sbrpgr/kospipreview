@@ -23,4 +23,4 @@ Ko Workspace: assets/spirit-market.mjs, styles.css, scripts/spirit-market.test.m
 
 Kospi Preview: frontend/src/lib/spirit-articles.ts and frontend/src/components/spirit-article-banner.tsx. Run test, typecheck, lint and build in frontend. CI must pass before merging; use deploy-hosting only. Do not deploy Cloud Run/Cloud Build, change model refresh, YouTube workflow, DNS or WordPress settings for this feature.
 
-After deployment verify both sites' real article titles/images and controls, then reset temporary viewport overrides and close only task-created browser tabs.
+Keep the play/pause button 68px wide so focus-triggered label changes cannot move Next during a click. After deployment verify both sites' real article titles/images and controls, then reset temporary viewport overrides and close only task-created browser tabs.

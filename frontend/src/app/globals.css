@@ -312,6 +312,7 @@ p {
 .spiritArticleControls { display: flex; align-items: center; gap: 6px; }
 .spiritArticleControls button { min-width: 32px; min-height: 32px; border: 1px solid var(--border); border-radius: 5px; background: #fff; color: var(--text-secondary); font: inherit; font-size: .75rem; cursor: pointer; }
 .spiritArticleControls span { font-size: .68rem; white-space: nowrap; color: var(--text-secondary); }
+.spiritArticleControls [data-playback] { width: 68px; min-width: 68px; flex: 0 0 68px; }
 .spiritArticleFallback { grid-column: 1/-1; align-self: center; text-align: center; color: var(--text-secondary); font-size: .8rem; }
 
 .heroSection {
