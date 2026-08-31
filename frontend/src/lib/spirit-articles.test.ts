@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { ARTICLE_API, articleTitle, articleTrackingUrl, fetchSpiritArticles, safeSpiritUrl, selectSpiritArticles } from "./spirit-articles";
 import { CHANNELS, HEALTH_ORIGIN, MONEY_CATEGORY_ID, ROTATION_MS, channelApi, selectChannelArticles, fetchSpiritChannels, mobileSequence, desktopEntries, emptyChannels } from "./spirit-articles";
 const sample = (id = 1) => ({ id, status: "publish", date_gmt: `2026-08-${String(id + 1).padStart(2,"0")}T01:00:00`, link: `https://insightspiritmarket.com/post-${id}/`, title: { rendered: "경제 &amp; 기술 &#8217;" }, excerpt: { protected: false }, meta: { insight_demo: false }, _embedded: { "wp:featuredmedia": [{ media_details: { sizes: { medium: { source_url: "https://insightspiritmarket.com/wp-content/uploads/test.webp" } } } }] } });
@@ -55,6 +56,9 @@ describe("public Spirit feed", () => {
 });
 
 describe("three-topic rotation", () => {
+  it("keeps playback width stable so focusing Next cannot shift the click target", () => {
+    expect(readFileSync(new URL("../app/globals.css", import.meta.url), "utf8")).toContain(".spiritArticleControls [data-playback] { width: 68px;");
+  });
   const market = CHANNELS[0], money = CHANNELS[1], health = CHANNELS[2];
   const ordinary = { ...sample(1), categories: [5] };
   const benefit = { ...sample(2), categories: [5, MONEY_CATEGORY_ID] };
