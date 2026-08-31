@@ -37,9 +37,7 @@ If work resumes later, read these documents in order:
 - Manual Model2 repair/clear workflow: GitHub Actions `refresh-holiday-prediction`
 - `/history` live path: static initial payload, then client sync from live dashboard, Model2 dashboard, and diagnostics API
 - Header support button: Ko-fi link `https://ko-fi.com/sbgkp` shown as `연구 후원하기` to the right of `문의`
-- Home top ad banner: three-column `320x140` style placement between the global header and homepage forecast hero.
-  The left slot uses Coupang Partners widget `id=995011`, `trackingCode=AF1258921`; the center and right slots show
-  `광고문의 ytbtheguy@gmail.com`.
+- Home top strip: three fixed topic slots (Market / Money tips / Health), each rotating its latest three published articles every seven seconds. Mobile interleaves nonempty topics; money-information is excluded from Market to avoid duplication. Feed refresh every five minutes, no WordPress publishing hook or backend. Deploy UI changes with deploy-hosting only; see docs/SPIRIT_ARTICLE_FEED.md.
 - YouTube news source archive: root `news/YYYY-MM-DD/HHMMSS/`
 - YouTube news public sync: `frontend/scripts/sync-news.mjs`
 - YouTube news dynamic API: `/api/news/youtube-news.json`, `/api/news/reports/**`

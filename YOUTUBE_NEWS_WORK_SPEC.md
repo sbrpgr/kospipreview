@@ -11,7 +11,7 @@ Last updated: 2026-07-12
 
 ## Current production behavior
 
-- The separate home top strip now reads Insight Spirit Market's latest published articles automatically; see `docs/SPIRIT_ARTICLE_FEED.md`. This does not change the YouTube news upload path or require deploys when WordPress articles are published.
+- The separate home top strip reads Market, Money tips and Health published feeds: three fixed desktop topic slots and balanced mobile topic rotation every seven seconds, with five-minute feed updates. See `docs/SPIRIT_ARTICLE_FEED.md`. YouTube news upload, model refresh and Cloud Run remain unchanged; new WordPress articles need no deployment.
 
 - Home page `/` shows only the latest 10 YouTube news posts.
 - Full board `/youtube-news` shows all collected YouTube news posts.
