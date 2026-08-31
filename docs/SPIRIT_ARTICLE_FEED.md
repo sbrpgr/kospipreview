@@ -1,18 +1,26 @@
-# Insight Spirit article strip
+# Three-topic Insight Spirit banner
 
-Applied 2026-08-31. Replaces the home top Coupang iframe and two advertisement-inquiry placeholders. The site-wide AdSense capability is unchanged.
+Updated 2026-08-31 at owner request. Existing ad slots are reused; no new banner region, server, paid service, admin credential or publication hook.
 
-- Source: public WordPress REST API on `https://insightspiritmarket.com`.
-- Displays the latest three published articles, regardless of author. Excludes demo, password-protected, future, invalid and duplicate posts. Titles render as React text; links/images must be HTTPS on the Market origin.
-- Queries 12 recent posts to allow filtering. No credentials, WordPress admin token, paid service, scheduler or publishing hook.
-- Fetches on each page visit and every five minutes while the page is visible; returning to the page checks again if five minutes elapsed. New WordPress publications require **no Hosting deployment or manual update**.
-- Eight-second timeout. On temporary failure, retains the current page's last successful feed for up to one hour, then shows the direct Market link. No disk cache. A successful empty feed immediately clears old cards. The prediction dashboard works independently.
-- Desktop: three cards. Up to 720px: one card, seven-second rotation, previous/next, swipe, arrow keys, pause/play. Focus/manual interaction pauses; hover, offscreen, background tabs and reduced-motion preference suppress automatic rotation.
-- Each card is a fixed 50:50 image/text grid on desktop and mobile. Medium-size WordPress thumbnails use contain (no cover-text cropping); larger 15px titles allow up to five lines (six on narrow desktop cards). Reserved dimensions prevent layout jumps. Plain article title remains readable if an image fails.
-- Outbound links carry `utm_source=kospipreview`, `utm_medium=referral`, `utm_campaign=spirit_latest`, `utm_content=<post ID>`. Existing GA receives `spirit_article_click` and visible `spirit_article_impression`; no personal data is sent. Destination Analytics availability depends on its existing GA configuration.
+- Desktop: fixed Market / Money tips / Health slots, each showing one of its latest three public posts every 7 seconds.
+- Mobile (up to 1000px): Market1 → Money1 → Health1 → Market2…; skip empty/failed topics. Shorter nonempty buckets wrap so each topic gets equal exposure.
+- Market source: insightspiritmarket.com, excluding category 9.
+- Money tips: same site, category 9 (money-information), including posts assigned additional categories. This topic is excluded from the general Market slot.
+- Health: insightspirithealth.com. Origin validation is per topic; WordPress IDs can overlap across sites without conflating articles or impressions.
+- Each query asks for 12 recent posts, chooses the latest three publish/non-protected/non-demo/non-preview posts, rejects future timestamps and duplicates. Titles are escaped/text-only; images and links must be HTTPS on that topic's exact origin without credentials.
+- Load on entry and every five minutes while visible; recheck on return if due. Three independent, anonymous requests with 8-second timeouts and omitted credentials/referrers. No editor text, input files, filenames or user identifiers sent.
+- A failed/empty desktop topic displays its own category/home link; no misleading borrowed article. On mobile it is skipped and re-enters automatically after eligible posts appear. No persistent cache; successful refresh removes withdrawn posts. Failure clears only the affected topic.
+- Controls: previous/next, play/pause. Mouse hover, keyboard focus/manual interaction, touch, hidden/offscreen state or reduced-motion preference suppress autoplay. Manual navigation remains possible with reduced motion. Motion uses a subtle 0.4-second fade-in, not flashes. No automatic link opening.
+- Images use half the card, uncropped contain, with space reserved for the thumbnail. Missing/broken images retain a brand placeholder and readable headline.
+- Outbound UTM campaign spirit_latest identifies the source platform. Article links include public post ID only; no custom user data. Ko uses source ko-workspace; Kospi uses kospipreview.
+- Current empty money-information category is deliberate: do not publish, relabel, invent or duplicate articles to populate it.
 
-## Verification and deployment
+## Maintenance
 
-Run `npm run test`, `npm run typecheck`, `npm run lint`, `npm run build` in `frontend`. Inspect desktop/mobile, pause and next controls, and normal WordPress REST updates. Deploy code changes using **deploy-hosting only**. Do not deploy Cloud Run/Cloud Build, touch model refresh or add a scheduled workflow for this feed.
+No deployment is needed for newly published articles. If WordPress category IDs/domains change, update channel configuration and origin tests. Test topic disjointness, health origin/media, matching IDs across sites, unequal/empty buckets, future/private/demo exclusion, request failure, controls, reduced motion and small screens.
 
-If no cards appear, check the public WP endpoint, HTTPS, CORS for `https://kospipreview.com` and `https://www.kospipreview.com`, and published/non-demo posts. Never expose admin credentials or globally cache authenticated `/wp-json/` traffic. CORS/fetch failure retains the direct link without breaking the home page.
+Ko Workspace: assets/spirit-market.mjs, styles.css, scripts/spirit-market.test.mjs. Cache version 20260831-02. Run npm.cmd run check and git diff --check; deploy existing main → Cloudflare Pages. EN/JA/ZH labels identify Korean content.
+
+Kospi Preview: frontend/src/lib/spirit-articles.ts and frontend/src/components/spirit-article-banner.tsx. Run test, typecheck, lint and build in frontend. CI must pass before merging; use deploy-hosting only. Do not deploy Cloud Run/Cloud Build, change model refresh, YouTube workflow, DNS or WordPress settings for this feature.
+
+After deployment verify both sites' real article titles/images and controls, then reset temporary viewport overrides and close only task-created browser tabs.
